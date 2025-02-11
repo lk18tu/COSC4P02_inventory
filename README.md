@@ -23,7 +23,7 @@ Bernier, Riley  - Developer<br>
 ```
 
 ## Getting Started
-- TBD
+- See 'QUICKSTART_GUIDE_inventory_track.pdf' in ../docs/
 
 ### Installation
 - TBD
