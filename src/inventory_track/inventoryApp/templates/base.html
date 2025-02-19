@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management</title>
+</head>
+<body>
+    <h1>Inventory Management</h1>
+    
+    <div>
+        <h2>Add Location</h2>
+        <form>
+            <label for="location_type">Type of Location:</label>
+            <input type="text" id="location_type" name="location_type" required>
+            <button type="submit">Add Location</button>
+        </form>
+    </div>
+
+    <div>
+        <h2>Add Item</h2>
+        
+
+        <form method="post" action="{% url 'add_item' %}">
+            {% csrf_token %}
+            
+            <label for="title">Item Name:</label>
+            <input type="text" id="title" name="title" required>
+    
+            <label for="completed">Description:</label>
+            <input type="checkbox" id="completed" name="completed">
+    
+            <label for="quantuty">Price:</label>
+            <input type="number" id="quantity" name="quantity" required>
+    
+            <button type="submit">Add Item</button>
+        </form>
+    </div>
+
+   
+
+    <br><br>
+    
+
+    
+    <table border="1">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Completed</th>
+                <th>Quantity</th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            {% for todo in todos %}
+            <tr>
+                <td>1</td>
+                <td>{{ todo.title }}</td>
+                <td>{% if todo.completed %}Completed{% else %}Not Completed{% endif %}</td>
+                <td>{{ todo.quantity }}</td>
+                <td><button>Edit</button></td>
+                <td><form method="post" action="{% url 'delete_item' todo.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" onclick="return confirm('Are you sure you want to delete this item?')">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+            
+        </tbody>
+    </table>
+
+    <div>
+        <h2>Upload CSV File</h2>
+        <form>
+            <label for="csv_file">Select CSV File:</label>
+            <input type="file" id="csv_file" name="csv_file" accept=".csv">
+            <button type="submit">Upload CSV</button>
+        </form>
+    </div>
+
+    <div>
+        <h2>Set Stock Level Notifications (Admin Only)</h2>
+        <form>
+            <label for="stock_threshold">Stock Level Threshold:</label>
+            <input type="number" id="stock_threshold" name="stock_threshold" required>
+            <button type="submit">Set Notifications</button>
+        </form>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <label for="field_name">New Field Name:</label>
+        <input type="text" id="field_name" name="field_name" required>
+    
+        <label for="field_value">Value:</label>
+        <input type="text" id="field_value" name="field_value">
+    
+        <button type="submit">Add Field</button>
+    </form>
+
+</body>
+</html>
