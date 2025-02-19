@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Read Message</title>
+</head>
+<body>
+    <h1>Message Details</h1>
+    <p><strong>From:</strong> {{ message.sender.username }}</p>
+    <p><strong>Subject:</strong> {{ message.subject }}</p>
+    <p><strong>Content:</strong></p>
+    <p>{{ message.content }}</p>
+    <a href="{% url 'inbox' %}">Back to Inbox</a>
+</body>
+</html>
