@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Send Message</title>
+</head>
+<body>
+    <h1>Send a Message</h1>
+    <form method="POST">
+        {% csrf_token %}
+        <label>Recipient (Username):</label>
+        <input type="text" name="recipient" required>
+        <label>Subject:</label>
+        <input type="text" name="subject">
+        <label>Message:</label>
+        <textarea name="content" required></textarea>
+        <button type="submit">Send</button>
+    </form>
+</body>
+</html>

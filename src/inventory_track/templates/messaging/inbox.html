@@ -1,6 +1,0 @@
-{% for message in messages %}
-<a href="{% url 'read_message' message.id %}">
-    <p>{{ message.subject }} ({{ message.sender }}) - {% if not message.read %}Unread{% else %}Read{% endif %}</p>
-</a>
-{% endfor %}
-
