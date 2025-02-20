@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Update Stock for {{ product.name }}</title>
+  </head>
+  <body>
+    <h1>Update Stock for {{ product.name }}</h1>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Save</button>
+    </form>
+    <p><a href="{% url 'updateStock:product_list' %}">Back to Product List</a></p>
+  </body>
+</html>

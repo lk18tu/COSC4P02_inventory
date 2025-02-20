@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'userauth',
     'messaging',
+    'updateStock',
 ]
 
 MIDDLEWARE = [

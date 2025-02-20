@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Product List</title>
+  </head>
+  <body>
+    <h1>Product List</h1>
+    {% if products %}
+      <ul>
+        {% for product in products %}
+          <li>
+            {{ product.name }} (Stock: {{ product.stock }})
+            &mdash; <a href="{% url 'updateStock:update_stock' product.pk %}">Update Stock</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p>No products available.</p>
+    {% endif %}
+    <p><a href="/userauth/dashboard/">Back to Dashboard</a></p>
+  </body>
+</html>
