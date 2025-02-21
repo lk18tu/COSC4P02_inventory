@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Manager - Current Stock Levels</title>
+  </head>
+  <body>
+    <h1>Current Stock Levels</h1>
+    {% if products %}
+      <table border="1" cellspacing="0" cellpadding="5">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Stock Level</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+            <tr>
+              <td>{{ product.name }}</td>
+              <td>{{ product.stock }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No products available.</p>
+    {% endif %}
+    <p><a href="/userauth/dashboard/">Back to Dashboard</a></p>
+  </body>
+</html>

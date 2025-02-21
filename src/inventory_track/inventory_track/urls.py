@@ -22,4 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('userauth/', include('userauth.urls')),  # Include userauth app URLs
     path('messaging/', include('messaging.urls')),  # Add Messaging app
+    path('manager/', include(('manager.urls', 'manager'), namespace='manager')), #Stock Viewing functionality for managers
 ]
