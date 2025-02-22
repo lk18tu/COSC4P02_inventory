@@ -1,16 +1,31 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Update Stock for {{ product.name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
   </head>
-  <body>
-    <h1>Update Stock for {{ product.name }}</h1>
-    <form method="post">
-      {% csrf_token %}
-      {{ form.as_p }}
-      <button type="submit">Save</button>
-    </form>
-    <p><a href="{% url 'updateStock:product_list' %}">Back to Product List</a></p>
+  <body class="bg-light">
+    <div class="container my-5">
+      <div class="card shadow-lg">
+        <div class="card-header">
+          <h2 class="mb-0">Update Stock for {{ product.name }}</h2>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary">Save</button>
+          </form>
+        </div>
+        <div class="card-footer text-end">
+          <a href="{% url 'updateStock:product_list' %}" class="btn btn-secondary">Back to Product List</a>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
