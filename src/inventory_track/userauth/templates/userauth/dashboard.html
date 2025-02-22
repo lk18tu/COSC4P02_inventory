@@ -7,6 +7,9 @@
 <br>
 Registered email:  {{ request.user.email}} <br><br>
 <p>dashboard here (TODO).</p>
+   <p>
+     <a href="{% url 'manager:view_stock' %}">View Current Stock Levels</a>
+   </p>
 <a href="{% url 'logout' %}">Logout</a>
 
 </body>

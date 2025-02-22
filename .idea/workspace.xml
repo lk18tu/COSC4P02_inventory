@@ -4,7 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="78dbae21-7da9-499c-a4a9-8b041f3dcd83" name="Changes" comment="" />
+    <list default="true" id="78dbae21-7da9-499c-a4a9-8b041f3dcd83" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/inventory_track/manager/templates/manager/stock_view.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/inventory_track/manager/templates/manager/stock_view.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/inventory_track/userauth/templates/userauth/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/src/inventory_track/userauth/templates/userauth/dashboard.html" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -36,10 +40,11 @@
   "keyToString": {
     "ASKED_SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "DefaultHtmlFileTemplate": "HTML File",
+    "Django Server.COSC4P02_inventory.executor": "Run",
     "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "updateStock",
+    "django.template.preview.state": "SHOW_EDITOR_AND_PREVIEW",
+    "git-widget-placeholder": "manager-view",
     "last_opened_file_path": "D:/Ameya/School/COSC_4P02/InventoryManagement",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -58,6 +63,7 @@
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
+        <env name="DJANGO_SETTINGS_MODULE" value="inventory_track.settings" />
       </envs>
       <option name="SDK_HOME" value="" />
       <option name="WORKING_DIRECTORY" value="" />
@@ -94,6 +100,7 @@
       <updated>1740047592591</updated>
       <workItem from="1740047593688" duration="1402000" />
       <workItem from="1740049182913" duration="6036000" />
+      <workItem from="1740214816587" duration="707000" />
     </task>
     <servers />
   </component>
