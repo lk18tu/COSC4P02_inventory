@@ -1,0 +1,28 @@
+/* Notification Bell Styling */
+.notification-icon {
+    font-size: 1.5rem;
+    color: black;
+    text-decoration: none;
+    position: relative;
+    margin-right: 20px;
+}
+
+.notification-icon:hover {
+    color: #007bff; /* Change color on hover */
+}
+
+/* Notification Badge */
+.notification-icon .badge {
+    font-size: 0.75rem;
+    padding: 5px;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background-color: red;
+    color: white;
+    border-radius: 50%;
+    min-width: 18px;
+    min-height: 18px;
+    text-align: center;
+    font-weight: bold;
+}

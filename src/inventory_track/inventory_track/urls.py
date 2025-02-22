@@ -17,8 +17,21 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+<<<<<<< HEAD
+=======
+from django.shortcuts import render  
+
+
+def index(request):
+    return render(request, "index.html")
+>>>>>>> 0c9bf6e (Add notification)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('userauth/', include('userauth.urls')),  # Include userauth app URLs
+<<<<<<< HEAD
+=======
+    path('messaging/', include('messaging.urls')),  # Add Messaging app
+    path("notifications/", include("notifications.urls")),
+>>>>>>> 0c9bf6e (Add notification)
 ]

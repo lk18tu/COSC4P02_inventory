@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Inbox</title>
+</head>
+<body>
+    <h1>Your Inbox</h1>
+    {% for message in messages %}
+        <a href="{% url 'read_message' message.id %}">
+            <p><strong>{{ message.subject }}</strong> (From: {{ message.sender.username }}) - 
+            {% if not message.read %} <span style="color: red;">Unread</span> {% else %} Read {% endif %}</p>
+        </a>
+    {% empty %}
+        <p>No messages in your inbox.</p>
+    {% endfor %}
+</body>
+</html>
