@@ -1,0 +1,16 @@
+<h2>Add New Item</h2>
+<form method="POST">
+    {% csrf_token %}
+    <label>Title:</label>
+    <input type="text" name="title" required><br>
+
+    <label>Quantity:</label>
+    <input type="number" name="quantity" required><br>
+
+    <label>Completed:</label>
+    <input type="checkbox" name="completed"><br>
+
+    <button type="submit">Add Item</button>
+</form>
+
+<a href="{% url 'home' %}">Cancel</a>  <!-- Back to home -->

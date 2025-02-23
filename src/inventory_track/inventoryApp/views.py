@@ -1,12 +1,12 @@
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
-from .models import TodoItem
+from .models import InvItem
 
 print("RECIVED")
 
 # Create your views here.
 def home(request):
     print("RECIVED")
-    items = TodoItem.objects.all()
+    items = InvItem.objects.all()
 
 
     if request.method == "POST":
@@ -14,36 +14,30 @@ def home(request):
         completed = request.POST.get("completed") == "on"
         quantity = request.POST.get("quantity")
 
-        print("RECIVED nowwwwwwwwwwwwwwwww")
-
         # Create and save the new item
-        TodoItem.objects.create(title=title, completed=completed, quantity=quantity)
+        InvItem.objects.create(title=title, completed=completed, quantity=quantity)
         return redirect("")  # Redirect to an item list page (change as needed)
     
-    return render(request, "base.html", {"todos": items})
+    return render(request, "base.html", {"invItems": items})
 
 
 
 
-# function to add item with html form
 def add_item(request):
-    items = TodoItem.objects.all()
     if request.method == "POST":
-        title = request.POST.get("title")
-        completed = request.POST.get("completed") == "on"
-        quantity = request.POST.get("quantity")
-
-        print("RECIVED nowwwwwwwwwwwwwwwww")
+        title = request.POST["title"]
+        completed = "completed" in request.POST  # Checkbox handling
+        quantity = request.POST["quantity"]
 
         # Create and save the new item
-        TodoItem.objects.create(title=title, completed=completed, quantity=quantity)
-        return redirect('home')  # Redirect to an item list page (change as needed)
+        InvItem.objects.create(title=title, completed=completed, quantity=quantity)
+        return redirect("home")  # Redirect to homepage after adding
 
-    return render(request, "base.html", {"todos": items})
+    return render(request, "add_item.html")  # Show the add form
 
 
 def delete_item(request, item_id):
-    item = get_object_or_404(TodoItem, id=item_id)
+    item = get_object_or_404(InvItem, id=item_id)
     
     if request.method == "POST":  # Ensure deletion only happens on POST request
         item.delete()
@@ -52,3 +46,17 @@ def delete_item(request, item_id):
 
     return render(request, "base.html")  # Not necessary, but a fallback
 
+
+
+
+def edit_item(request, item_id):
+    item = get_object_or_404(InvItem, id=item_id)  # Fetch the item
+
+    if request.method == "POST":
+        item.title = request.POST["title"]
+        item.completed = "completed" in request.POST  # Checkbox handling
+        item.quantity = request.POST["quantity"]
+        item.save()  # Save changes to database
+        return redirect("home")  # Redirect back to homepage after update
+
+    return render(request, "edit_item.html", {"item": item})  # Show the edit form

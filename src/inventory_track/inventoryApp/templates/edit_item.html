@@ -1,0 +1,16 @@
+<h2>Edit Item</h2>
+<form method="POST">
+    {% csrf_token %}
+    <label>Title:</label>
+    <input type="text" name="title" value="{{ item.title }}" required><br>
+
+    <label>Quantity:</label>
+    <input type="number" name="quantity" value="{{ item.quantity }}" required><br>
+
+    <label>Completed:</label>
+    <input type="checkbox" name="completed" {% if item.completed %}checked{% endif %}><br>
+
+    <button type="submit">Save Changes</button>
+</form>
+
+<a href="{% url 'home' %}">Cancel</a>  <!-- Back to home -->

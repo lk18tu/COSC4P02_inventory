@@ -2,7 +2,7 @@ from django.db import models
 
 # Create your models here.
 
-class TodoItem(models.Model):
+class InvItem(models.Model):
     title = models.CharField(max_length=200)
     completed = models.BooleanField(default=False)
     quantity = models.IntegerField(default=0)
