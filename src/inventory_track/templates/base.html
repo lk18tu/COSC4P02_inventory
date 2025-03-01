@@ -1,0 +1,59 @@
+<html>
+<head>
+    
+    <title>{% block title %}Inventory Track{% endblock %}</title>
+    <style>
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+               
+        .navbar {
+            background-color: #333333;
+            overflow: hidden;
+            position: fixed; 
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        
+        .navbar a {
+            float: left;
+            display: block;
+            color: #FFFFFF;
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+        }
+        
+        .navbar a:hover {
+            background-color: #333333;
+            color: black;
+        }
+        
+        .content {
+            margin-top: 60px; /*padding for navbar height */
+            padding: 20px;
+        }
+        
+</style>
+</head>
+<body>
+   
+    <div class="navbar">
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'updateStock:product_list' %}">Inventory</a>
+        
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+    
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+</body>
+</html>

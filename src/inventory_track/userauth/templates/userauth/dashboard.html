@@ -1,8 +1,7 @@
-<html>
-<head>
-    <title>Dashboard</title>
-</head>
-<body>
+{% extends 'base.html' %}
+{% block title %} Dashboard {% endblock %}
+
+{% block content %}
    <h2>Welcome {{ request.user.username }}</h2>
    <br>
    Registered email:  {{ request.user.email}} <br><br>
@@ -11,5 +10,4 @@
 
 <a href="{% url 'logout' %}">Logout</a>
 
-</body>
-</html>
+{% endblock %}
