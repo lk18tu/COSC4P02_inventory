@@ -21,8 +21,8 @@
             <p>{{ message.content|linebreaks }}</p>
         </div>
         <div class="card-footer">
-            <a href="{% url 'inbox' %}" class="btn btn-outline-primary">Back to Inbox</a>
-            <a href="{% url 'send_message' %}" class="btn btn-success">Reply</a>
+            <a href="{% url 'messaging:inbox' %}" class="btn btn-outline-primary">Back to Inbox</a>
+            <a href="{% url 'messaging:send_message' %}" class="btn btn-success">Reply</a>
         </div>
     </div>
 </div>
