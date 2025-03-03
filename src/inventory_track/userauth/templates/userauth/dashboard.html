@@ -3,11 +3,20 @@
 
 {% block content %}
    <h2>Welcome {{ request.user.username }}</h2>
+<<<<<<< HEAD
    <br>
    Registered email:  {{ request.user.email}} <br><br>
    <p>dashboard here (TODO).</p>
    <p><a href="{% url 'updateStock:product_list' %}">View Product List</a></p>
 
+=======
+<br>
+Registered email:  {{ request.user.email}} <br><br>
+<p>dashboard here (TODO).</p>
+   <p>
+     <a href="{% url 'manager:view_stock' %}">View Current Stock Levels</a>
+   </p>
+>>>>>>> manager-view
 <a href="{% url 'logout' %}">Logout</a>
 
 {% endblock %}
