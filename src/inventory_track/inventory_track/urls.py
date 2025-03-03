@@ -23,4 +23,5 @@ urlpatterns = [
     path('userauth/', include('userauth.urls')),  # Include userauth app URLs
     path('messaging/', include(('messaging.urls', 'messaging'), namespace='messaging')),  # Add Messaging app
     path('updateStock/', include(('updateStock.urls', 'updateStock'), namespace='updateStock')), #urls for stock update
+    path('manager/', include(('manager.urls', 'manager'), namespace='manager')),
 ]

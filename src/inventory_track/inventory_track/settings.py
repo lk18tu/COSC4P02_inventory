@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'userauth',
     'messaging',
     'updateStock',
+    'manager',
 ]
 
 MIDDLEWARE = [
