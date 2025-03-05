@@ -22,4 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('userauth/', include('userauth.urls')),  # Include userauth app URLs
     path('messaging/', include('messaging.urls')),  # Add Messaging app
+    path('invManage/', include('inventoryApp.urls')),  # Add Messaging app
 ]
