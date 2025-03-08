@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {% load static %}
 <!DOCTYPE html>
 <html lang="en">
@@ -28,3 +29,26 @@
 
 </body>
 </html>
+=======
+{% extends 'base.html' %}
+{% block title %} Inbox {% endblock %}
+{% block content %}
+
+    <h2>📩 Your Inbox</h2>
+    
+        {% for message in messages %}
+            <a href="{% url 'messaging:read_message' message.id %}" 
+               class="list-group-item list-group-item-action {% if not message.read %}list-group-item-warning{% endif %}">
+                <h5>{{ message.subject|default:"(No Subject)" }}</h5>
+                <p>From: <strong>{{ message.sender.username }}</strong></p>
+                <small>Sent at: {{ message.timestamp }}</small>
+            </a>
+        {% empty %}
+            <p>No messages in your inbox.</p>
+        {% endfor %}
+    
+    <a href="{% url 'messaging:send_message' %}" class="btn btn-primary mt-3">Send a New Message</a>
+
+
+{% endblock %}
+>>>>>>> origin/main
