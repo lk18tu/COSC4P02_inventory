@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Custom Field</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Add Custom Field</h1>
+
+        {% if messages %}
+            <div class="mt-3">
+                {% for message in messages %}
+                    <div class="alert {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="field_name" class="form-label">Field Name:</label>
+                <input type="text" id="field_name" name="field_name" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="field_value" class="form-label">Field Value:</label>
+                <input type="text" id="field_value" name="field_value" class="form-control" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add Field</button>
+            <a href="{% url 'home' %}" class="btn btn-secondary">Cancel</a>
+        </form>
+    </div>
+</body>
+</html>
