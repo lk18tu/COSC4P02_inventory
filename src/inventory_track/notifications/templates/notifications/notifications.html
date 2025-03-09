@@ -1,15 +1,19 @@
-{% extends "base.html" %}  
-
-{% block content %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notifications</title>
+</head>
+<body>
     <h1>Your Notifications</h1>
     {% for notification in notifications %}
         <p>
             {{ notification.message }} ({{ notification.created_at|date:"Y-m-d H:i" }})
             {% if not notification.is_read %}
-                <a href="{% url 'mark_notification_read' notification.id %}">Mark as Read</a>
+                <a href="{% url 'notifications:mark_notification_read' notification.id %}">Mark as Read</a>
             {% endif %}
         </p>
     {% empty %}
         <p>No notifications.</p>
     {% endfor %}
-{% endblock %}
+</body>
+</html>

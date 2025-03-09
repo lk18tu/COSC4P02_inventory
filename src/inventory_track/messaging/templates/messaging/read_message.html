@@ -1,14 +1,31 @@
+{% load static %}
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Read Message</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
-<body>
-    <h1>Message Details</h1>
-    <p><strong>From:</strong> {{ message.sender.username }}</p>
-    <p><strong>Subject:</strong> {{ message.subject }}</p>
-    <p><strong>Content:</strong></p>
-    <p>{{ message.content }}</p>
-    <a href="{% url 'inbox' %}">Back to Inbox</a>
+<body class="bg-light">
+
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header {% if message.read %}bg-secondary{% else %}bg-primary{% endif %} text-white">
+            <h4>📨 {{ message.subject|default:"(No Subject)" }}</h4>
+        </div>
+        <div class="card-body">
+            <p><strong>From:</strong> {{ message.sender.username }}</p>
+            <p><strong>Sent at:</strong> {{ message.timestamp }}</p>
+            <hr>
+            <p>{{ message.content|linebreaks }}</p>
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'messaging:inbox' %}" class="btn btn-outline-primary">Back to Inbox</a>
+            <a href="{% url 'messaging:send_message' %}" class="btn btn-success">Reply</a>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
