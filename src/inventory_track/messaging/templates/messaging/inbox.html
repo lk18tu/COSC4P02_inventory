@@ -1,3 +1,38 @@
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inbox</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+
+<div class="container mt-5">
+    <h2 class="mb-4">📩 Your Inbox</h2>
+    <div class="list-group">
+        {% for message in messages %}
+            <a href="{% url 'read_message' message.id %}" 
+               class="list-group-item list-group-item-action {% if not message.read %}list-group-item-warning{% endif %}">
+                <h5 class="mb-1">{{ message.subject|default:"(No Subject)" }}</h5>
+                <p class="mb-1">From: <strong>{{ message.sender.username }}</strong></p>
+                <small class="text-muted">Sent at: {{ message.timestamp }}</small>
+            </a>
+        {% empty %}
+            <p class="text-muted">No messages in your inbox.</p>
+        {% endfor %}
+    </div>
+    <a href="{% url 'send_message' %}" class="btn btn-primary mt-3">Send a New Message</a>
+</div>
+
+</body>
+</html>
+=======
+>>>>>>> main
 {% extends 'base.html' %}
 {% block title %} Inbox {% endblock %}
 {% block content %}
@@ -19,3 +54,7 @@
 
 
 {% endblock %}
+<<<<<<< HEAD
+=======
+>>>>>>> origin/main
+>>>>>>> main
