@@ -55,5 +55,20 @@
         {% endblock %}
     </div>
 
+<<<<<<< HEAD
+    {% if request.user.is_authenticated %}
+    <a href="{% url 'notifications:view_notifications' %}" class="notification-icon">
+        🛎️ Notifications
+        {% with unread_notifications=unread_notifications %}
+            {% if unread_notifications > 0 %}
+                <span class="badge">{{ unread_notifications }}</span>
+            {% endif %}
+        {% endwith %}
+    </a>
+{% endif %}
+
+
+=======
+>>>>>>> main
 </body>
 </html>

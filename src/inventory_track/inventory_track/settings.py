@@ -41,11 +41,17 @@ INSTALLED_APPS = [
     'userauth',
     'messaging',
 <<<<<<< HEAD
+    'updateStock',
+    'manager',
+    'notifications',
+=======
+<<<<<<< HEAD
     'inventoryApp',
 =======
     'updateStock',
     'manager',
 >>>>>>> origin/main
+>>>>>>> main
 ]
 
 MIDDLEWARE = [
