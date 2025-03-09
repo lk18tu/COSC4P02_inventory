@@ -1,34 +1,91 @@
-{% extends 'base.html' %}
-{% block title %} Dashboard {% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
 
-{% block content %}
-   <h2>Welcome {{ request.user.username }}</h2>
-<<<<<<< HEAD
+        .navbar {
+            background-color: #333333;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
 
-=======
-<<<<<<< HEAD
->>>>>>> main
-   <br>
-   Registered email:  {{ request.user.email}} <br><br>
-   <p>dashboard here (TODO).</p>
-   <p><a href="{% url 'updateStock:product_list' %}">View Product List</a></p>
+        .navbar a {
+            float: left;
+            display: block;
+            color: #FFFFFF;
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+        }
 
-<<<<<<< HEAD
+        .navbar a:hover {
+            background-color: #757575;
+            color: black;
+        }
 
-=======
-=======
->>>>>>> main
-<br>
-Registered email:  {{ request.user.email}} <br><br>
-<p>dashboard here (TODO).</p>
-   <p>
-     <a href="{% url 'manager:view_stock' %}">View Current Stock Levels</a>
-   </p>
-<<<<<<< HEAD
+        .content {
+            margin-top: 60px; /* Padding for navbar height */
+            padding: 20px;
+        }
 
-=======
->>>>>>> manager-view
->>>>>>> main
-<a href="{% url 'logout' %}">Logout</a>
+        .dashboard-section {
+            background-color: #f0f0f0;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 10px;
+        }
 
-{% endblock %}
+        h2, h3 {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'updateStock:product_list' %}">Inventory</a>
+        <a href="{% url 'messaging:inbox' %}">Messaging</a>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+    <div class="content">
+        <div class="dashboard-header">
+            <h2>Welcome, {{ request.user.username }}!</h2>
+            <p>Registered email: {{ request.user.email }}</p>
+        </div>
+
+        <div class="dashboard-section">
+            <h3>Messages</h3>
+            <!-- Placeholder for messages list -->
+            <p>You have no new messages.</p>
+            <a href="{% url 'messaging:inbox' %}">Go to Inbox</a>
+        </div>
+
+        <div class="dashboard-section">
+            <h3>Notifications</h3>
+            <!-- Placeholder for notifications -->
+            <p>You have no new notifications.</p>
+            <a href="{% url 'notifications:view_notifications' %}">View Notifications</a>
+        </div>
+
+        <div class="dashboard-section">
+            <h3>Analysis Tools (Coming Soon)</h3>
+            <!-- Placeholder for analysis tools -->
+            <p>This section is under development and will be available soon.</p>
+        </div>
+    </div>
+
+</body>
+</html>
