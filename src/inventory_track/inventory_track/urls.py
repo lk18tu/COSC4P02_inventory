@@ -22,7 +22,7 @@ from django.shortcuts import redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('userauth/', include('userauth.urls')),  # Include userauth app URLs
-    path('messaging/', include('messaging.urls'), namespace='messaging'),  # Add Messaging app
+    path('messaging/', include('messaging.urls', namespace='messaging')),  # Add Messaging app
     path('updateStock/', include('updateStock.urls', namespace='updateStock')),
     path('manager/', include('manager.urls', namespace='manager')),
     path('notifications/', include('notifications.urls')),
