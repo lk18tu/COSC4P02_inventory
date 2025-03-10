@@ -11,6 +11,11 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 
+
+from notifications.models import Notification
+
+
+
 def register(request):
     if request.method == 'POST':
         username = request.POST['username']
@@ -51,5 +56,15 @@ def user_logout(request):
 
 @login_required
 def dashboard(request):
+
     return render(request, 'userauth/dashboard.html')
+
+    unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count() or 0
+    print("Unread Notifications Count:", unread_notifications)  
+    return render(request, "userauth/dashboard.html", {"unread_notifications": unread_notifications})
+    
+
+
+
+
 
