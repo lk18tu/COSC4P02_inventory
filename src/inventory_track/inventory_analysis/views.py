@@ -19,7 +19,7 @@ DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 MODEL_NAME = "deepseek-chat"
 
 def get_inventory_context():
-    items = InventoryItem.objects.all().order_by("quantity")[:10]  # 取库存最低的 10 个商品
+    items = InventoryItem.objects.all().order_by("quantity")[:10]
     if not items:
         return "No inventory data available."
 
@@ -28,37 +28,29 @@ def get_inventory_context():
     return context
 
 def llm_advisor(request):
-    """
-    处理 LLM 查询，结合库存数据，调用 Deepseek API 生成个性化建议
-    """
     if request.method == "POST":
         try:
             user_input = request.POST.get("query", "").strip()
 
-            # 获取当前库存情况
             inventory_context = get_inventory_context()
 
-            # 构造 Deepseek API 请求体
             data = {
                 "model": MODEL_NAME,
                 "messages": [
                     {"role": "system", "content": "You are an AI assistant that specializes in inventory management. Analyze the given inventory data and provide actionable restocking advice."},
-                    {"role": "system", "content": inventory_context},  # 传递库存数据
+                    {"role": "system", "content": inventory_context}, 
                     {"role": "user", "content": user_input}
                 ],
                 "temperature": 0.7
             }
 
-            # 构造请求头
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {DEEPSEEK_API_KEY}"
             }
 
-            # 发送 POST 请求到 Deepseek API
             response = requests.post(DEEPSEEK_API_URL, headers=headers, json=data)
 
-            # 解析 API 响应
             if response.status_code == 200:
                 result = response.json()
                 llm_response = result["choices"][0]["message"]["content"]
