@@ -1,0 +1,93 @@
+<html>
+<head>
+    
+    <title>{% block title %}Inventory Track{% endblock %}</title>
+    <style>
+        
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+               
+        .navbar {
+            background-color: #333333;
+            overflow: hidden;
+            position: fixed; 
+            top: 0;
+            width: 100%;
+            z-index: 1000;
+        }
+        
+        .navbar a {
+            float: left;
+            display: block;
+            color: #FFFFFF;
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+        }
+        
+        .navbar a:hover {
+            background-color: #757575;
+            color: black;
+        }
+                
+        .dropdown {
+            float: left;
+            overflow: hidden;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #444;
+            min-width: 180px;
+            box-shadow: 0px 8px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+        } 
+        
+        .dropdown-content a {
+            float: none;
+            color: white;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+        }
+        
+        .dropdown-content a:hover {
+            background-color: #555;
+        }
+        
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .content {
+            margin-top: 60px; /*padding for navbar height */
+            padding: 20px;
+        }
+        
+</style>
+</head>
+<body>
+   
+    <div class="navbar">
+        <a href="{% url 'dashboard' %}">Dashboard</a>
+        <a href="{% url 'updateStock:product_list' %}">Inventory</a>
+        <a href="{% url 'messaging:inbox' %}">Messaging</a>
+        <a href="{% url 'inventory_chart' %}">Chart</a>
+        <a href="{% url 'llm_advisor' %}">Advisor</a>
+        <a href="{% url 'search_inventory' %}">Search</a>
+        <a href="{% url 'logout' %}">Logout</a>
+    </div>
+
+    
+    <div class="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+</body>
+</html>
