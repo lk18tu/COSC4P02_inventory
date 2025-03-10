@@ -22,27 +22,10 @@ from django.shortcuts import redirect
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('userauth/', include('userauth.urls')),  # Include userauth app URLs
-<<<<<<< HEAD
-    path('messaging/', include(('messaging.urls', 'messaging'), namespace='messaging')),  # Add Messaging app
-    path('updateStock/', include(('updateStock.urls', 'updateStock'), namespace='updateStock')), #urls for stock update
-    path('manager/', include(('manager.urls', 'manager'), namespace='manager')),
-    path('invManage/', include(('inventoryApp.urls', 'inventoryApp'), namespace='inventoryApp')),  
-=======
-<<<<<<< HEAD
-    path('messaging/', include(('messaging.urls', 'messaging'), namespace='messaging')),  # Add Messaging app
-    path('updateStock/', include(('updateStock.urls', 'updateStock'), namespace='updateStock')), #urls for stock update
-    path('manager/', include(('manager.urls', 'manager'), namespace='manager')),
-    path("notifications/", include("notifications.urls")),
-    path("", lambda request: redirect("userauth/login/")),
-=======
-<<<<<<< HEAD
-    path('messaging/', include('messaging.urls')),  # Add Messaging app
-    path('invManage/', include('inventoryApp.urls')),  # Add Messaging app
-=======
-    path('messaging/', include(('messaging.urls', 'messaging'), namespace='messaging')),  # Add Messaging app
-    path('updateStock/', include(('updateStock.urls', 'updateStock'), namespace='updateStock')), #urls for stock update
-    path('manager/', include(('manager.urls', 'manager'), namespace='manager')),
->>>>>>> origin/main
->>>>>>> main
->>>>>>> origin/main
+    path('messaging/', include('messaging.urls'), namespace='messaging'),  # Add Messaging app
+    path('updateStock/', include('updateStock.urls', namespace='updateStock')),
+    path('manager/', include('manager.urls', namespace='manager')),
+    path('notifications/', include('notifications.urls')),
+    path('invManage/', include('inventoryApp.urls', namespace='inventoryApp')),
+    path("", lambda request: redirect("userauth/login/")),  # Redirect root to login page
 ]

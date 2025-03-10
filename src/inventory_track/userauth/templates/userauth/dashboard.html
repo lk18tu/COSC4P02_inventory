@@ -1,40 +1,33 @@
 {% extends 'base.html' %}
+
 {% block title %} Dashboard {% endblock %}
 
 {% block content %}
-   <h2>Welcome {{ request.user.username }}</h2>
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
+    <h2>Welcome {{ request.user.username }}</h2>
 
-=======
-<<<<<<< HEAD
->>>>>>> main
-   <br>
-   Registered email:  {{ request.user.email}} <br><br>
-   <p>dashboard here (TODO).</p>
-   <p><a href="{% url 'updateStock:product_list' %}">View Product List</a></p>
+    <p>Registered email: {{ request.user.email }}</p>
+    <p>dashboard here (TODO).</p>
 
-<<<<<<< HEAD
+    <a href="{% url 'notifications:view_notifications' %}" class="notification-icon">
+        {% if unread_notifications > 0 %}
+            ⚠ Notifications <span class="badge">{{ unread_notifications }}</span>
+        {% else %}
+            Notifications
+        {% endif %}
+    </a>
 
-=======
-=======
->>>>>>> main
->>>>>>> origin/main
-<br>
-Registered email:  {{ request.user.email}} <br><br>
-<p>dashboard here (TODO).</p>
-   <p>
-     <a href="{% url 'manager:view_stock' %}">View Current Stock Levels</a>
-   </p>
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
+    <p>
+        <a href="{% url 'updateStock:product_list' %}">View Product List</a>
+    </p>
 
-=======
->>>>>>> manager-view
->>>>>>> main
->>>>>>> origin/main
-<a href="{% url 'logout' %}">Logout</a>
+    <p>
+        <a href="{% url 'manager:view_stock' %}">View Current Stock Levels</a>
+    </p>
 
+    <p>
+        <a href="{% url 'logout' %}">Logout</a>
+    </p>
+
+    <!-- Debug output -->
+    <p>End of dashboard template.</p>
 {% endblock %}

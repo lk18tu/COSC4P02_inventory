@@ -1,6 +1,6 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    
     <title>{% block title %}Inventory Track{% endblock %}</title>
     <style>
         
@@ -45,30 +45,30 @@
     <div class="navbar">
         <a href="{% url 'dashboard' %}">Dashboard</a>
         <a href="{% url 'inventoryApp:home' %}">Inventory</a>
-        <a href="{% url 'messaging:inbox' %}">Messaging</a>
+        <a href="{% url 'updateStock:product_list' %}">Inventory</a>
+        <a href="{% url 'messaging:inbox' %}">Messaging</a> 
+        <a href="{% url 'notifications:view_notifications' %}" class="notification-icon">
+            {% if unread_notifications > 0 %}
+                🔔 Notifications <span class="badge">{{ unread_notifications }}</span>
+            {% else %}
+                Notifications
+            {% endif %}
+        </a>
         <a href="{% url 'logout' %}">Logout</a>
     </div>
-
     
     <div class="content">
         {% block content %}
         {% endblock %}
     </div>
 
-<<<<<<< HEAD
+    
     {% if request.user.is_authenticated %}
-    <a href="{% url 'notifications:view_notifications' %}" class="notification-icon">
-        🛎️ Notifications
         {% with unread_notifications=unread_notifications %}
             {% if unread_notifications > 0 %}
-                <span class="badge">{{ unread_notifications }}</span>
             {% endif %}
         {% endwith %}
-    </a>
-{% endif %}
+    {% endif %}
 
-
-=======
->>>>>>> main
 </body>
 </html>
