@@ -34,7 +34,7 @@ def home(request):
             print(f"Error fetching data for {table_name}: {e}")
             continue  # Continue with the next table if there's an error
 
-    return render(request, "base.html", {"table_data": table_data})
+    return render(request, "inventoryHome.html", {"table_data": table_data})
 
 def add_custom_field(request):
     if request.method == "POST":
@@ -57,7 +57,7 @@ def add_custom_field(request):
             except Exception as e:
                 messages.error(request, f"Error: {e}")
 
-        return redirect("home")
+        return redirect("InventoryApp:home")
 
     return render(request, "add_custom_field.html")
 
@@ -81,12 +81,12 @@ def add_item(request, table_name):
                         f"INSERT INTO {table_name} (title, quantity, completed) VALUES (%s, %s, %s)",
                         [title, quantity, completed]
                     )
-                    return redirect("home")
+                    return redirect("inventoryApp:home")
                 else:
                     raise Http404(f"Table '{table_name}' does not exist.")
         except Exception as e:
             print(f"Error adding item to table {table_name}: {str(e)}")
-            return redirect("home")
+            return redirect("inventoryApp:home")
 
     return render(request, "add_item.html", {"table_name": table_name})
 
@@ -113,7 +113,7 @@ def add_inventory(request):
                 
                 InvTable_Metadata.objects.create(table_name=table_name, table_type="inventory", table_location="Unknown")
 
-            return redirect("home")  # Redirect to the homepage after creating the table
+            return redirect("inventoryApp:home")  # Redirect to the homepage after creating the table
         except Exception as e:
             return HttpResponse(f"Error creating table: {e}", status=500)
 
@@ -128,13 +128,13 @@ def delete_item(request, item_id, table_name):
             result = cursor.fetchone()
             if result:
                 cursor.execute(f"DELETE FROM {table_name} WHERE id = %s", [item_id])
-                return redirect("home")
+                return redirect("inventoryApp:home")
             else:
                 raise Http404(f"Table '{table_name}' does not exist.")
     except Exception as e:
         # Handle database errors or invalid queries
         print(f"Error deleting item: {str(e)}")
-        return redirect("home")
+        return redirect("inventoryApp:home")
 
 
 
@@ -152,7 +152,7 @@ def edit_item(request, item_id, table_name):
                 item = cursor.fetchone()
 
                 if not item:
-                    return redirect("home")  # If item is not found, redirect to home
+                    return redirect("inventoryApp:home")  # If item is not found, redirect to home
 
                 if request.method == "POST":
                     # Process the form and update the item
@@ -165,13 +165,13 @@ def edit_item(request, item_id, table_name):
                         f"UPDATE {table_name} SET title = %s, quantity = %s, completed = %s WHERE id = %s",
                         [new_title, new_quantity, new_completed, item_id]
                     )
-                    return redirect("home")  # After saving, redirect to the homepage
+                    return redirect("inventoryApp:home")  # After saving, redirect to the homepage
 
                 # Render the edit form with the current item data
                 return render(request, "edit_item.html", {"item": item})
 
             else:
-                return redirect("home")  # If table doesn't exist, redirect to home
+                return redirect("inventoryApp:home")  # If table doesn't exist, redirect to home
     except Exception as e:
         print(f"Error: {e}")
-        return redirect("home")
+        return redirect("inventoryApp:home")

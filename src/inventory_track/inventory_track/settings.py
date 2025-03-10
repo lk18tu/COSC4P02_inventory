@@ -40,12 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'userauth',
     'messaging',
-<<<<<<< HEAD
     'inventoryApp',
-=======
     'updateStock',
     'manager',
->>>>>>> origin/main
 ]
 
 MIDDLEWARE = [
