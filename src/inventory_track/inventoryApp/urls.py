@@ -2,6 +2,8 @@ from django.urls import path
 from . import views
 from .views import add_item, delete_item, edit_item, add_custom_field, add_inventory
 
+app_name = 'inventoryApp'
+
 urlpatterns = [
     path('', views.home, name="home"),
     path('add-item/<str:table_name>/', views.add_item, name="add_item"),  # Capture table_name
