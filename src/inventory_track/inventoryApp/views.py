@@ -3,9 +3,10 @@ from .models import InvItem, InvTable_Metadata
 from django.db import connection, DatabaseError
 from django.contrib import messages
 from django.http import Http404
+from django.conf import settings
+import os
 
-
-#table_name = f"testuser_invtable"  # Adjust based on the current user
+# table_name = f"testuser_invtable"  # Adjust based on the current user (commented out)
 
 # Create your views here.
 def home(request):
@@ -61,64 +62,73 @@ def add_custom_field(request):
 
     return render(request, "add_custom_field.html")
 
-
-
 def add_item(request, table_name):
     if request.method == "POST":
         title = request.POST.get('title')
         quantity = request.POST.get('quantity')
         completed = request.POST.get('completed', False)
-        
+        image = request.FILES.get('image')  # Get the uploaded image
+
         try:
             with connection.cursor() as cursor:
-                # Ensure the table exists by checking against the metadata
+                # Check if the table exists
                 cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
                 result = cursor.fetchone()
 
                 if result:
+                    # Handle image upload
+                    image_path = None
+                    if image:
+                        # Save the image to the media directory
+                        image_path = os.path.join('inventory_images', image.name)
+                        full_path = os.path.join(settings.MEDIA_ROOT, image_path)
+                        os.makedirs(os.path.dirname(full_path), exist_ok=True)
+                        with open(full_path, 'wb+') as destination:
+                            for chunk in image.chunks():
+                                destination.write(chunk)
+                    else:
+                        # Use a default placeholder if no image is provided
+                        image_path = 'images/default_placeholder.png'
+
                     # Insert the item into the dynamic table
                     cursor.execute(
-                        f"INSERT INTO {table_name} (title, quantity, completed) VALUES (%s, %s, %s)",
-                        [title, quantity, completed]
+                        f"INSERT INTO {table_name} (title, quantity, completed, image) VALUES (%s, %s, %s, %s)",
+                        [title, quantity, completed, image_path]
                     )
                     return redirect("inventoryApp:home")
                 else:
                     raise Http404(f"Table '{table_name}' does not exist.")
+
         except Exception as e:
             print(f"Error adding item to table {table_name}: {str(e)}")
             return redirect("inventoryApp:home")
 
     return render(request, "add_item.html", {"table_name": table_name})
 
-
-
-
 def add_inventory(request):
     if request.method == "POST":
-        table_name = request.POST.get("table_name")  # Get the table name from the form
+        table_name = request.POST.get("table_name")
 
-        # Create a new inventory table in the database dynamically
         try:
             with connection.cursor() as cursor:
-                # Create the table with title, completed, quantity columns
+                # Create the table with an additional image column
                 cursor.execute(f"""
                     CREATE TABLE {table_name} (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         title VARCHAR(255),
                         completed BOOLEAN,
-                        quantity INT
+                        quantity INT,
+                        image VARCHAR(255)  # Store the image path as a string
                     )
                 """)
                 # Add entry in the table_metadata table
-                
                 InvTable_Metadata.objects.create(table_name=table_name, table_type="inventory", table_location="Unknown")
 
-            return redirect("inventoryApp:home")  # Redirect to the homepage after creating the table
+            return redirect("inventoryApp:home")
         except Exception as e:
             return HttpResponse(f"Error creating table: {e}", status=500)
 
     return render(request, "add_inventory.html")
-
 
 def delete_item(request, item_id, table_name):
     try:
@@ -135,9 +145,6 @@ def delete_item(request, item_id, table_name):
         # Handle database errors or invalid queries
         print(f"Error deleting item: {str(e)}")
         return redirect("inventoryApp:home")
-
-
-
 
 def edit_item(request, item_id, table_name):
     try:

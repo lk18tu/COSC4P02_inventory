@@ -5,55 +5,67 @@
 
 {% block content %}
 <div class="container mt-4">
-    <div class="card shadow-lg border-0">
-        <div class="card-header bg-primary text-white">
-            <h2 class="mb-0 text-center">Inventory Management</h2>
-        </div>
+<div class="card shadow-lg border-0">
+<div class="card-header bg-primary text-white">
+<h2 class="mb-0 text-center">Inventory Management</h2>
+</div>
 
-        <div class="card-body">
-            <!-- Add New Inventory Button -->
-            <div class="d-flex justify-content-end mb-3">
-                <a href="{% url 'inventoryApp:add_inventory' %}" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Add New Inventory
-                </a>
-            </div>
+<div class="card-body">
+<div class="d-flex justify-content-end mb-3">
+<a href="{% url 'inventoryApp:add_inventory' %}" class="btn btn-success">
+<i class="bi bi-plus-circle"></i> Add New Location
+</a>
+</div>
+{% for table in table_data %}
+<div class="mb-5">
+<div class="d-flex justify-content-between align-items-center">
+<h3 class="text-primary">Location: {{ table.table_name }}</h3>
+<a href="{% url 'inventoryApp:add_item' table.table_name %}" class="btn btn-outline-success">
+<i class="bi bi-plus"></i> Add Item
+</a>
+</div>
 
-            <!-- Inventory List -->
-            {% for table in table_data %}
-                <div class="mb-5">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="text-primary">Table: {{ table.table_name }}</h3>
-                        <a href="{% url 'inventoryApp:add_item' table.table_name %}" class="btn btn-outline-success">
-                            <i class="bi bi-plus"></i> Add Item
-                        </a>
-                    </div>
-
-                    <div class="table-responsive">
-                        <table class="table table-hover table-striped shadow-sm">
-                            <thead class="table-dark">
-                                <tr>
-                                    {% for column in table.columns %}
-                                        <th>{{ column }}</th>
-                                    {% endfor %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in table.rows %}
-                                    <tr>
-                                        {% for value in row %}
-                                            <td>{{ value }}</td>
-                                        {% endfor %}
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            {% empty %}
-                <p class="text-muted text-center">No inventory data available.</p>
-            {% endfor %}
-        </div>
-    </div>
+<div class="table-responsive">
+<table class="table table-hover table-striped shadow-sm">
+<thead class="table-dark">
+<tr>
+{% for column in table.columns %}
+<th>{{ column }}</th>
+{% endfor %}
+<th>Thumbnail</th> <!-- New column for thumbnails -->
+<th>Actions</th>
+</tr>
+</thead>
+<tbody>
+{% for row in table.rows %}
+<tr>
+{% for value in row %}
+<td>{{ value }}</td>
+{% endfor %}
+<td>
+<!-- Display thumbnail -->
+<img src="{% if row.4 %}{{ MEDIA_URL }}{{ row.4 }}{% else %}{% static 'images/default_placeholder.png' %}{% endif %}" 
+     alt="{{ row.1 }}" 
+     style="max-width: 50px; max-height: 50px; object-fit: cover;">
+</td>
+<td>
+<a href="{% url 'inventoryApp:edit_item' table_name=table.table_name item_id=row.0 %}" class="btn btn-sm btn-warning">
+<i class="bi bi-pencil"></i> Edit
+</a>
+<a href="{% url 'inventoryApp:delete_item' table_name=table.table_name item_id=row.0 %}" class="btn btn-sm btn-danger">
+<i class="bi bi-trash"></i> Delete
+</a>
+</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+</div>
+{% empty %}
+<p class="text-muted text-center">No inventory data available.</p>
+{% endfor %}
+</div>
+</div>
 </div>
 {% endblock %}
-
