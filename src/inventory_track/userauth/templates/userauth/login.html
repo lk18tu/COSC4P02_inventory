@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block sidebar %}{% endblock %}
+
 {% block title %}Login{% endblock %}
 
 {% block content %}
@@ -8,7 +10,6 @@
     <div class="card p-4 shadow-lg border rounded" style="width: 22rem;">
         <h2 class="text-center mb-3">Login</h2>
 
-        <!-- Success & Error Messages -->
         {% if messages %}
             <div class="alert alert-info" role="alert">
                 {% for message in messages %}
@@ -19,14 +20,10 @@
 
         <form method="POST" onsubmit="showLoader()">
             {% csrf_token %}
-
-            <!-- Username Field -->
             <div class="form-floating mb-3">
                 <input type="text" class="form-control" id="username" name="username" placeholder="Username" required>
                 <label for="username"><i class="bi bi-person-fill"></i> Username</label>
             </div>
-
-            <!-- Password Field w/ Show/Hide Toggle -->
             <div class="input-group mb-3">
                 <div class="form-floating">
                     <input type="password" class="form-control" id="password" name="password" placeholder="Password" required>
@@ -36,11 +33,9 @@
                     <i class="bi bi-eye"></i>
                 </button>
             </div>
-
             <button type="submit" class="btn btn-primary w-100">Login</button>
         </form>
 
-        <!-- Loader -->
         <div id="loader" class="text-center mt-3 d-none">
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
@@ -48,22 +43,18 @@
         </div>
 
         <p class="mt-3 text-center">
-            Don't have an account? 
-            <a href="{% url 'register' %}">Register</a>
+            Don't have an account? <a href="{% url 'register' %}">Register</a>
         </p>
     </div>
 </div>
 
-<!-- Scripts specific to Login page -->
 <script>
     function togglePassword() {
         let pass = document.getElementById("password");
         pass.type = pass.type === "password" ? "text" : "password";
     }
-
     function showLoader() {
         document.getElementById("loader").classList.remove("d-none");
     }
 </script>
 {% endblock %}
-
