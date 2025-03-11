@@ -4,45 +4,48 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="container mt-5">
+<!-- Dashboard Welcome Section (only on dashboard) -->
+<div class="welcome-section mb-4">
+    <h2>Welcome, {{ user.username }}</h2>
+    <div id="date-time" class="date-time"></div>
+</div>
+
+<div class="container mt-4">
   <div class="row">
     <!-- Notifications Widget -->
     <div class="col-md-4 mb-4">
       <div class="card text-white bg-primary shadow h-100">
         <div class="card-body text-center">
-          <div class="dropdown d-inline-block">
-            <!-- The button is set to a fixed width so that the dropdown matches its size -->
-            <button class="btn btn-primary dropdown-toggle" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.5rem; width: 3rem; padding: 0.5rem;">
-              <i class="bi bi-bell-fill"></i>
-              {% if unread_notifications > 0 %}
-                <span class="badge bg-danger" style="font-size: 0.8rem;">{{ unread_notifications }}</span>
-              {% endif %}
-            </button>
-            <!-- Dropdown menu with the same width as the button -->
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" style="width: 3rem;">
-              {% if notifications %}
-                {% for notification in notifications %}
-                  <li class="dropdown-item small p-1 text-wrap">{{ notification.message|truncatechars:20 }}</li>
-                {% endfor %}
-              {% else %}
-                <li class="dropdown-item text-center p-1">No new</li>
-                <li class="dropdown-item text-center p-1">notifications</li>
-              {% endif %}
-            </ul>
-          </div>
+          <a href="{% url 'notifications:view_notifications' %}" class="btn btn-primary" style="font-size: 2rem;">
+            <i class="bi bi-bell-fill"></i>
+            {% if unread_notifications > 0 %}
+              <span class="badge bg-danger">{{ unread_notifications }}</span>
+            {% endif %}
+          </a>
           <h5 class="card-title mt-2">Notifications</h5>
         </div>
+        <!-- Hidden Notifications Detail Section -->
+        <div id="notifications-detail" class="collapse bg-lighter-blue">
+          {% for notification in notifications %}
+            <div class="alert alert-secondary m-2">{{ notification.message }}</div>
+          {% empty %}
+            <div class="alert alert-light m-2">No new notifications.</div>
+          {% endfor %}
+        </div>
+        <!-- Expander Button -->
         <div class="card-footer text-center">
-          <a href="{% url 'notifications:view_notifications' %}" class="btn btn-light btn-sm">View All</a>
+          <button onclick="toggleDropdown('notifications-detail', 'notifications-chevron')" class="btn btn-link text-white">
+            <i id="notifications-chevron" class="bi bi-chevron-down"></i>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Update Stock Widget -->
+    <!-- Update Stock Widget now points to Inventory Management Page -->
     <div class="col-md-4 mb-4">
       <div class="card text-white bg-success shadow h-100">
         <div class="card-body text-center">
-          <a href="{% url 'updateStock:product_list' %}" class="btn btn-light" style="font-size: 2rem;">
+          <a href="{% url 'inventoryApp:home' %}" class="btn btn-light" style="font-size: 2rem;">
             <i class="bi bi-pencil-square"></i>
           </a>
           <h5 class="card-title mt-2">Update Stock</h5>
@@ -50,14 +53,25 @@
       </div>
     </div>
 
-    <!-- Manager (Current Stock Levels) Widget -->
+    <!-- Current Stock Levels Widget now points to Product List Page -->
     <div class="col-md-4 mb-4">
       <div class="card text-white bg-secondary shadow h-100">
         <div class="card-body text-center">
-          <a href="{% url 'manager:view_stock' %}" class="btn btn-light" style="font-size: 2rem;">
+          <a href="{% url 'updateStock:product_list' %}" class="btn btn-light" style="font-size: 2rem;">
             <i class="bi bi-bar-chart-line"></i>
           </a>
           <h5 class="card-title mt-2">Current Stock Levels</h5>
+        </div>
+        <!-- Hidden Stock Levels Detail Section -->
+        <div id="stock-levels-detail" class="collapse bg-lighter-blue">
+          <!-- Placeholder for Graphs or Data -->
+          <div class="alert alert-info m-2">Stock levels graph here...</div>
+        </div>
+        <!-- Expander Button -->
+        <div class="card-footer text-center">
+          <button onclick="toggleDropdown('stock-levels-detail', 'stock-levels-chevron')" class="btn btn-link text-white">
+            <i id="stock-levels-chevron" class="bi bi-chevron-down"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -70,4 +84,20 @@
     </div>
   </div>
 </div>
+
+<script>
+  function toggleDropdown(detailId, chevronId) {
+    const detailSection = document.getElementById(detailId);
+    const chevronIcon = document.getElementById(chevronId);
+    if (detailSection.classList.contains('collapse')) {
+      detailSection.classList.remove('collapse');
+      chevronIcon.classList.remove('bi-chevron-down');
+      chevronIcon.classList.add('bi-chevron-up');
+    } else {
+      detailSection.classList.add('collapse');
+      chevronIcon.classList.add('bi-chevron-down');
+      chevronIcon.classList.remove('bi-chevron-up');
+    }
+  }
+</script>
 {% endblock %}

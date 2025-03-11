@@ -14,22 +14,22 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-dark">
                         <tr>
-                            <th>Product Name</th>
-                            <th>Stock</th>
+                            <th>Product Title</th>
+                            <th>Quantity</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for product in products %}
                             <tr>
-                                <td>{{ product.name }}</td>
+                                <td>{{ product.title }}</td>
                                 <td>
-                                    <span class="badge 
-                                        {% if product.stock == 0 %} bg-danger 
-                                        {% elif product.stock < 10 %} bg-warning text-dark 
-                                        {% else %} bg-success 
+                                    <span class="badge
+                                        {% if product.quantity == 0 %}bg-danger
+                                        {% elif product.quantity < 10 %}bg-warning text-dark
+                                        {% else %}bg-success
                                         {% endif %}">
-                                        {{ product.stock }}
+                                        {{ product.quantity }}
                                     </span>
                                 </td>
                                 <td>
@@ -51,4 +51,3 @@
     </div>
 </div>
 {% endblock %}
-

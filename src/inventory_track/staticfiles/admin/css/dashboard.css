@@ -3,16 +3,19 @@
     padding: 20px;
     color: white;
 }
+
 .user-info {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-top: 10px;
 }
+
 .message-icon img {
     width: 30px;
     height: 30px;
 }
+
 .badge {
     background-color: red;
     color: white;
@@ -23,9 +26,64 @@
     right: -5px;
     font-size: 0.75em;
 }
+
 .analytics-section {
     background-color: #f2f2f2;
     padding: 20px;
     margin-top: 20px;
     text-align: center;
+}
+
+.bg-lighter-blue {
+    background-color: #e3f2fd; /* Light blue background for expanded notifications */
+}
+
+.bg-light-gray {
+    background-color: #f8f9fa; /* Light gray background for expanded stock levels */
+}
+
+.card-footer button {
+    background: none;
+    border: none;
+    color: white;
+}
+
+.card-footer button:focus {
+    outline: none;
+}
+
+.collapse {
+    display: none;
+    transition: all 0.3s ease-out;
+}
+
+.collapse.show {
+    display: block;
+}
+
+.alert {
+    margin-bottom: 0; /* Removes spacing within the dropdown to compact the design */
+}
+
+.card-footer {
+    cursor: pointer;
+}
+
+.card-body a {
+    text-decoration: none; /* Prevents underline and other link default styles */
+}
+
+.card {
+    overflow: hidden; /* Ensures that no elements overflow the card's boundaries */
+    transition: all 0.3s ease; /* Smooth transition for collapsing and expanding */
+}
+
+.card-footer .bi-chevron-down,
+.card-footer .bi-chevron-up {
+    font-size: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.card-footer .bi-chevron-up {
+    transform: rotate(180deg); /* Flips the chevron to indicate collapse */
 }

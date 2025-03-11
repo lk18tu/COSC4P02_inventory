@@ -68,7 +68,7 @@
             transition: margin-left 0.3s ease;
             min-height: 100vh;
         }
-        /* Welcome Banner */
+        /* Welcome Banner (defined here for reference – now moved to dashboard) */
         .welcome-section {
             background: #72A0C1;
             color: white;
@@ -123,11 +123,6 @@
 {% endblock %}
 
 <div class="content">
-    <div class="welcome-section">
-        <h2>Welcome, {{ user.username }}</h2>
-        <div id="date-time" class="date-time"></div>
-    </div>
-
     {% block content %}
     {% endblock %}
 </div>
