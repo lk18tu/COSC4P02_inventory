@@ -14,7 +14,7 @@ def send_message(request):
         recipient = User.objects.get(username=recipient_username)
         Message.objects.create(sender=request.user, recipient=recipient, subject=subject, content=content)
 
-        return redirect("inbox")
+        return redirect("messaging:inbox")
 
     contacts = Contact.objects.filter(user=request.user)
     return render(request, "messaging/send_message.html", {"contacts": contacts})
