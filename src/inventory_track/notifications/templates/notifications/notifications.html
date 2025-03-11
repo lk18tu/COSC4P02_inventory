@@ -18,8 +18,6 @@
 
                 <a href="{% url 'notifications:mark_notification_read' notification.id %}">Mark as Read</a>
 
-                <a href="#" class="mark-as-read" data-id="{{ notification.id }}">Mark as Read</a>
-
             {% endif %}
         </p>
     {% empty %}
