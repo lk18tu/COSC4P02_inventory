@@ -78,7 +78,9 @@
         <span class="badge">{{ unread_notifications }}</span>
     {% endif %}
 </a>
-
+        <a href="{% url 'inventory_chart' %}">Chart</a>
+        <a href="{% url 'llm_advisor' %}">Advisor</a>
+        <a href="{% url 'search_inventory' %}">Search</a>
         <a href="{% url 'logout' %}">Logout</a>
     </div>
 
