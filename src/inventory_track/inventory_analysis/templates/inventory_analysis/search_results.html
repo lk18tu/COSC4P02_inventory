@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Inventory Search</h2>
+
+<!-- Search form -->
+<form action="{% url 'search_inventory' %}" method="GET">
+    <input type="text" name="q" placeholder="Search inventory..." value="{{ query }}">
+    <button type="submit">Search</button>
+</form>
+
+<!-- Display inventory results -->
+{% if results %}
+    <h3>Search Results{% if query %} for "{{ query }}"{% endif %}:</h3>
+    <ul>
+        {% for item in results %}
+        <li>
+            <strong>{{ item.name }}</strong> 
+            (Category: {{ item.category|default:"Uncategorized" }}) 
+            - Stock: {{ item.total_quantity }}
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>No inventory items found.</p>
+{% endif %}
+
+{% endblock %}

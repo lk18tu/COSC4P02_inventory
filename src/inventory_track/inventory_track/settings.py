@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'manager',
     'notifications',
     'inventoryApp',
+    'inventory_analysis',
 ]
 
 MIDDLEWARE = [

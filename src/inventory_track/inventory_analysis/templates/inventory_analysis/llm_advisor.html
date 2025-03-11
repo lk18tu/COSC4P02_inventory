@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>AI Inventory Advisor</h2>
+<form method="POST" id="llm-form">
+    {% csrf_token %}
+    <textarea name="query" id="query-input" placeholder="Ask about inventory..."></textarea>
+    <button type="submit">Submit</button>
+</form>
+
+<h3>Response:</h3>
+<p id="llm-response">Waiting for your question...</p>
+
+<script>
+document.getElementById("llm-form").onsubmit = async function(event) {
+    event.preventDefault();
+    
+    const formData = new FormData(this);
+    const responseElement = document.getElementById("llm-response");
+
+    responseElement.innerText = "Thinking... 🤔";
+
+    try {
+        const response = await fetch("{% url 'llm_advisor' %}", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.response) {
+            responseElement.innerText = data.response;
+        } else if (data.error) {
+            responseElement.innerText = "Error: " + data.error;
+        }
+
+    } catch (error) {
+        console.error("Fetch error:", error);
+        responseElement.innerText = "Failed to fetch response.";
+    }
+};
+</script>
+{% endblock %}
