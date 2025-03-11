@@ -7,6 +7,7 @@ from io import BytesIO
 import base64
 from .models import InventoryItem
 from django.db.models import Sum
+from django.db import connection
 
 
 DEEPSEEK_API_KEY = "sk-a63cce70f55d493d99f9c0ad4993b4f9"
@@ -16,11 +17,13 @@ DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 MODEL_NAME = "deepseek-chat"
 
 def get_inventory_context():
-    items = InventoryItem.objects.all().order_by("quantity")[:10]
-    if not items:
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT name, quantity FROM inventory_db.analytics_testtable ORDER BY quantity ASC LIMIT 10;")
+        rows = cursor.fetchall()
+    if not rows:
         return "No inventory data available."
 
-    inventory_info = "\n".join([f"{item.name}: {item.quantity} in stock" for item in items])
+    inventory_info = "\n".join([f"{row[1]}: {row[2]} in stock" for row in rows])
     context = f"Current Inventory Data:\n{inventory_info}\n\n"
     return context
 
@@ -94,13 +97,20 @@ def generate_inventory_level_chart():
     """
     Generate an inventory level bar chart with a reorder alert threshold.
     """
-    items = InventoryItem.objects.all()
+    
+    #items = InventoryItem.objects.all()
+
+
+    # Raw SQL query to fetch data from the inventory table
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT name, quantity FROM analytics_testtable ORDER BY quantity ASC")
+        items = cursor.fetchall()
     
     if not items:
         return None
 
-    names = [item.name for item in items]
-    quantities = np.array([item.quantity for item in items])
+    names = [item[0] for item in items]
+    quantities = np.array([item[1] for item in items])
 
     # Define colors (low stock: red, medium: yellow, sufficient: green)
     colors = np.where(quantities < 5, 'red', np.where(quantities <= 15, 'yellow', 'green'))
@@ -129,13 +139,18 @@ def generate_inventory_pie_chart():
     """
     Generate a pie chart representing the percentage of each product's stock.
     """
-    items = InventoryItem.objects.all()
+    #items = InventoryItem.objects.all()
+
+    # Raw SQL query to fetch data from the inventory table
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT name, quantity FROM analytics_testtable ORDER BY quantity ASC")
+        items = cursor.fetchall()
     
     if not items:
         return None
 
-    names = [item.name for item in items]
-    quantities = np.array([item.quantity for item in items])
+    names = [item[0] for item in items]
+    quantities = np.array([item[1] for item in items])
 
     # Ignore items with zero stock
     if sum(quantities) == 0:
