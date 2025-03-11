@@ -1,24 +1,32 @@
+{% load static %}  <!-- Ensure this is at the beginning of your HTML document -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <title>{% block title %}Inventory Track{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const dateString = now.toLocaleDateString('en-CA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const timeString = now.toLocaleTimeString('en-CA', { timeStyle: 'short' });
+            document.getElementById('date-time').innerHTML = `${dateString}, ${timeString}`;
+        }
+        setInterval(updateTime, 1000);
+    </script>
     <style>
-        
         body, html {
             margin: 0;
             padding: 0;
             font-family: Arial, sans-serif;
         }
-               
         .navbar {
-            background-color: #333333;
+            background-color: #333333; /* Kept as original dark grey */
             overflow: hidden;
-            position: fixed; 
+            position: fixed;
             top: 0;
             width: 100%;
             z-index: 1000;
         }
-        
         .navbar a {
             float: left;
             display: block;
@@ -27,48 +35,56 @@
             padding: 14px 20px;
             text-decoration: none;
         }
-        
         .navbar a:hover {
             background-color: #757575;
             color: black;
         }
-        
         .content {
-            margin-top: 60px; /*padding for navbar height */
+            margin-top: 60px; /* Padding for navbar height */
             padding: 20px;
+            background-color: #f0f0f0; /* Subtle background color for content */
         }
-        
-</style>
+        .welcome-section {
+            background-color: #424242; /* Dark grey for welcome section */
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between; /* Positions elements to either side */
+            align-items: center;
+        }
+        .date-time {
+            font-size: 0.9em;
+            color: lightgrey;
+        }
+        .analytics-coming-soon {
+            text-align: center;
+            padding: 20px;
+            background-color: #616161;
+            color: white;
+            border-radius: 5px;
+        }
+    </style>
 </head>
-<body>
-   
+<body onload="updateTime()">
     <div class="navbar">
         <a href="{% url 'dashboard' %}">Dashboard</a>
         <a href="{% url 'inventoryApp:home' %}">Inventory</a>
-        <a href="{% url 'updateStock:product_list' %}">Inventory</a>
-        <a href="{% url 'messaging:inbox' %}">Messaging</a> 
+        <a href="{% url 'updateStock:product_list' %}">Update Stock</a>
+        <a href="{% url 'messaging:inbox' %}">Messaging</a>
         <a href="{% url 'notifications:view_notifications' %}" class="notification-icon">
-            {% if unread_notifications > 0 %}
-                🔔 Notifications <span class="badge">{{ unread_notifications }}</span>
-            {% else %}
-                Notifications
-            {% endif %}
-        </a>
+    Notifications
+    {% if unread_notifications > 0 %}
+        <span class="badge">{{ unread_notifications }}</span>
+    {% endif %}
+</a>
+
         <a href="{% url 'logout' %}">Logout</a>
     </div>
-    
+
     <div class="content">
         {% block content %}
         {% endblock %}
     </div>
-
-    
-    {% if request.user.is_authenticated %}
-        {% with unread_notifications=unread_notifications %}
-            {% if unread_notifications > 0 %}
-            {% endif %}
-        {% endwith %}
-    {% endif %}
-
 </body>
 </html>

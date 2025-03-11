@@ -1,29 +1,31 @@
-/* DASHBOARD */
-.dashboard td, .dashboard th {
-    word-break: break-word;
+.welcome-section {
+    background-color: darkgray;
+    padding: 20px;
+    color: white;
 }
-
-.dashboard .module table th {
-    width: 100%;
+.user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
 }
-
-.dashboard .module table td {
-    white-space: nowrap;
+.message-icon img {
+    width: 30px;
+    height: 30px;
 }
-
-.dashboard .module table td a {
-    display: block;
-    padding-right: .6em;
+.badge {
+    background-color: red;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 50%;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    font-size: 0.75em;
 }
-
-/* RECENT ACTIONS MODULE */
-
-.module ul.actionlist {
-    margin-left: 0;
-}
-
-ul.actionlist li {
-    list-style-type: none;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.analytics-section {
+    background-color: #f2f2f2;
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
 }

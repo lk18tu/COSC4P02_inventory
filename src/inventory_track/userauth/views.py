@@ -5,6 +5,8 @@
 #from .forms import RegistrationForm
 
 # Create your views here.
+import pytz
+import datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -13,6 +15,9 @@ from django.contrib import messages
 
 
 from notifications.models import Notification
+
+from django.shortcuts import render
+from django.utils import timezone
 
 
 
@@ -56,12 +61,17 @@ def user_logout(request):
 
 @login_required
 def dashboard(request):
-
-    return render(request, 'userauth/dashboard.html')
+    eastern = pytz.timezone('US/Eastern')
+    current_time = datetime.datetime.now(eastern)
+    formatted_date_time = current_time.strftime("%B %d, %Y, %I:%M %p EST")
 
     unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count() or 0
-    print("Unread Notifications Count:", unread_notifications)  
-    return render(request, "userauth/dashboard.html", {"unread_notifications": unread_notifications})
+    context = {
+        "unread_notifications": unread_notifications,
+        "current_time": formatted_date_time  # Ensure this is correctly named
+    }
+    return render(request, 'userauth/dashboard.html', context)
+
     
 
 
