@@ -4,34 +4,70 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-
-
-<div class="container-fluid">
-    <!-- analytics/statistics -->
-    <div class="row mb-4">
-        <div class="col-md-12">
-            <div class="analytics-coming-soon">
-                <h3>Analytics coming soon...</h3>
-                <p>Check back later for advanced metrics and reporting.</p>
-            </div>
+<div class="container mt-5">
+  <div class="row">
+    <!-- Notifications Widget -->
+    <div class="col-md-4 mb-4">
+      <div class="card text-white bg-primary shadow h-100">
+        <div class="card-body text-center">
+          <div class="dropdown d-inline-block">
+            <!-- The button is set to a fixed width so that the dropdown matches its size -->
+            <button class="btn btn-primary dropdown-toggle" type="button" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.5rem; width: 3rem; padding: 0.5rem;">
+              <i class="bi bi-bell-fill"></i>
+              {% if unread_notifications > 0 %}
+                <span class="badge bg-danger" style="font-size: 0.8rem;">{{ unread_notifications }}</span>
+              {% endif %}
+            </button>
+            <!-- Dropdown menu with the same width as the button -->
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="notificationDropdown" style="width: 3rem;">
+              {% if notifications %}
+                {% for notification in notifications %}
+                  <li class="dropdown-item small p-1 text-wrap">{{ notification.message|truncatechars:20 }}</li>
+                {% endfor %}
+              {% else %}
+                <li class="dropdown-item text-center p-1">No new</li>
+                <li class="dropdown-item text-center p-1">notifications</li>
+              {% endif %}
+            </ul>
+          </div>
+          <h5 class="card-title mt-2">Notifications</h5>
         </div>
+        <div class="card-footer text-center">
+          <a href="{% url 'notifications:view_notifications' %}" class="btn btn-light btn-sm">View All</a>
+        </div>
+      </div>
     </div>
 
-   
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <div class="analytics-coming-soon">
-                <h4>Recent Updates</h4>
-                <p>Placeholder for any recent product updates or low-stock alerts.</p>
-            </div>
+    <!-- Update Stock Widget -->
+    <div class="col-md-4 mb-4">
+      <div class="card text-white bg-success shadow h-100">
+        <div class="card-body text-center">
+          <a href="{% url 'updateStock:product_list' %}" class="btn btn-light" style="font-size: 2rem;">
+            <i class="bi bi-pencil-square"></i>
+          </a>
+          <h5 class="card-title mt-2">Update Stock</h5>
         </div>
-        <div class="col-md-6 mb-3">
-            <div class="analytics-coming-soon">
-                <h4>Notifications</h4>
-                <p>Placeholder for summarized notifications or unread message counts.</p>
-            </div>
-        </div>
+      </div>
     </div>
+
+    <!-- Manager (Current Stock Levels) Widget -->
+    <div class="col-md-4 mb-4">
+      <div class="card text-white bg-secondary shadow h-100">
+        <div class="card-body text-center">
+          <a href="{% url 'manager:view_stock' %}" class="btn btn-light" style="font-size: 2rem;">
+            <i class="bi bi-bar-chart-line"></i>
+          </a>
+          <h5 class="card-title mt-2">Current Stock Levels</h5>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logout Button -->
+  <div class="row">
+    <div class="col-12 text-center">
+      <a href="{% url 'logout' %}" class="btn btn-danger btn-lg">Logout</a>
+    </div>
+  </div>
 </div>
 {% endblock %}
-

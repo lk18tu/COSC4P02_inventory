@@ -6,7 +6,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import UserProfile, Notification  # import userProfile
+from .models import UserProfile
+from notifications.models import Notification  # Import Notification from the notifications app
 
 # check if user is a manager
 def manager_required(user):
