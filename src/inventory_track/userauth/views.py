@@ -1,25 +1,16 @@
-#from django.shortcuts import render, redirect
-#from django.contrib.auth import login, authenticate, logout
-#from django.contrib.auth.decorators import login_required
-#from django.contrib.auth.forms import AuthenticationForm
-#from .forms import RegistrationForm
-
-# Create your views here.
+# userauth/views.py
 import pytz
 import datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
+from django.contrib.auth.models import User
+from .models import UserProfile, Notification  # import userProfile
 
-
-from notifications.models import Notification
-
-from django.shortcuts import render
-from django.utils import timezone
-
-
+# check if user is a manager
+def manager_required(user):
+    return user.is_authenticated and hasattr(user, 'profile') and user.profile.is_manager()
 
 def register(request):
     if request.method == 'POST':
@@ -30,18 +21,19 @@ def register(request):
         
         if password == confirm_password:
             if User.objects.filter(username=username).exists():
-                messages.error(request, 'user already exists')
+                messages.error(request, 'User already exists')
             elif User.objects.filter(email=email).exists():
-                messages.error(request, 'email already exists')
+                messages.error(request, 'Email already exists')
             else:
                 user = User.objects.create_user(username=username, email=email, password=password)
+                # UserProfile with default 'employee' type
+                UserProfile.objects.create(user=user)
                 user.save()
-                messages.success(request, 'registration successful')
+                messages.success(request, 'Registration successful')
                 return redirect('login')
         else:
-            messages.error(request, 'passwords do not match')
+            messages.error(request, 'Passwords do not match')
     return render(request, 'userauth/register.html')
-
 
 def user_login(request):
     if request.method == 'POST':
@@ -50,9 +42,11 @@ def user_login(request):
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
+            # profile exists (for existing users)
+            UserProfile.objects.get_or_create(user=user)
             return redirect('dashboard')
         else:
-            messages.error(request, 'username or password does not match')
+            messages.error(request, 'Username or password does not match')
     return render(request, 'userauth/login.html')
 
 def user_logout(request):
@@ -65,16 +59,21 @@ def dashboard(request):
     current_time = datetime.datetime.now(eastern)
     formatted_date_time = current_time.strftime("%B %d, %Y, %I:%M %p EST")
 
+    # check profile exists
+    UserProfile.objects.get_or_create(user=request.user)
     unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count() or 0
     context = {
         "unread_notifications": unread_notifications,
-        "current_time": formatted_date_time  # Ensure this is correctly named
+        "current_time": formatted_date_time,
+        "is_manager": request.user.profile.is_manager(),  # check if manager
     }
     return render(request, 'userauth/dashboard.html', context)
 
+# Restricted view template for managers
+#@login_required
+#@user_passes_test(manager_required, login_url='/login/')
+#def add_warehouse_location(request):
     
-
-
-
-
+# return render(request, 'url.html', {})
+	
 
