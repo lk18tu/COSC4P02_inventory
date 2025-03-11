@@ -1,53 +1,49 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Notifications</title>
-</head>
-<body>
+{% extends 'base.html' %}
+{% load static %}
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-</head>
-<body>
+{% block title %}Notifications{% endblock %}
 
+{% block content %}
+<h1>Your Notifications</h1>
 
-    <h1>Your Notifications</h1>
-    {% for notification in notifications %}
-        <p>
-            {{ notification.message }} ({{ notification.created_at|date:"Y-m-d H:i" }})
-            {% if not notification.is_read %}
+{% for notification in notifications %}
+    <p>
+        {{ notification.message }} ({{ notification.created_at|date:"Y-m-d H:i" }})
+        {% if not notification.is_read %}
+            <a href="{% url 'notifications:mark_notification_read' notification.id %}" class="mark-as-read" data-id="{{ notification.id }}">
+                Mark as Read
+            </a>
+        {% endif %}
+    </p>
+{% empty %}
+    <p>No notifications.</p>
+{% endfor %}
 
-                <a href="{% url 'notifications:mark_notification_read' notification.id %}">Mark as Read</a>
+<br>
+<a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
 
-            {% endif %}
-        </p>
-    {% empty %}
-        <p>No notifications.</p>
-    {% endfor %}
+<!-- jQuery for AJAX -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // Example of AJAX “Mark as Read”
+    $(".mark-as-read").click(function(event) {
+        event.preventDefault();
+        var notificationId = $(this).data("id");
+        var linkElement = $(this);
 
-
-    <br>
-    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
-
-    <script>
-        $(".mark-as-read").click(function(event) {
-            event.preventDefault();
-            var notificationId = $(this).data("id");
-            var linkElement = $(this);
-
-            $.ajax({
-                url: "{% url 'notifications:mark_notification_read' 0 %}".replace("0", notificationId),
-                type: "GET",
-                success: function(response) {
-                    linkElement.parent().remove();  
-                    if (response.unread_notifications == 0) {
-                        $(".notification-icon").html("Notifications");  
-                    } else {
-                        $(".notification-icon .badge").text(response.unread_notifications);
-                    }
+        $.ajax({
+            url: "{% url 'notifications:mark_notification_read' 0 %}".replace("0", notificationId),
+            type: "GET",
+            success: function(response) {
+                linkElement.parent().remove();  
+                if (response.unread_notifications == 0) {
+                    $(".notification-icon").html("Notifications");  
+                } else {
+                    $(".notification-icon .badge").text(response.unread_notifications);
                 }
-            });
+            }
         });
-    </script>
+    });
+</script>
+{% endblock %}
 
-</body>
-</html>

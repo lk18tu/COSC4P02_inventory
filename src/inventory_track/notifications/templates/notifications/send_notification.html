@@ -1,24 +1,24 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Send Notification</title>
-</head>
-<body>
-    <h1>Send Notification</h1>
-    <form method="POST">
-        {% csrf_token %}
-        <label>Select User:</label>
-        <select name="user">
-            <option value="all">All Users</option>
-            {% for user in users %}
-                <option value="{{ user.id }}">{{ user.username }}</option>
-            {% endfor %}
-        </select>
+{% extends 'base.html' %}
+{% load static %}
 
-        <label>Message:</label>
-        <textarea name="message" required></textarea>
+{% block title %}Send Notification{% endblock %}
 
-        <button type="submit">Send</button>
-    </form>
-</body>
-</html>
+{% block content %}
+<h1>Send Notification</h1>
+<form method="POST">
+    {% csrf_token %}
+    <label>Select User:</label>
+    <select name="user">
+        <option value="all">All Users</option>
+        {% for user in users %}
+            <option value="{{ user.id }}">{{ user.username }}</option>
+        {% endfor %}
+    </select>
+
+    <label>Message:</label>
+    <textarea name="message" required></textarea>
+
+    <button type="submit">Send</button>
+</form>
+{% endblock %}
+

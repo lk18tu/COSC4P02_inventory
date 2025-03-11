@@ -1,25 +1,37 @@
 {% extends 'base.html' %}
-
 {% load static %}
 
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<div class="welcome-section">
-    <h2>Welcome, {{ request.user.username }}</h2>
-    <div class="user-info">
-        <p>Registered email: {{ request.user.email }}</p>
-        <span class="date-time">{{ current_time }}</span>
-        <div class="message-icon">
-            <img src="{% static 'admin/img/message_icon.svg' %}" alt="Message Icon" style="height: 20px;">
-            {% if unread_notifications > 0 %}
-                <span class="badge">{{ unread_notifications }}</span>
-            {% endif %}
+
+
+<div class="container-fluid">
+    <!-- analytics/statistics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="analytics-coming-soon">
+                <h3>Analytics coming soon...</h3>
+                <p>Check back later for advanced metrics and reporting.</p>
+            </div>
+        </div>
+    </div>
+
+   
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="analytics-coming-soon">
+                <h4>Recent Updates</h4>
+                <p>Placeholder for any recent product updates or low-stock alerts.</p>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="analytics-coming-soon">
+                <h4>Notifications</h4>
+                <p>Placeholder for summarized notifications or unread message counts.</p>
+            </div>
         </div>
     </div>
 </div>
-<div class="analytics-section">
-    <p>Analytics coming soon...</p>
-</div>
-<!-- Additional widgets or sections can be added here -->
 {% endblock %}
+
