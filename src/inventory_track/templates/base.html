@@ -114,9 +114,9 @@
                 <span class="badge">{{ unread_notifications }}</span>
             {% endif %}
         </a>
-        <a href="{% url 'inventory_chart' %}"><i class="bi bi-bar-chart"></i> Analytics</a>
-        <a href="{% url 'llm_advisor' %}"><i class="bi bi-lightbulb"></i> AI Advisor</a>
-        <a href="{% url 'search_inventory' %}"><i class="bi bi-search"></i> Search</a>
+        <a href="{% url 'inventory_analysis:chart' %}"><i class="bi bi-bar-chart"></i> Analytics</a>
+        <a href="{% url 'inventory_analysis:llm_advisor' %}"><i class="bi bi-lightbulb"></i> AI Advisor</a>
+        <a href="{% url 'inventory_analysis:search_inventory' %}"><i class="bi bi-search"></i> Search</a>
         <a href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
     </div>
     {% endif %}

@@ -77,10 +77,24 @@
     </div>
   </div>
 
-  <!-- Logout Button -->
+  <!-- New Inventory Analysis Widget Row -->
   <div class="row">
-    <div class="col-12 text-center">
-      <a href="{% url 'logout' %}" class="btn btn-danger btn-lg">Logout</a>
+    <!-- Analysis Widget spanning 8 columns, aligning with the left edge of Notifications and right edge of Update Stock -->
+    <div class="col-md-8 mb-4">
+      <div class="card text-white bg-info shadow h-100">
+        <div class="card-body text-center">
+          <a href="{% url 'inventory_analysis:chart' %}" class="btn btn-light" style="font-size: 2rem;">
+            <i class="bi bi-pie-chart"></i>
+          </a>
+          <h5 class="card-title mt-2">Inventory Analysis</h5>
+        </div>
+        <!-- Section displaying the pie chart preview (static preview box) -->
+        <div class="card-footer p-0">
+          <div class="p-2" style="background-color: #fff; color: #000; height: 200px;">
+            <p class="mb-0 text-center">Pie Chart Preview</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
