@@ -45,6 +45,10 @@ INSTALLED_APPS = [
     'notifications',
     'inventoryApp',
     'inventory_analysis',
+<<<<<<< HEAD
+=======
+    'history',
+>>>>>>> 93dce4f (Added Inventory History feature with admin panel support)
 ]
 
 MIDDLEWARE = [
