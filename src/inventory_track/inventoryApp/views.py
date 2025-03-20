@@ -38,7 +38,7 @@ def home(request):
             print(f"Error fetching data for {table_name}: {e}")
             continue  # Continue with the next table if there's an error
 
-    return render(request, "inventoryHome.html", {"table_data": table_data})
+    return render(request, "inventoryHome.html", {"table_data": table_data, "MEDIA_URL": settings.MEDIA_URL})
 
 
 def add_custom_field(request):
@@ -72,7 +72,7 @@ def add_item(request, table_name):
     if request.method == "POST":
         title = request.POST.get('title')
         quantity = request.POST.get('quantity')
-        completed = request.POST.get('completed', False)
+        completed = 1 if request.POST.get('completed') == "on" else 0
         image = request.FILES.get('image')  # Get the uploaded image
 
         try:
@@ -114,7 +114,6 @@ def add_item(request, table_name):
 def add_inventory(request):
     if request.method == "POST":
         new_table_name = request.POST.get("table_name")  # Get the table name from the form
-        table_location = request.POST.get("table_location")  # Get the table name from the form
 
         try:
             with connection.cursor() as cursor:
@@ -130,7 +129,7 @@ def add_inventory(request):
                 """)
                 # Add entry in the table_metadata table
                 
-                InvTable_Metadata.objects.create(table_name=new_table_name, table_type="inventory", table_location=table_location)
+                InvTable_Metadata.objects.create(table_name=new_table_name, table_type="inventory", table_location="Placeholder")
 
             return redirect("inventoryApp:home")
         except Exception as e:
@@ -213,8 +212,7 @@ def edit_item(request, item_id, table_name):
         return redirect("inventoryApp:home")
 
 
-def archive_table():
-    return redirect(home) 
+
 
 
 def upload_csv(request, table_name):

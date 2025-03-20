@@ -8,112 +8,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Inventory Management</title>
-    <!-- Load static files -->
-    {% load static %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">Inventory Management Pages</h1>
-        
+        <h1 class="text-center mb-4">Inventory Management</h1>
+
         <!-- Add New Inventory Button -->
-        <a href="{% url 'inventoryApp:add_inventory' %}" class="btn btn-success mb-3">Add New Inventory</a>
+        <a href="{% url 'inventoryApp:add_inventory' %}" class="btn btn-success mb-3">
+            <i class="bi bi-plus-circle"></i> Add New Inventory
+        </a>
 
         <div class="card-body">
-            <div class="d-flex justify-content-end mb-3">
-                <a href="{% url 'inventoryApp:add_inventory' %}" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Add New Location
-                </a>
-            </div>
+            {% if table_data %}
+                {% for table in table_data %}
+                    <div class="mb-5">
+                        <!-- Collapsible Button for each Table -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="text-primary">
+                                <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ table.table_name }}" aria-expanded="false" aria-controls="collapse-{{ table.table_name }}">
+                                    <i class="bi bi-chevron-down"></i> {{ table.table_name }}
+                                </button>
+                            </h3>
+                            
+                        </div>
 
-            {% for table in table_data %}
-                <div class="mb-5">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="text-primary">Location: {{ table.table_name }}</h3>
-                        <a href="{% url 'inventoryApp:add_item' table.table_name %}" class="btn btn-outline-success">
-                            <i class="bi bi-plus"></i> Add Item
-                        </a>
-                    </div>
+                        <!-- Collapsible Table Content -->
+                        <div class="collapse" id="collapse-{{ table.table_name }}">
 
-                    {% if table_data %}
-                        {% regroup table_data by table_location as location_groups %}
-                        {% for location_group in location_groups %}
-                            <!-- Collapsible Header -->
-                            <div class="mt-4">
-                                <h3>
-                                    <button class="btn btn-link text-decoration-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse-{{ forloop.counter }}">
-                                        <i class="bi bi-chevron-down" id="icon-{{ forloop.counter }}"></i> Location: {{ location_group.grouper }}
-                                    </button>
-                                </h3>
+                            <!--Table Actions-->
 
-                                <!-- Collapsible Content -->
-                                <div class="collapse" id="collapse-{{ forloop.counter }}">
-                                    <div class="card card-body border-0">
-                                        {% for table in location_group.list %}
-                                            <div class="mb-5">
-                                                <h4>Table: {{ table.table_name }}</h4>
-                                                
-                                                <!-- Add Item Button -->
-                                                <a href="{% url 'inventoryApp:add_item' table.table_name %}" class="btn btn-success mb-3">Add Item to {{ table.table_name }}</a>
-
-                                                <!-- Archive Table Button 
-                                                <form method="post" action="{% url 'inventoryApp:archive_table' table.table_name %}" style="display:inline;">
+                            <!--Add Item-->
+                            <a href="{% url 'inventoryApp:add_item' table.table_name %}" class="btn btn-outline-success">
+                                <i class="bi bi-plus"></i> Add Item
+                            </a>
+                            <!-- Archive Table -->
+                            <form method="post" action="{% url 'inventoryApp:archive_table' table.table_name %}" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" onclick="return confirm('Are you sure you want to archive this table?')" class="btn btn-outline-success">
+                                    <i class="bi bi-archive"></i> Archive Table
+                                </button>
+                            </form>
+                            <table class="table table-bordered table-striped mt-3">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Quantity</th>
+                                        <th>Image</th>
+                                        <th colspan="2" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in table.rows %}
+                                        <tr>
+                                            <td>{{ row.1 }}</td>
+                                            <td>{{ row.3 }}</td>
+                                            <td><img src="media/{{ row.4 }}" alt="No Image" width="100"></td>
+                                            <!-- Delete Button -->
+                                            <td>
+                                                <form method="post" action="{% url 'inventoryApp:delete_item' table.table_name row.0 %}" style="display:inline;">
                                                     {% csrf_token %}
-                                                    <button type="submit" onclick="return confirm('Are you sure you want to archive this table?')" class="btn btn-secondary mb-3">Archive Table</button>
-                                                </form> 
-                                                -->
-
-                                                <!-- CSV Upload Button 
-                                                <a href="{% url 'inventoryApp:upload_csv' table.table_name %}" class="btn btn-info mb-3">Upload CSV</a>
-                                                -->
-                                                <!-- Inventory Table -->
-                                                <table class="table table-bordered table-striped">
-                                                    <thead class="table-dark">
-                                                        <tr>
-                                                            {% for column in table.columns %}
-                                                                <th>{{ column }}</th>
-                                                            {% endfor %}
-                                                            <th colspan="2" class="text-center">Actions</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {% for row in table.rows %}
-                                                            <tr>
-                                                                {% for value in row %}
-                                                                    <td>{{ value }}</td>
-                                                                {% endfor %}
-                                                                <!-- Delete Button -->
-                                                                <td>
-                                                                    <form method="post" action="{% url 'inventoryApp:delete_item' row.0 table.table_name %}" style="display:inline;">
-                                                                        {% csrf_token %}
-                                                                        <button type="submit" onclick="return confirm('Are you sure you want to delete this item?')" class="btn btn-danger btn-sm">Delete</button>
-                                                                    </form>
-                                                                </td>
-                                                                <!-- Edit Button -->
-                                                                <td>
-                                                                    <a href="{% url 'inventoryApp:edit_item' row.0 table.table_name %}" class="btn btn-warning btn-sm">Edit</a>
-                                                                </td>
-                                                            </tr>
-                                                        {% endfor %}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <p class="text-muted">No inventory tables found.</p>
-                    {% endif %}
-                </div>
-            {% endfor %}
+                                                    <button type="submit" onclick="return confirm('Are you sure you want to delete this item?')" class="btn btn-danger btn-sm">Delete</button>
+                                                </form>
+                                            </td>
+                                            <!-- Edit Button -->
+                                            <td>
+                                                <a href="{% url 'inventoryApp:edit_item' table.table_name row.0 %}" class="btn btn-warning btn-sm">Edit</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">No inventory tables found.</p>
+            {% endif %}
         </div>
     </div>
 </body>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var collapseElements = document.querySelectorAll('.collapse');
+
+        // Restore the collapse state from local storage
+        collapseElements.forEach(function(collapseElement) {
+            var collapseId = collapseElement.id;
+            if (localStorage.getItem(collapseId) === "show") {
+                // Open the collapse if it was previously open
+                var bootstrapCollapse = new bootstrap.Collapse(collapseElement, { toggle: false });
+                bootstrapCollapse.show();
+            } else {
+                // Close the collapse if it was previously closed
+                var bootstrapCollapse = new bootstrap.Collapse(collapseElement, { toggle: false });
+                bootstrapCollapse.hide();
+            }
+
+            // Track the collapse state when toggled
+            collapseElement.addEventListener('show.bs.collapse', function() {
+                localStorage.setItem(collapseId, "show");
+            });
+            collapseElement.addEventListener('hide.bs.collapse', function() {
+                localStorage.setItem(collapseId, "hide");
+            });
+        });
+    });
+</script>
 
 {% endblock %}

@@ -29,11 +29,36 @@
 </div>
 
 <div class="mb-3">
-<label for="image" class="form-label">Upload Image (Optional)</label>
-<input type="file" class="form-control" id="image" name="image" accept="image/*">
+    <label for="image" class="form-label">Upload Image (Optional)</label>
+    <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="validateImageName()">
 </div>
 <button type="submit" class="btn btn-primary">Add Item</button>
 </form>
 </div>
 </body>
+
+
+<script>
+    function validateImageName() {
+        const fileInput = document.getElementById('image');
+        const fileName = fileInput.value.split('\\').pop(); // Get the file name
+        const errorMessage = document.getElementById('image-error');
+
+        if (fileName.length > 250) {
+            if (!errorMessage) {
+                const errorDiv = document.createElement('div');
+                errorDiv.id = 'image-error';
+                errorDiv.style.color = 'red';
+                errorDiv.innerText = 'File name must be less than 250 characters.';
+                fileInput.parentElement.appendChild(errorDiv);
+            }
+            fileInput.setCustomValidity('File name must be less than 250 characters.');
+        } else {
+            fileInput.setCustomValidity(''); // Clear custom validity if the name is fine
+            if (errorMessage) {
+                errorMessage.remove(); // Remove the error message if the validation passes
+            }
+        }
+    }
+</script>
 </html>
