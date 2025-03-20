@@ -14,6 +14,7 @@ urlpatterns = [
     path("delete_item/<str:table_name>/<int:item_id>/", views.delete_item, name="delete_item"),
     path("add_custom_field/", views.add_custom_field, name="add_custom_field"),
     path("archive_table/<str:table_name>/", views.archive_table, name="archive_table"),
+    path("unarchive_table/<str:table_name>/", views.unarchive_table, name="unarchive_table"),
     path("upload_csv/<str:table_name>/", views.upload_csv, name="upload_csv"),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

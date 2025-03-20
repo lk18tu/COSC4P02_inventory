@@ -12,34 +12,34 @@ import csv, os
 
 # Create your views here.
 def home(request):
-    # Query to get all inventory tables, ordered by table_location
-    inventory_tables = InvTable_Metadata.objects.filter(table_type="inventory").order_by('table_location')
+    # Check if the user requested archived tables
+    table_type = request.GET.get('view', 'inventory')  # Default to "inventory"
+
+    inventory_tables = InvTable_Metadata.objects.filter(table_type=table_type).order_by('table_name')
 
     table_data = []
-
     for table in inventory_tables:
         table_name = table.table_name
-
-        # Fetch data from each inventory table
         try:
             with connection.cursor() as cursor:
                 cursor.execute(f"SELECT * FROM {table_name}")  # Query the table
                 columns = [col[0] for col in cursor.description]  # Get column names
                 rows = cursor.fetchall()  # Get all rows
 
-                # Add the table's data to the list, including location
                 table_data.append({
                     'table_name': table_name,
-                    'table_location': table.table_location,
                     'columns': columns,
                     'rows': rows
                 })
         except Exception as e:
             print(f"Error fetching data for {table_name}: {e}")
-            continue  # Continue with the next table if there's an error
+            continue  # Skip this table if there's an error
 
-    return render(request, "inventoryHome.html", {"table_data": table_data, "MEDIA_URL": settings.MEDIA_URL})
-
+    return render(request, "inventoryHome.html", {
+        "table_data": table_data,
+        "MEDIA_URL": settings.MEDIA_URL,
+        "current_view": table_type  # Pass the current view type to the template
+    })
 
 def add_custom_field(request):
     if request.method == "POST":
@@ -68,10 +68,24 @@ def add_custom_field(request):
 
 
 
+import os
+from django.shortcuts import render, redirect
+from django.conf import settings
+from django.db import connection
+from django.http import Http404
+
 def add_item(request, table_name):
     if request.method == "POST":
+        # Get all the data from the form
+        product_number = request.POST.get('product_number')
+        upc = request.POST.get('upc')
         title = request.POST.get('title')
-        quantity = request.POST.get('quantity')
+        description = request.POST.get('description')
+        quantity_stock = request.POST.get('quantity_stock')
+        reorder_level = request.POST.get('reorder_level')
+        price = request.POST.get('price')
+        purchace_price = request.POST.get('purchace_price')
+        notes = request.POST.get('notes')
         completed = 1 if request.POST.get('completed') == "on" else 0
         image = request.FILES.get('image')  # Get the uploaded image
 
@@ -98,8 +112,19 @@ def add_item(request, table_name):
 
                     # Insert the item into the dynamic table
                     cursor.execute(
-                        f"INSERT INTO {table_name} (title, quantity, completed, image) VALUES (%s, %s, %s, %s)",
-                        [title, quantity, completed, image_path]
+                        f"""
+                        INSERT INTO {table_name} (
+                            product_number, upc, title, description, 
+                            quantity_stock, reorder_level, price, 
+                            purchace_price, notes, image
+                        ) 
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        """,
+                        [
+                            product_number, upc, title, description, 
+                            quantity_stock, reorder_level, price, 
+                            purchace_price, notes, image_path
+                        ]
                     )
                     return redirect("inventoryApp:home")
                 else:
@@ -111,6 +136,7 @@ def add_item(request, table_name):
 
     return render(request, "add_item.html", {"table_name": table_name})
 
+
 def add_inventory(request):
     if request.method == "POST":
         new_table_name = request.POST.get("table_name")  # Get the table name from the form
@@ -121,10 +147,16 @@ def add_inventory(request):
                 cursor.execute(f"""
                     CREATE TABLE {new_table_name} (
                         id INT AUTO_INCREMENT PRIMARY KEY,
+                        product_number VARCHAR(100),
+                        upc VARCHAR(255),
                         title VARCHAR(255),
-                        completed BOOLEAN,
-                        quantity INT,
-                        image VARCHAR(255)  # Store the image path as a string
+                        description VARCHAR(255),
+                        quantity_stock INT,
+                        reorder_level INT,
+                        price FLOAT(100, 2),
+                        purchace_price FLOAT(100, 2),
+                        image VARCHAR(255),
+                        notes VARCHAR(255)
                     )
                 """)
                 # Add entry in the table_metadata table
@@ -153,6 +185,23 @@ def archive_table(request, table_name):
             print(f"Error archiving table '{table_name}': {e}")
 
     return redirect("inventoryApp:home")  # Redirect back to home
+
+def unarchive_table(request, table_name):
+    if request.method == 'POST':  # Only allow POST request for safety
+        try:
+            # Get the table entry from metadata
+            table_metadata = get_object_or_404(InvTable_Metadata, table_name=table_name)
+
+            # Update table_type to 'archived_inventory'
+            table_metadata.table_type = 'inventory'
+            table_metadata.save()
+
+            print(f"Table '{table_name}' unarchived successfully.")
+        except Exception as e:
+            print(f"Error unarchiving table '{table_name}': {e}")
+
+    return redirect("inventoryApp:home")  # Redirect back to home
+
 
 
 def delete_item(request, item_id, table_name):
