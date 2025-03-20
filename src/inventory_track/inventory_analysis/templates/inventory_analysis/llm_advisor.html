@@ -21,7 +21,7 @@ document.getElementById("llm-form").onsubmit = async function(event) {
     responseElement.innerText = "Thinking... 🤔";
 
     try {
-        const response = await fetch("{% url 'llm_advisor' %}", {
+        const response = await fetch("{% url 'inventory_analysis:llm_advisor' %}", {
             method: "POST",
             body: formData
         });

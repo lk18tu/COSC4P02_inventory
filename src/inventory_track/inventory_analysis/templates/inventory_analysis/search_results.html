@@ -4,7 +4,7 @@
 <h2>Inventory Search</h2>
 
 <!-- Search form -->
-<form action="{% url 'search_inventory' %}" method="GET">
+<form action="{% url 'inventory_analysis:search_inventory' %}" method="GET">
     <input type="text" name="q" placeholder="Search inventory..." value="{{ query }}">
     <button type="submit">Search</button>
 </form>
