@@ -1,39 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Add Item</title>
- {% load static %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Item</title>
+    {% load static %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 </head>
 <body>
-<div class="container mt-5">
-<h1>Add Item to {{ table_name }} Table</h1>
+    <div class="container mt-5">
+        <h1>Add Item to {{ table_name }} Table</h1>
  
-<form method="POST" enctype="multipart/form-data">
-{% csrf_token %}
-<div class="mb-3">
-<label for="title" class="form-label">Title</label>
-<input type="text" class="form-control" id="title" name="title" required>
-</div>
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Product Number -->
+            <div class="mb-3">
+                <label for="product_number" class="form-label">Product Number</label>
+                <input type="text" class="form-control" id="product_number" name="product_number" required>
+            </div>
 
-<div class="mb-3">
-<label for="quantity" class="form-label">Quantity</label>
-<input type="number" class="form-control" id="quantity" name="quantity" required>
-</div>
+            <!-- UPC -->
+            <div class="mb-3">
+                <label for="upc" class="form-label">UPC</label>
+                <input type="text" class="form-control" id="upc" name="upc" required>
+            </div>
 
-<div class="form-check mb-3">
-<input type="checkbox" class="form-check-input" id="completed" name="completed">
-<label class="form-check-label" for="completed">Completed</label>
-</div>
+            <!-- Title -->
+            <div class="mb-3">
+                <label for="title" class="form-label">Title</label>
+                <input type="text" class="form-control" id="title" name="title" required>
+            </div>
 
-<div class="mb-3">
-<label for="image" class="form-label">Upload Image (Optional)</label>
-<input type="file" class="form-control" id="image" name="image" accept="image/*">
-</div>
-<button type="submit" class="btn btn-primary">Add Item</button>
-</form>
-</div>
+            <!-- Description -->
+            <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+            </div>
+
+            <!-- Quantity in Stock -->
+            <div class="mb-3">
+                <label for="quantity_stock" class="form-label">Quantity in Stock</label>
+                <input type="number" class="form-control" id="quantity_stock" name="quantity_stock" required>
+            </div>
+
+            <!-- Reorder Level -->
+            <div class="mb-3">
+                <label for="reorder_level" class="form-label">Reorder Level</label>
+                <input type="number" class="form-control" id="reorder_level" name="reorder_level" required>
+            </div>
+
+            <!-- Price -->
+            <div class="mb-3">
+                <label for="price" class="form-label">Price</label>
+                <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+            </div>
+
+            <!-- Purchase Price -->
+            <div class="mb-3">
+                <label for="purchace_price" class="form-label">Purchase Price</label>
+                <input type="number" class="form-control" id="purchace_price" name="purchace_price" step="0.01" required>
+            </div>
+
+            <!-- Notes -->
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+            </div>
+
+            <!-- Image -->
+            <div class="mb-3">
+                <label for="image" class="form-label">Upload Image (Optional)</label>
+                <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="validateImageName()">
+            </div>
+
+            <!-- Completed Checkbox -->
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" id="completed" name="completed">
+                <label class="form-check-label" for="completed">Completed</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Add Item</button>
+        </form>
+    </div>
+
+    <script>
+        // Image name validation
+        function validateImageName() {
+            const fileInput = document.getElementById('image');
+            const fileName = fileInput.value.split('\\').pop(); // Get the file name
+            const errorMessage = document.getElementById('image-error');
+
+            if (fileName.length > 250) {
+                if (!errorMessage) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.id = 'image-error';
+                    errorDiv.style.color = 'red';
+                    errorDiv.innerText = 'File name must be less than 250 characters.';
+                    fileInput.parentElement.appendChild(errorDiv);
+                }
+                fileInput.setCustomValidity('File name must be less than 250 characters.');
+            } else {
+                fileInput.setCustomValidity(''); // Clear custom validity if the name is fine
+                if (errorMessage) {
+                    errorMessage.remove(); // Remove the error message if the validation passes
+                }
+            }
+        }
+    </script>
 </body>
 </html>
