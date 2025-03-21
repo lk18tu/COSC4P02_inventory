@@ -1,60 +1,47 @@
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inbox</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-</head>
-<body class="bg-light">
-
-<div class="container mt-5">
-    <h2 class="mb-4">📩 Your Inbox</h2>
-    <div class="list-group">
-        {% for message in messages %}
-            <a href="{% url 'read_message' message.id %}" 
-               class="list-group-item list-group-item-action {% if not message.read %}list-group-item-warning{% endif %}">
-                <h5 class="mb-1">{{ message.subject|default:"(No Subject)" }}</h5>
-                <p class="mb-1">From: <strong>{{ message.sender.username }}</strong></p>
-                <small class="text-muted">Sent at: {{ message.timestamp }}</small>
-            </a>
-        {% empty %}
-            <p class="text-muted">No messages in your inbox.</p>
-        {% endfor %}
-    </div>
-    <a href="{% url 'send_message' %}" class="btn btn-primary mt-3">Send a New Message</a>
-</div>
-
-</body>
-</html>
-=======
->>>>>>> main
 {% extends 'base.html' %}
-{% block title %} Inbox {% endblock %}
+{% load static %}
+
+{% block title %}Inbox{% endblock %}
+
 {% block content %}
-
-    <h2>📩 Your Inbox</h2>
-    
-        {% for message in messages %}
-            <a href="{% url 'messaging:read_message' message.id %}" 
-               class="list-group-item list-group-item-action {% if not message.read %}list-group-item-warning{% endif %}">
-                <h5>{{ message.subject|default:"(No Subject)" }}</h5>
-                <p>From: <strong>{{ message.sender.username }}</strong></p>
-                <small>Sent at: {{ message.timestamp }}</small>
+<div class="container mt-4">
+    <div class="card shadow-lg border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h2 class="mb-0"><i class="bi bi-envelope"></i> Your Inbox</h2>
+            <a href="{% url 'messaging:send_message' %}" class="btn btn-light btn-sm">
+                <i class="bi bi-pencil-square"></i> Compose
             </a>
-        {% empty %}
-            <p>No messages in your inbox.</p>
-        {% endfor %}
-    
-    <a href="{% url 'messaging:send_message' %}" class="btn btn-primary mt-3">Send a New Message</a>
+        </div>
 
+        <div class="card-body">
+            {% if messages %}
+                <div class="list-group">
+                    {% for message in messages %}
+                        <a href="{% url 'messaging:read_message' message.id %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center 
+                           {% if not message.read %} list-group-item-warning fw-bold {% endif %}">
+                            <div>
+                                <h5 class="mb-1">{{ message.subject|default:"No Subject" }}</h5>
+                                <p class="mb-1"><strong>From: {{ message.sender.username }}</strong></p>
+                                <small class="text-muted">Sent at: {{ message.timestamp }}</small>
+                            </div>
+                            {% if not message.read %}
+                                <span class="badge bg-danger rounded-pill">New</span>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted text-center">No messages in your inbox.</p>
+            {% endif %}
+        </div>
 
+        <div class="card-footer text-end">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
 {% endblock %}
-<<<<<<< HEAD
-=======
->>>>>>> origin/main
->>>>>>> main
+

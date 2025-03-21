@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Inventory Analysis</h2>
+
+<!-- Inventory Bar Chart -->
+{% if inventory_chart %}
+    <h3>Stock Levels</h3>
+    <img src="data:image/png;base64,{{ inventory_chart }}" alt="Inventory Chart">
+    <p><strong>{{ summary }}</strong></p>
+    <p>
+        <span style="color:red;">⬤ Low Stock (0-4)</span> |
+        <span style="color:yellow;">⬤ Medium Stock (5-15)</span> |
+        <span style="color:green;">⬤ Sufficient Stock (16+)</span>
+    </p>
+{% else %}
+    <p>No inventory data available.</p>
+{% endif %}
+
+<!-- Inventory Pie Chart -->
+{% if inventory_pie_chart %}
+    <h3>Inventory Distribution</h3>
+    <img src="data:image/png;base64,{{ inventory_pie_chart }}" alt="Inventory Pie Chart">
+{% else %}
+    <p>No inventory distribution data available.</p>
+{% endif %}
+
+{% endblock %}

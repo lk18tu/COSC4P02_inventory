@@ -13,8 +13,15 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 import os
 
+
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -26,6 +33,7 @@ SECRET_KEY = 'django-insecure-#nq=v1&o%z_qak@p9cg%303%+em48%htbvp%0v2mxqn3l^lr+c
 DEBUG = True
 
 ALLOWED_HOSTS = []
+
 
 # Application definition
 
@@ -42,6 +50,8 @@ INSTALLED_APPS = [
     'manager',
     'notifications',
     'inventoryApp',
+    'inventory_analysis',
+    'history',
 ]
 
 MIDDLEWARE = [
@@ -74,6 +84,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'inventory_track.wsgi.application'
 
+
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
@@ -81,12 +92,13 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'inventory_db',
-        'USER': 'user1',
-        'PASSWORD': 'password1',
-        'HOST': 'localhost',
-        'PORT': '3306',
+	'USER': 'user1',
+	'PASSWORD': 'password1',
+	'HOST': 'localhost',
+	'PORT': '3306',
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -106,6 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -117,10 +130,22 @@ USE_I18N = True
 
 USE_TZ = True
 
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# Media files (images, etc.)
+MEDIA_URL = '/media/'  # URL to access media files
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  # The folder where files will be saved
+
+STATICFILES_DIRS = [
+
+    BASE_DIR / 'static',
+    BASE_DIR / 'inventoryApp/static',
+    BASE_DIR / 'staticfiles/admin/img',
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field

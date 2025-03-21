@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Inventory Home{% endblock %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Inventory Management</h1>
+
+        <!-- Add New Inventory Button -->
+        <a href="{% url 'inventoryApp:add_inventory' %}" class="btn btn-success mb-3">
+            <i class="bi bi-plus-circle"></i> Add New Inventory
+        </a>
+
+        <!-- Archive Toggle -->
+        <div class="d-flex justify-content-end mb-3">
+            <label class="form-check-label me-2" for="toggleArchived"><strong>Show Archived:</strong></label>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="toggleArchived"
+                       {% if current_view == "archived_inventory" %}checked{% endif %}>
+            </div>
+        </div>
+
+        <div class="card-body">
+            {% if table_data %}
+                {% for table in table_data %}
+                    <div class="mb-5">
+                        <!-- Collapsible Button for each Table -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h3 class="text-primary">
+                                <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ table.table_name }}" aria-expanded="false" aria-controls="collapse-{{ table.table_name }}">
+                                    <i class="bi bi-chevron-down"></i> {{ table.table_name }}
+                                </button>
+                            </h3>
+                            
+                        </div>
+
+                        <!-- Collapsible Table Content -->
+                        <div class="collapse" id="collapse-{{ table.table_name }}">
+
+                            <!--Table Actions-->
+
+                            <!--Add Item-->
+                            <a href="{% url 'inventoryApp:add_item' table.table_name %}" class="btn btn-outline-success">
+                                <i class="bi bi-plus"></i> Add Item
+                            </a>
+
+                            <!-- Archive / Unarchive Table -->
+                            <form method="post" 
+                            action="{% if current_view == 'archived_inventory' %}{% url 'inventoryApp:unarchive_table' table.table_name %}{% else %}{% url 'inventoryApp:archive_table' table.table_name %}{% endif %}" 
+                            style="display:inline;">
+                            {% csrf_token %}
+                                <button type="submit" onclick="return confirm('Are you sure you want to change status of this table?')" 
+                                    class="btn {% if current_view == 'archived_inventory' %}btn-outline-warning{% else %}btn-outline-danger{% endif %}">
+                                <i class="bi {% if current_view == 'archived_inventory' %}bi-arrow-up-circle{% else %}bi-archive{% endif %}"></i> 
+                                {% if current_view == 'archived_inventory' %}Unarchive{% else %}Archive{% endif %} Table
+                                </button>
+                            </form>
+                            <table class="table table-bordered table-striped mt-3">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Image</th>
+                                        <th>Title</th>
+                                        <th>Product #</th>
+                                        <th>UPC</th>
+                                        <th>Desc.</th>
+                                        <th>Quantity</th>
+                                        <th>Reorder Level</th>
+                                        <th>Price</th>
+                                        <th>Pruchace Price</th>
+                                        <th>Notes</th>
+                                        
+                                        <th colspan="2" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in table.rows %}
+                                        <tr>
+                                            <td><img src="media/{{ row.9 }}" alt="No Image" width="100"></td> <!--Image-->
+                                            <td>{{ row.3 }}</td> <!--Title-->
+                                            <td>{{ row.1 }}</td> <!--Product Number-->
+                                            <td>{{ row.2 }}</td> <!--UPC-->
+                                            <td>{{ row.4 }}</td> <!--Desc.-->
+                                            <td>{{ row.5 }}</td> <!--Quant stock-->
+                                            <td>{{ row.6 }}</td> <!--Reorder LVL-->
+                                            <td>{{ row.7 }}</td> <!--Price-->
+                                            <td>{{ row.8 }}</td> <!--Purchace price-->
+                                            <td>{{ row.10 }}</td> <!--Notes-->
+                                            
+                                            <!-- Delete Button -->
+                                            <td>
+                                                <form method="post" action="{% url 'inventoryApp:delete_item' table.table_name row.0 %}" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" onclick="return confirm('Are you sure you want to delete this item?')" class="btn btn-danger btn-sm">Delete</button>
+                                                </form>
+                                            </td>
+                                            <!-- Edit Button -->
+                                            <td>
+                                                <a href="{% url 'inventoryApp:edit_item' table.table_name row.0 %}" class="btn btn-warning btn-sm">Edit</a>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">No inventory tables found.</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var collapseElements = document.querySelectorAll('.collapse');
+
+        // Restore the collapse state from local storage
+        collapseElements.forEach(function(collapseElement) {
+            var collapseId = collapseElement.id;
+            if (localStorage.getItem(collapseId) === "show") {
+                // Open the collapse if it was previously open
+                var bootstrapCollapse = new bootstrap.Collapse(collapseElement, { toggle: false });
+                bootstrapCollapse.show();
+            } else {
+                // Close the collapse if it was previously closed
+                var bootstrapCollapse = new bootstrap.Collapse(collapseElement, { toggle: false });
+                bootstrapCollapse.hide();
+            }
+
+            // Track the collapse state when toggled
+            collapseElement.addEventListener('show.bs.collapse', function() {
+                localStorage.setItem(collapseId, "show");
+            });
+            collapseElement.addEventListener('hide.bs.collapse', function() {
+                localStorage.setItem(collapseId, "hide");
+            });
+        });
+    });
+
+
+
+    document.getElementById("toggleArchived").addEventListener("change", function() {
+        if (this.checked) {
+            window.location.href = "?view=archived_inventory";  // Switch to archived view
+        } else {
+            window.location.href = "?view=inventory";  // Switch to active inventory
+        }
+    });
+</script>
+
+{% endblock %}
