@@ -4,94 +4,109 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- Dashboard Welcome Section (only on dashboard) -->
+<!-- Dashboard Welcome Section -->
 <div class="welcome-section mb-4">
-    <h2>Welcome, {{ user.username }}</h2>
-    <div id="date-time" class="date-time"></div>
+  <h2>Welcome, {{ user.username }}</h2>
+  <div id="date-time" class="date-time"></div>
 </div>
 
-<div class="container mt-4">
+<div class="container-fluid">
   <div class="row">
-    <!-- Notifications Widget -->
-    <div class="col-md-4 mb-4">
-      <div class="card text-white bg-primary shadow h-100">
-        <div class="card-body text-center">
-          <a href="{% url 'notifications:view_notifications' %}" class="btn btn-primary" style="font-size: 2rem;">
-            <i class="bi bi-bell-fill"></i>
-            {% if unread_notifications > 0 %}
-              <span class="badge bg-danger">{{ unread_notifications }}</span>
+    <!-- Left Column: Notifications, View Stock, Inventory History -->
+    <div class="col-md-6">
+      <div class="row">
+        <!-- Notifications Widget (half-width) -->
+        <div class="col-md-6 mb-4">
+          <div class="card text-white bg-primary shadow h-100" style="cursor: pointer;" onclick="location.href='{% url 'notifications:view_notifications' %}';">
+            <div class="card-body text-center">
+              <div class="d-flex justify-content-center align-items-center" style="font-size: 1.5rem;">
+                <i class="bi bi-bell-fill btn btn-light" style="padding: 0.3rem;"></i>
+                {% if unread_notifications > 0 %}
+                  <span class="badge bg-danger ms-2">{{ unread_notifications }}</span>
+                {% endif %}
+              </div>
+              <h6 class="card-title mt-2">Notifications</h6>
+            </div>
+            <!-- Always-visible detail section with fixed height and scroll -->
+            <div id="notifications-detail" style="background-color: #fff; color: #000; max-height: 150px; overflow-y: auto; border-top: 2px solid #72A0C1; padding: 0.5rem;">
+              {% for notification in notifications %}
+                <div class="alert alert-secondary m-1 p-1">{{ notification.message }}</div>
+              {% empty %}
+                <div class="alert alert-light m-1 p-1">No new notifications.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <!-- View Stock Widget (half-width) -->
+        <div class="col-md-6 mb-4">
+          <div class="card text-white bg-secondary shadow h-100" style="cursor: pointer;" onclick="location.href='{% url 'updateStock:product_list' %}';">
+            <div class="card-body text-center">
+              <i class="bi bi-bar-chart-line btn btn-light" style="font-size: 1.5rem; padding: 0.3rem;"></i>
+              <h6 class="card-title mt-2">View Stock</h6>
+            </div>
+            <!-- Always-visible filter section for inventory table -->
+            <div id="stock-levels-detail" style="background-color: #fff; color: #000; border-top: 2px solid #6c757d; padding: 0.5rem;">
+              <div class="mb-2">
+                <label for="inventory-table-select" class="form-label">Select Table:</label>
+                <select id="inventory-table-select" class="form-select form-select-sm" onchange="updateStockLevels();">
+                  <option value="">-- Select a Table --</option>
+                  {% for table in inventory_tables %}
+                    <option value="{{ table.table_name }}">{{ table.table_name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-striped table-sm">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Title</th>
+                      <th>Quantity</th>
+                    </tr>
+                  </thead>
+                  <tbody id="filtered-table-body">
+                    <tr>
+                      <td colspan="3" class="text-center">No data available.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Inventory History Widget (full-width of left column) -->
+      <div class="mb-4">
+        <div class="card text-white bg-success shadow h-100" style="cursor: pointer;" onclick="location.href='{% url 'history:history' %}';">
+          <div class="card-body text-center">
+            <i class="bi bi-clock-history btn btn-light" style="font-size: 1.5rem; padding: 0.3rem;"></i>
+            <h6 class="card-title mt-2">Inventory History</h6>
+          </div>
+          <!-- Always-visible history details with fixed height and scroll -->
+          <div id="inventory-history-detail" style="background-color: #fff; color: #000; max-height: 150px; overflow-y: auto; border-top: 2px solid #198754; padding: 0.5rem;">
+            <p class="mb-0 text-center">History details here...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Inventory Analysis Widget -->
+    <div class="col-md-6">
+      <div class="mb-4">
+        <div class="card text-white bg-info shadow h-100" style="cursor: pointer;" onclick="location.href='{% url 'inventory_analysis:chart' %}';">
+          <div class="card-body text-center">
+            <h5 class="card-title">Inventory Analysis</h5>
+          </div>
+          <!-- Section displaying the full pie chart (no fixed height so the full image is visible) -->
+          <div class="card-footer p-0">
+            {% if inventory_pie_chart %}
+              <img src="data:image/png;base64,{{ inventory_pie_chart }}" alt="Inventory Pie Chart" style="width: 100%; height: auto;">
+            {% else %}
+              <div class="p-2 text-center" style="background-color: #fff; color: #000;">
+                <p class="mb-0">No inventory distribution data available.</p>
+              </div>
             {% endif %}
-          </a>
-          <h5 class="card-title mt-2">Notifications</h5>
-        </div>
-        <!-- Hidden Notifications Detail Section -->
-        <div id="notifications-detail" class="collapse bg-lighter-blue">
-          {% for notification in notifications %}
-            <div class="alert alert-secondary m-2">{{ notification.message }}</div>
-          {% empty %}
-            <div class="alert alert-light m-2">No new notifications.</div>
-          {% endfor %}
-        </div>
-        <!-- Expander Button -->
-        <div class="card-footer text-center">
-          <button onclick="toggleDropdown('notifications-detail', 'notifications-chevron')" class="btn btn-link text-white">
-            <i id="notifications-chevron" class="bi bi-chevron-down"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Update Stock Widget now points to Inventory Management Page -->
-    <div class="col-md-4 mb-4">
-      <div class="card text-white bg-success shadow h-100">
-        <div class="card-body text-center">
-          <a href="{% url 'inventoryApp:home' %}" class="btn btn-light" style="font-size: 2rem;">
-            <i class="bi bi-pencil-square"></i>
-          </a>
-          <h5 class="card-title mt-2">Update Stock</h5>
-        </div>
-      </div>
-    </div>
-
-    <!-- Current Stock Levels Widget now points to Product List Page -->
-    <div class="col-md-4 mb-4">
-      <div class="card text-white bg-secondary shadow h-100">
-        <div class="card-body text-center">
-          <a href="{% url 'updateStock:product_list' %}" class="btn btn-light" style="font-size: 2rem;">
-            <i class="bi bi-bar-chart-line"></i>
-          </a>
-          <h5 class="card-title mt-2">Current Stock Levels</h5>
-        </div>
-        <!-- Hidden Stock Levels Detail Section -->
-        <div id="stock-levels-detail" class="collapse bg-lighter-blue">
-          <!-- Placeholder for Graphs or Data -->
-          <div class="alert alert-info m-2">Stock levels graph here...</div>
-        </div>
-        <!-- Expander Button -->
-        <div class="card-footer text-center">
-          <button onclick="toggleDropdown('stock-levels-detail', 'stock-levels-chevron')" class="btn btn-link text-white">
-            <i id="stock-levels-chevron" class="bi bi-chevron-down"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- New Inventory Analysis Widget Row -->
-  <div class="row">
-    <!-- Analysis Widget spanning 8 columns, aligning with the left edge of Notifications and right edge of Update Stock -->
-    <div class="col-md-8 mb-4">
-      <div class="card text-white bg-info shadow h-100">
-        <div class="card-body text-center">
-          <a href="{% url 'inventory_analysis:chart' %}" class="btn btn-light" style="font-size: 2rem;">
-            <i class="bi bi-pie-chart"></i>
-          </a>
-          <h5 class="card-title mt-2">Inventory Analysis</h5>
-        </div>
-        <!-- Section displaying the pie chart preview (static preview box) -->
-        <div class="card-footer p-0">
-          <div class="p-2" style="background-color: #fff; color: #000; height: 200px;">
-            <p class="mb-0 text-center">Pie Chart Preview</p>
           </div>
         </div>
       </div>
@@ -99,19 +114,41 @@
   </div>
 </div>
 
+<!-- Separate Floating Widgets for AI Support and Messages at Bottom Right -->
+<div style="position: fixed; bottom: 20px; right: 20px;">
+  <a href="{% url 'inventory_analysis:llm_advisor' %}" class="btn btn-light rounded-circle me-2" style="width: 50px; height: 50px;">
+    <i class="bi bi-lightbulb" style="font-size: 1.5rem;"></i>
+  </a>
+  <a href="{% url 'messaging:inbox' %}" class="btn btn-light rounded-circle" style="width: 50px; height: 50px;">
+    <i class="bi bi-chat-dots" style="font-size: 1.5rem;"></i>
+  </a>
+</div>
+
 <script>
-  function toggleDropdown(detailId, chevronId) {
-    const detailSection = document.getElementById(detailId);
-    const chevronIcon = document.getElementById(chevronId);
-    if (detailSection.classList.contains('collapse')) {
-      detailSection.classList.remove('collapse');
-      chevronIcon.classList.remove('bi-chevron-down');
-      chevronIcon.classList.add('bi-chevron-up');
-    } else {
-      detailSection.classList.add('collapse');
-      chevronIcon.classList.add('bi-chevron-down');
-      chevronIcon.classList.remove('bi-chevron-up');
-    }
+  // Function to fetch filtered inventory table data via AJAX
+  function updateStockLevels() {
+    const selectedTable = document.getElementById('inventory-table-select').value;
+    if (!selectedTable) return;
+    fetch(`/inventoryApp/filtered_inventory/?table=${encodeURIComponent(selectedTable)}`)
+      .then(response => response.json())
+      .then(data => {
+        const tableBody = document.getElementById('filtered-table-body');
+        tableBody.innerHTML = '';
+        if (data.rows && data.rows.length > 0) {
+          data.rows.forEach(row => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${row.id}</td><td>${row.title}</td><td>${row.quantity}</td>`;
+            tableBody.appendChild(tr);
+          });
+        } else {
+          tableBody.innerHTML = '<tr><td colspan="3" class="text-center">No data available.</td></tr>';
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching filtered inventory:', error);
+      });
   }
 </script>
+
 {% endblock %}
+

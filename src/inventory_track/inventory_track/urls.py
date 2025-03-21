@@ -29,5 +29,5 @@ urlpatterns = [
     path('invManage/', include('inventoryApp.urls', namespace='inventoryApp')),
     path("", lambda request: redirect("userauth/login/")),  # Redirect root to login page
     path('inventory_analysis/', include('inventory_analysis.urls', namespace='inventory_analysis')),
-    path('history/', include('history.urls')),
+    path('history/', include(('history.urls', 'history'), namespace='history')),
 ]

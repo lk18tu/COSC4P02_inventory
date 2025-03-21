@@ -3,7 +3,7 @@
 {% block content %}
 <h2>Inventory Change History</h2>
 
-<form method="get" action="{% url 'history' %}">
+<form method="get" action="{% url 'history:history' %}">
     <input type="text" name="search" placeholder="Search history..." value="{{ request.GET.search }}">
     <button type="submit">Search</button>
 </form>

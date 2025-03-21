@@ -8,6 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import UserProfile
 from notifications.models import Notification  # Import Notification from the notifications app
+from inventory_analysis.views import generate_inventory_pie_chart
 
 # check if user is a manager
 def manager_required(user):
@@ -60,15 +61,22 @@ def dashboard(request):
     current_time = datetime.datetime.now(eastern)
     formatted_date_time = current_time.strftime("%B %d, %Y, %I:%M %p EST")
 
-    # check profile exists
+    # Ensure user profile exists
     UserProfile.objects.get_or_create(user=request.user)
     unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count() or 0
+
+    # Generate the pie chart (Base64-encoded image string)
+    inventory_pie_chart = generate_inventory_pie_chart()
+
     context = {
         "unread_notifications": unread_notifications,
         "current_time": formatted_date_time,
-        "is_manager": request.user.profile.is_manager(),  # check if manager
+        "is_manager": request.user.profile.is_manager(),
+        "inventory_pie_chart": inventory_pie_chart,
+        # If you also use "inventory_tables" for your dropdown, include it here
+        # "inventory_tables": InvTable_Metadata.objects.filter(table_type="inventory"),
     }
-    return render(request, 'userauth/dashboard.html', context)
+    return render(request, "userauth/dashboard.html", context)
 
 # Restricted view template for managers
 #@login_required
