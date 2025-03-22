@@ -1,24 +1,45 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>AI Inventory Advisor</h2>
-<form method="POST" id="llm-form">
-    {% csrf_token %}
-    <textarea name="query" id="query-input" placeholder="Ask about inventory..."></textarea>
-    <button type="submit">Submit</button>
-</form>
+<div class="container mt-5">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">AI Inventory Advisor</h4>
+        </div>
+        <div class="card-body">
+            <form method="POST" id="llm-form">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="query-input" class="form-label">Ask a question about inventory:</label>
+                    <textarea name="query" id="query-input" rows="4" class="form-control" placeholder="Enter your question" required></textarea>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-send"></i> Submit
+                    </button>
+                    <small class="text-muted">Answers are powered by your latest inventory data.</small>
+                </div>
+            </form>
+        </div>
+    </div>
 
-<h3>Response:</h3>
-<p id="llm-response">Waiting for your question...</p>
+    <div class="card shadow mt-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Response</h5>
+        </div>
+        <div class="card-body">
+            <p id="llm-response" class="text-muted">Waiting for your question...</p>
+        </div>
+    </div>
+</div>
 
 <script>
 document.getElementById("llm-form").onsubmit = async function(event) {
     event.preventDefault();
-    
+
     const formData = new FormData(this);
     const responseElement = document.getElementById("llm-response");
-
-    responseElement.innerText = "Thinking... 🤔";
+    responseElement.innerHTML = `<span class="text-info">Thinking... 🤔</span>`;
 
     try {
         const response = await fetch("{% url 'inventory_analysis:llm_advisor' %}", {
@@ -31,12 +52,12 @@ document.getElementById("llm-form").onsubmit = async function(event) {
         if (data.response) {
             responseElement.innerText = data.response;
         } else if (data.error) {
-            responseElement.innerText = "Error: " + data.error;
+            responseElement.innerHTML = `<span class="text-danger">Error: ${data.error}</span>`;
         }
 
     } catch (error) {
         console.error("Fetch error:", error);
-        responseElement.innerText = "Failed to fetch response.";
+        responseElement.innerHTML = `<span class="text-danger">Failed to fetch response.</span>`;
     }
 };
 </script>
