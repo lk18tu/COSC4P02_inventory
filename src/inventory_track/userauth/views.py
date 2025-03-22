@@ -1,6 +1,8 @@
 # userauth/views.py
 import pytz
 import datetime
+import logging
+from django.conf import settings
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -9,6 +11,11 @@ from django.contrib.auth.models import User
 from .models import UserProfile
 from notifications.models import Notification  # Import Notification from the notifications app
 from inventory_analysis.views import generate_inventory_pie_chart
+from django.urls import reverse_lazy
+from django.contrib.auth.views import PasswordResetView
+from django.contrib.messages.views import SuccessMessageMixin
+
+logger = logging.getLogger(__name__)
 
 # check if user is a manager
 def manager_required(user):
@@ -78,11 +85,30 @@ def dashboard(request):
     }
     return render(request, "userauth/dashboard.html", context)
 
+
+class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
+    template_name = 'userauth/password_reset.html'
+    email_template_name = 'userauth/password_reset_email.html'
+    subject_template_name = 'userauth/password_reset_subject.txt'
+    success_message = "We've emailed you instructions for setting your password, if an account exists with the email you entered."
+    success_url = reverse_lazy('password_reset_done')
+
+    def form_valid(self, form):
+        form.save(
+            request=self.request,
+            use_https=True if settings.PROTOCOL == 'https' else False,
+            from_email=settings.EMAIL_HOST_USER,
+            email_template_name=self.email_template_name,
+            domain_override=settings.DOMAIN,
+        )
+        return super().form_valid(form)
+
+
 # Restricted view template for managers
 #@login_required
 #@user_passes_test(manager_required, login_url='/login/')
 #def add_warehouse_location(request):
     
 # return render(request, 'url.html', {})
-	
+
 

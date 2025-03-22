@@ -18,6 +18,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
+from django.contrib.auth import views as auth_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -30,4 +31,5 @@ urlpatterns = [
     path("", lambda request: redirect("userauth/login/")),  # Redirect root to login page
     path('inventory_analysis/', include('inventory_analysis.urls', namespace='inventory_analysis')),
     path('history/', include(('history.urls', 'history'), namespace='history')),
+    
 ]
