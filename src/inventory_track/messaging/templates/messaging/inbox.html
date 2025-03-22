@@ -8,9 +8,14 @@
     <div class="card shadow-lg border-0">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h2 class="mb-0"><i class="bi bi-envelope"></i> Your Inbox</h2>
-            <a href="{% url 'messaging:send_message' %}" class="btn btn-light btn-sm">
-                <i class="bi bi-pencil-square"></i> Compose
-            </a>
+            <div>
+                <a href="{% url 'messaging:contacts' %}" class="btn btn-outline-light btn-sm me-2">
+                    <i class="bi bi-person-lines-fill"></i> Contacts
+                </a>
+                <a href="{% url 'messaging:send_message' %}" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-pencil-square"></i> Compose
+                </a>
+            </div>
         </div>
 
         <div class="card-body">
@@ -23,7 +28,8 @@
                             <div>
                                 <h5 class="mb-1">{{ message.subject|default:"No Subject" }}</h5>
                                 <p class="mb-1"><strong>From: {{ message.sender.username }}</strong></p>
-                                <small class="text-muted">Sent at: {{ message.timestamp }}</small>
+                                {% load tz %}
+                                <small class="text-muted">Sent at: {% timezone "America/Toronto" %}{{ message.timestamp|date:"Y-m-d H:i" }}{% endtimezone %}</small>
                             </div>
                             {% if not message.read %}
                                 <span class="badge bg-danger rounded-pill">New</span>
