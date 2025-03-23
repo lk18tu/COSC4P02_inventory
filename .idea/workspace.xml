@@ -39,9 +39,10 @@
     "Django Server.COSC4P02_inventory.executor": "Run",
     "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
     "django.template.preview.state": "SHOW_EDITOR_AND_PREVIEW",
     "git-widget-placeholder": "Dashboard",
-    "last_opened_file_path": "D:/Ameya/School/COSC_4P02/InventoryManagement/COSC4P02_inventory/src/inventory_track",
+    "last_opened_file_path": "C:/Users/ameya/Desktop/School/COSC_4P02/COSC4P02_inventory/src/inventory_track",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -81,8 +82,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-PY-242.23339.19" />
-        <option value="bundled-python-sdk-0029f7779945-399fe30bd8c1-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-242.23339.19" />
+        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.25659.43" />
+        <option value="bundled-python-sdk-181015f7ab06-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.25659.43" />
       </set>
     </attachedChunks>
   </component>
@@ -102,6 +103,7 @@
       <workItem from="1741690736646" duration="7000" />
       <workItem from="1741693880508" duration="187000" />
       <workItem from="1742533421024" duration="109000" />
+      <workItem from="1742686079283" duration="42000" />
     </task>
     <servers />
   </component>

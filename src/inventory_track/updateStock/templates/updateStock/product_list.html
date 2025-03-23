@@ -1,53 +1,95 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Product List{% endblock %}
+{% block title %}Update Stock{% endblock %}
 
 {% block content %}
 <div class="container my-4">
-    <div class="card shadow-lg border-0">
-        <div class="card-header bg-primary text-white">
-            <h2 class="mb-0">Product List</h2>
-        </div>
-        <div class="card-body">
-            {% if products %}
-                <table class="table table-hover align-middle">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Product Title</th>
-                            <th>Quantity</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for product in products %}
-                            <tr>
-                                <td>{{ product.title }}</td>
-                                <td>
-                                    <span class="badge
-                                        {% if product.quantity == 0 %}bg-danger
-                                        {% elif product.quantity < 10 %}bg-warning text-dark
-                                        {% else %}bg-success
-                                        {% endif %}">
-                                        {{ product.quantity }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <a href="{% url 'updateStock:update_stock' product.pk %}" class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-pencil-square"></i> Edit
-                                    </a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% else %}
-                <p class="text-muted text-center">No products available.</p>
-            {% endif %}
-        </div>
-        <div class="card-footer text-end">
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
-        </div>
+  <!-- Header: Title and Inventory Management link -->
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Update Stock - {{ table_data.table_name }}</h2>
+    <a href="{% url 'inventoryApp:home' %}" class="btn btn-outline-primary">
+      <i class="bi bi-pencil-square"></i> Edit Inventory
+    </a>
+  </div>
+
+  <!-- Dropdown for selecting an inventory table -->
+  <form method="get" class="mb-3">
+    <div class="d-flex justify-content-center">
+      <select name="table" class="form-select w-50" onchange="this.form.submit()">
+        <option value="">-- Select an Inventory Table --</option>
+        {% for table in inventory_tables %}
+          <option value="{{ table.table_name }}" {% if table.table_name == table_data.table_name %}selected{% endif %}>
+            {{ table.table_name }}
+          </option>
+        {% endfor %}
+      </select>
     </div>
+  </form>
+
+  <!-- Product List Table -->
+  <div class="card shadow-lg border-0">
+    <div class="card-header bg-primary text-white">
+      <h3 class="mb-0">Product List - {{ table_data.table_name }}</h3>
+    </div>
+    <div class="card-body">
+      {% if table_data and table_data.rows %}
+        <div class="table-responsive">
+          <table class="table table-bordered table-hover">
+            <thead class="table-dark">
+              <tr>
+                <th>Image</th>
+                <th>Title</th>
+                <th>Product #</th>
+                <th>UPC</th>
+                <th>Desc.</th>
+                <th>Quantity</th>
+                <th>Reorder Level</th>
+                <th>Price</th>
+                <th>Purchace Price</th>
+                <th>Notes</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in table_data.rows %}
+                <tr>
+                  <!-- Assuming columns are as follows:
+                       0: id, 1: product_number, 2: upc, 3: title, 4: description,
+                       5: quantity_stock, 6: reorder_level, 7: price, 8: purchace_price,
+                       9: image, 10: notes -->
+                  <td>
+                    {% if row.9 %}
+                      <img src="{{ MEDIA_URL }}{{ row.9 }}" alt="Image" width="100">
+                    {% else %}
+                      No Image
+                    {% endif %}
+                  </td>
+                  <td>{{ row.3 }}</td>
+                  <td>{{ row.1 }}</td>
+                  <td>{{ row.2 }}</td>
+                  <td>{{ row.4 }}</td>
+                  <td>{{ row.5 }}</td>
+                  <td>{{ row.6 }}</td>
+                  <td>{{ row.7 }}</td>
+                  <td>{{ row.8 }}</td>
+                  <td>{{ row.10 }}</td>
+                  <td>
+                    <a href="{% url 'updateStock:update_stock' table_data.table_name row.0 %}" class="btn btn-warning btn-sm">Edit</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="text-center text-muted">No products available for the selected table.</p>
+      {% endif %}
+    </div>
+    <!-- Back to Dashboard Button -->
+    <div class="card-footer text-center">
+      <a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+    </div>
+  </div>
 </div>
 {% endblock %}
