@@ -1,32 +1,20 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}Update Stock - {{ product.name }}{% endblock %}
+{% block title %}Update Stock{% endblock %}
 
 {% block content %}
-<div class="container my-4">
-    <div class="card shadow-lg border-0">
-        <div class="card-header bg-primary text-white">
-            <h2 class="mb-0">Update Stock for {{ product.name }}</h2>
-        </div>
-        <div class="card-body">
-            <form method="post" class="needs-validation" novalidate>
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label for="id_stock" class="form-label">Stock Quantity</label>
-                    {{ form.stock }}
-                </div>
-                <button type="submit" class="btn btn-success">
-                    <i class="bi bi-check-circle"></i> Save
-                </button>
-            </form>
-        </div>
-        <div class="card-footer text-end">
-            <a href="{% url 'updateStock:product_list' %}" class="btn btn-secondary">
-                <i class="bi bi-arrow-left"></i> Back to Product List
-            </a>
-        </div>
+<div class="container mt-4">
+  <h2>Update Stock</h2>
+  <p>Current Quantity: <strong>{{ current_quantity }}</strong></p>
+  <form method="POST">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label for="quantity" class="form-label">New Quantity:</label>
+      <input type="number" class="form-control" id="quantity" name="quantity" value="{{ current_quantity }}" min="0" required>
     </div>
+    <button type="submit" class="btn btn-success">Update</button>
+    <a href="{% url 'updateStock:product_list' %}?table={{ table_name }}" class="btn btn-secondary">Cancel</a>
+  </form>
 </div>
 {% endblock %}
-
