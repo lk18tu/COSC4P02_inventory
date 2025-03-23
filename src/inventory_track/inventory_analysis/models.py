@@ -36,6 +36,3 @@ class InventoryItem(models.Model):
     def __str__(self):
         return f"{self.name} ({self.category}) - {self.quantity}"
 
-
-    def __str__(self):
-        return f"{self.product.name} - {self.sold_quantity} sold on {self.sale_date.date()}"
