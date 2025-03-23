@@ -266,49 +266,72 @@ def edit_item(request, item_id, table_name):
 
 def upload_csv(request, table_name):
     if request.method == 'POST':
-        csv_file = request.FILES['csv_file']
-        mode = request.POST.get('mode')
+        csv_file = request.FILES.get('csv_file')
+        mode = request.POST.get('upload_mode')  # Fetch append/replace mode
 
-        # Process CSV file: overwrite or append
-        if csv_file.name.endswith('.csv'):
-            decoded_file = csv_file.read().decode('utf-8').splitlines()
-            reader = csv.reader(decoded_file)
-            headers = next(reader)
-
-            # Example: Dynamically connect to specific table
-            # table_model = get_table_model(table_name)
-
-            if mode == 'overwrite':
-                # Code to truncate/clear the table (custom function you'd implement)
-                pass  # clear_table(table_model)
-
-            # Code to insert rows (custom function you'd implement)
-            for row in reader:
-                pass  # insert_row(table_model, row)
-
-            return redirect('inventoryApp:home')
-        else:
+        if not csv_file or not csv_file.name.endswith('.csv'):
             return HttpResponse("Invalid file format. Please upload a CSV file.", status=400)
 
+        decoded_file = csv_file.read().decode('utf-8').splitlines()
+        reader = csv.reader(decoded_file)
+        headers = next(reader)  # Read CSV headers
+
+        expected_headers = ["Product Number", "UPC", "Title", "Description", "Quantity in Stock",
+                            "Reorder Level", "Price", "Purchase Price", "Notes"]
+
+        # Validate CSV headers
+        if headers != expected_headers:
+            return HttpResponse("Invalid CSV format. Ensure headers match the template.", status=400)
+
+        with connection.cursor() as cursor:
+            # Clear table if 'replace' mode is selected
+            if mode == 'replace':
+                cursor.execute(f"DELETE FROM {table_name}")
+
+            # Insert new rows
+            query = f"""
+                INSERT INTO {table_name} 
+                (product_number, upc, title, description, quantity_stock, reorder_level, price, purchace_price, notes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            for row in reader:
+                try:
+                    cursor.execute(query, (
+                        row[0],  # product_number
+                        row[1],  # upc
+                        row[2],  # title
+                        row[3],  # description
+                        int(row[4]),  # quantity_stock
+                        int(row[5]),  # reorder_level
+                        float(row[6]),  # price
+                        float(row[7]),  # purchase_price
+                        row[8] if len(row) > 8 else ""  # notes
+                    ))
+                except Exception as e:
+                    return HttpResponse(f"Error inserting data: {str(e)}", status=400)
+
+        return redirect('inventoryApp:home')
+
     return render(request, 'csv_upload.html', {'table_name': table_name})
+
+
+def download_inventory_template(request):
+    # Create the HTTP response with CSV content type
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="inventory_template.csv"'
+
+    # Create CSV writer
+    writer = csv.writer(response)
+    
+    # Define the header row
+    writer.writerow(["Product Number", "UPC", "Title", "Description", "Quantity in Stock", 
+                     "Reorder Level", "Price", "Purchase Price", "Notes"])
+
+    return response
 
 
 def get_table_columns(table_name):
     with connection.cursor() as cursor:
         return [col.name for col in connection.introspection.get_table_description(cursor, table_name)]
 
-def download_template(request, table_name):
-    
 
-    try:
-        columns = get_table_columns(table_name)
-    except Exception as e:
-        return HttpResponse(f"Error retrieving columns: {str(e)}", status=400)
-
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="{table_name}_template.csv"'
-
-    writer = csv.writer(response)
-    writer.writerow(columns)  # Only headers, no data
-
-    return response

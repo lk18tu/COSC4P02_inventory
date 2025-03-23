@@ -54,6 +54,11 @@
                                 <i class="bi bi-plus"></i> Add Item
                             </a>
 
+                            <!--CSV Upload-->
+                            <a href="{% url 'inventoryApp:upload_csv' table.table_name %}" class="btn btn-outline-success">
+                                <i class="bi bi-upload"></i> Bulk Upload
+                            </a>
+
                             <!-- Archive / Unarchive Table -->
                             <form method="post" 
                             action="{% if current_view == 'archived_inventory' %}{% url 'inventoryApp:unarchive_table' table.table_name %}{% else %}{% url 'inventoryApp:archive_table' table.table_name %}{% endif %}" 
@@ -65,6 +70,9 @@
                                 {% if current_view == 'archived_inventory' %}Unarchive{% else %}Archive{% endif %} Table
                                 </button>
                             </form>
+
+
+
                             <table class="table table-bordered table-striped mt-3">
                                 <thead class="table-dark">
                                     <tr>
