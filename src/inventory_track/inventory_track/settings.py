@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'inventoryApp',
     'inventory_analysis',
     'history',
+    'suppliers',
 ]
 
 MIDDLEWARE = [

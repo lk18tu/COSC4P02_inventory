@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Create Supplier</h2>
+<form method="POST">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label>Name</label>
+    <input type="text" name="name" class="form-control">
+  </div>
+  <div class="mb-3">
+    <label>Contact Person</label>
+    <input type="text" name="contact_person" class="form-control">
+  </div>
+  <div class="mb-3">
+    <label>Email</label>
+    <input type="email" name="email" class="form-control">
+  </div>
+  <div class="mb-3">
+    <label>Phone Number</label>
+    <input type="text" name="phone_number" class="form-control">
+  </div>
+  <div class="mb-3">
+    <label>Address</label>
+    <textarea name="address" class="form-control"></textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">Create</button>
+</form>
+
+{% endblock %}

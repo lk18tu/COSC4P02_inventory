@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Supply Orders</h2>
+<a href="{% url 'suppliers:order_create' %}" class="btn btn-primary mb-3">Create Supply Order</a>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Order ID</th>
+      <th>Supplier</th>
+      <th>Order Date</th>
+      <th>Status</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for order in orders %}
+    <tr>
+      <td>{{ order.id }}</td>
+      <td>{{ order.supplier.name }}</td>
+      <td>{{ order.order_date }}</td>
+      <td>{{ order.status }}</td>
+      <td>
+        <a href="{% url 'suppliers:order_detail' order.pk %}" class="btn btn-sm btn-info">View</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

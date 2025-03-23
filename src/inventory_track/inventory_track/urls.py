@@ -31,5 +31,6 @@ urlpatterns = [
     path("", lambda request: redirect("userauth/login/")),  # Redirect root to login page
     path('inventory_analysis/', include('inventory_analysis.urls', namespace='inventory_analysis')),
     path('history/', include(('history.urls', 'history'), namespace='history')),
+    path('suppliers/', include('suppliers.urls', namespace='suppliers')),
     
 ]
