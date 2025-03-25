@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Your Companies{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <h1 class="mb-4">Your Companies</h1>
+    
+    {% if tenants %}
+        <div class="row">
+            {% for tenant in tenants %}
+                <div class="col-md-4 mb-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ tenant.name }}</h5>
+                            <p class="card-text">
+                                <small class="text-muted">Created: {{ tenant.created_at|date:"M d, Y" }}</small>
+                            </p>
+                            <a href="/{{ tenant.slug }}/userauth/dashboard/" class="btn btn-primary">
+                                Access Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-warning">
+            You don't have access to any companies yet.
+        </div>
+        
+        <p class="mt-3">
+            <a href="{% url 'tenant_manager:register_tenant' %}" class="btn btn-primary">
+                Register a New Company
+            </a>
+        </p>
+    {% endif %}
+</div>
+{% endblock %} 

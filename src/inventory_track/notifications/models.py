@@ -15,4 +15,7 @@ class Notification(models.Model):
         self.save()  
 
     def __str__(self):
-        return f"Notification for {self.user.username}: {self.message[:50]}"
+        return f"{self.user.username} - {self.message[:50]}"
+
+    class Meta:
+        ordering = ['-created_at']

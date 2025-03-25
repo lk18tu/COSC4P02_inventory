@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'tenant_manager',
     'userauth',
     'messaging',
     'updateStock',
@@ -66,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'tenant_manager.middleware.TenantMiddleware',
 ]
 
 ROOT_URLCONF = 'inventory_track.urls'
@@ -95,14 +97,15 @@ WSGI_APPLICATION = 'inventory_track.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'inventory_db',
-	'USER': 'user1',
-	'PASSWORD': 'password1',
-	'HOST': 'localhost',
-	'PORT': '3306',
+        'NAME': 'tenant_db',
+        'USER': 'user1',
+        'PASSWORD': 'password1',  # Make sure to use your actual password
+        'HOST': 'localhost',
+        'PORT': '3306',
     }
 }
 
+DATABASE_ROUTERS = ['tenant_manager.router.TenantRouter']
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators

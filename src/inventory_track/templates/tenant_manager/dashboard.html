@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Tenant Management Dashboard</h1>
+    <p>Welcome, {{ request.user.username }}. Here you can manage your company instances.</p>
+    
+    <div class="my-4">
+        <a href="{% url 'tenant_manager:tenant_register' %}" class="btn btn-success">Register New Company</a>
+        <a href="{% url 'admin:index' %}" class="btn btn-info">Admin Panel</a>
+        <a href="{% url 'tenant_manager:logout' %}" class="btn btn-secondary">Logout</a>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h3>Your Companies</h3>
+        </div>
+        <div class="card-body">
+            {% if tenants %}
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Company Name</th>
+                            <th>URL Path</th>
+                            <th>Created</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tenant in tenants %}
+                            <tr>
+                                <td>{{ tenant.name }}</td>
+                                <td>{{ tenant.company_path }}</td>
+                                <td>{{ tenant.created_at|date:'M d, Y' }}</td>
+                                <td>
+                                    {% if tenant.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="/{{ tenant.company_path }}/admin/" class="btn btn-sm btn-primary" target="_blank">Admin</a>
+                                    <a href="/{{ tenant.company_path }}/userauth/login/" class="btn btn-sm btn-info" target="_blank">Login</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p>You haven't registered any companies yet.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

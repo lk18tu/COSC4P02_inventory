@@ -14,6 +14,7 @@ from inventory_analysis.views import generate_inventory_pie_chart
 from django.urls import reverse_lazy
 from django.contrib.auth.views import PasswordResetView
 from django.contrib.messages.views import SuccessMessageMixin
+from django.views.generic import TemplateView
 
 logger = logging.getLogger(__name__)
 
@@ -21,49 +22,78 @@ logger = logging.getLogger(__name__)
 def manager_required(user):
     return user.is_authenticated and hasattr(user, 'profile') and user.profile.is_manager()
 
-def register(request):
+def register(request, company_path=None):
+    """
+    Register a new user within a tenant's context
+    """
     if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
-        password = request.POST['password']
-        confirm_password = request.POST['confirm_password']
+        # Get form data
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        password_confirm = request.POST.get('password_confirm')
         
-        if password == confirm_password:
-            if User.objects.filter(username=username).exists():
-                messages.error(request, 'User already exists')
-            elif User.objects.filter(email=email).exists():
-                messages.error(request, 'Email already exists')
-            else:
-                user = User.objects.create_user(username=username, email=email, password=password)
-                # UserProfile with default 'employee' type
-                UserProfile.objects.create(user=user)
-                user.save()
-                messages.success(request, 'Registration successful')
-                return redirect('login')
-        else:
+        # Validate data
+        if password != password_confirm:
             messages.error(request, 'Passwords do not match')
-    return render(request, 'userauth/register.html')
+            return render(request, 'userauth/register.html', {'company_path': company_path})
+            
+        # Create user
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            messages.success(request, 'Account created successfully. You can now login.')
+            return redirect(f'/{company_path}/userauth/login/')
+        except Exception as e:
+            messages.error(request, f'Error creating account: {str(e)}')
+    
+    context = {
+        'company_path': company_path,
+        'company_name': request.tenant.name if hasattr(request, 'tenant') and request.tenant else '',
+    }
+    return render(request, 'userauth/register.html', context)
 
 def user_login(request):
+    """
+    Handle user login within a tenant's context
+    """
+    # Get company_path from request object (set by middleware)
+    company_path = getattr(request, 'company_path', None)
+    
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        
         user = authenticate(request, username=username, password=password)
-        if user:
+        if user is not None:
             login(request, user)
-            # profile exists (for existing users)
-            UserProfile.objects.get_or_create(user=user)
-            return redirect('dashboard')
+            # Redirect to the tenant's dashboard
+            return redirect(f'/{company_path}/userauth/dashboard/')
         else:
-            messages.error(request, 'Username or password does not match')
-    return render(request, 'userauth/login.html')
+            messages.error(request, 'Invalid username or password')
+    
+    context = {
+        'company_path': company_path,
+        'company_name': request.tenant.name if hasattr(request, 'tenant') and request.tenant else '',
+    }
+    return render(request, 'userauth/login.html', context)
 
+@login_required
 def user_logout(request):
+    """
+    Handle user logout within a tenant's context
+    """
+    # Get company_path from request object (set by middleware)
+    company_path = getattr(request, 'company_path', None)
+    
     logout(request)
-    return redirect('login')
+    return redirect(f'/{company_path}/userauth/login/')
 
 @login_required
 def dashboard(request):
+    """
+    User dashboard
+    """
+    company_path = getattr(request, 'company_path', None)
     eastern = pytz.timezone('US/Eastern')
     current_time = datetime.datetime.now(eastern)
     formatted_date_time = current_time.strftime("%B %d, %Y, %I:%M %p EST")
@@ -82,27 +112,15 @@ def dashboard(request):
         "inventory_pie_chart": inventory_pie_chart,
         # If you also use "inventory_tables" for your dropdown, include it here
         # "inventory_tables": InvTable_Metadata.objects.filter(table_type="inventory"),
+        'company_path': company_path,
+        'company_name': request.tenant.name if hasattr(request, 'tenant') and request.tenant else '',
     }
     return render(request, "userauth/dashboard.html", context)
 
-
-class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
+class ResetPasswordView(PasswordResetView):
     template_name = 'userauth/password_reset.html'
     email_template_name = 'userauth/password_reset_email.html'
-    subject_template_name = 'userauth/password_reset_subject.txt'
-    success_message = "We've emailed you instructions for setting your password, if an account exists with the email you entered."
-    success_url = reverse_lazy('password_reset_done')
-
-    def form_valid(self, form):
-        form.save(
-            request=self.request,
-            use_https=True if settings.PROTOCOL == 'https' else False,
-            from_email=settings.EMAIL_HOST_USER,
-            email_template_name=self.email_template_name,
-            domain_override=settings.DOMAIN,
-        )
-        return super().form_valid(form)
-
+    success_url = reverse_lazy('userauth:password_reset_done')
 
 # Restricted view template for managers
 #@login_required
@@ -110,5 +128,35 @@ class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
 #def add_warehouse_location(request):
     
 # return render(request, 'url.html', {})
+
+def user_register(request, company_path=None):
+    """
+    Register a new user within a tenant's context
+    """
+    if request.method == 'POST':
+        # Get form data
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        password_confirm = request.POST.get('password_confirm')
+        
+        # Validate data
+        if password != password_confirm:
+            messages.error(request, 'Passwords do not match')
+            return render(request, 'userauth/register.html', {'company_path': company_path})
+            
+        # Create user
+        try:
+            user = User.objects.create_user(username=username, email=email, password=password)
+            messages.success(request, 'Account created successfully. You can now login.')
+            return redirect(f'/{company_path}/userauth/login/')
+        except Exception as e:
+            messages.error(request, f'Error creating account: {str(e)}')
+    
+    context = {
+        'company_path': company_path,
+        'company_name': request.tenant.name if hasattr(request, 'tenant') and request.tenant else '',
+    }
+    return render(request, 'userauth/register.html', context)
 
 

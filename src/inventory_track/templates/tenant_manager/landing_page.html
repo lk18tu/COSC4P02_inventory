@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="jumbotron text-center">
+        <h1 class="display-4">Welcome to Track My Inventory</h1>
+        <p class="lead">The complete inventory management solution for your business.</p>
+        <hr class="my-4">
+        <p>Get started by registering your company for a fully-featured inventory management system.</p>
+        <div class="mt-4">
+            <a href="{% url 'tenant_manager:tenant_register' %}" class="btn btn-primary btn-lg mr-3">Register Your Company</a>
+            <a href="{% url 'tenant_manager:tenant_login' %}" class="btn btn-secondary btn-lg">Login as Admin</a>
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h3 class="card-title">Easy Inventory Management</h3>
+                    <p class="card-text">Track stock levels, manage suppliers, and optimize your inventory.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h3 class="card-title">Multi-User Access</h3>
+                    <p class="card-text">Give employees tailored access to your inventory system.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <h3 class="card-title">Real-time Analytics</h3>
+                    <p class="card-text">Make data-driven decisions with our powerful analytics tools.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

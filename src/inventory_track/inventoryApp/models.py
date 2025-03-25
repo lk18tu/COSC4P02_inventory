@@ -1,19 +1,30 @@
 from django.db import models
 
-class InvItem(models.Model):
-    title = models.CharField(max_length=250)
-    completed = models.BooleanField(default=False)
-    quantity = models.IntegerField()
-    custom_fields = models.JSONField(default=dict)
-    image = models.ImageField(upload_to='inventory_images/', null=True, blank=True) # image field
-
-def __str__(self):
-    return self.title
-
 class InvTable_Metadata(models.Model):
-    table_name = models.CharField(max_length=255, unique=True)
-    table_type = models.CharField(max_length=50)
-    table_location = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.name
 
-def __str__(self):
-    return self.table_name
+class InvItem(models.Model):
+    table_name = models.CharField(max_length=255)
+    item_id = models.IntegerField(default=1)
+    product_number = models.CharField(max_length=100, blank=True, null=True)
+    upc = models.CharField(max_length=255, blank=True, null=True)
+    title = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
+    quantity_stock = models.IntegerField(blank=True, null=True)
+    reorder_level = models.IntegerField(blank=True, null=True)
+    price = models.FloatField(blank=True, null=True)
+    purchase_price = models.FloatField(blank=True, null=True)
+    image = models.CharField(max_length=255, blank=True, null=True)  # Changed from ImageField for simplicity
+    notes = models.TextField(blank=True, null=True)
+    custom_fields = models.JSONField(default=dict)
+    
+    class Meta:
+        unique_together = ('table_name', 'item_id')
+        
+    def __str__(self):
+        return f"{self.table_name} - {self.title}"
