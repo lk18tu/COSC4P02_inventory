@@ -9,8 +9,8 @@ class InventoryHistory(models.Model):
         ('delete', 'Deleted'),
     ]
 
-    item = models.ForeignKey(InvItem, on_delete=models.CASCADE, related_name="history")
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    item = models.IntegerField()  
+    user = models.IntegerField(null=True, blank=True) 
     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now_add=True)
     details = models.TextField(blank=True, null=True)

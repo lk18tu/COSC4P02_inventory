@@ -1,10 +1,12 @@
 
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from .models import InvItem, InvTable_Metadata
+from userauth.models import UserProfile
 from django.db import connection, DatabaseError
 from django.contrib import messages
 from django.http import Http404
 from django.conf import settings
+import datetime
 import csv, os
 
 
@@ -214,6 +216,14 @@ def delete_item(request, item_id, table_name):
             if result:
                 # Delete the item from the table
                 cursor.execute(f"DELETE FROM {table_name} WHERE id = %s", [item_id])
+
+                # get username for logging
+                user_profile = UserProfile.objects.get(user=request.user)
+                username = user_profile.user.username
+
+                # log change
+                log_inventory_action("DELETE", "N/A", item_id, 0000 )
+
                 return redirect("inventoryApp:home")
             else:
                 raise Http404(f"Table '{table_name}' does not exist.")
@@ -223,44 +233,86 @@ def delete_item(request, item_id, table_name):
         return redirect("inventoryApp:home")
 
 
-def edit_item(request, item_id, table_name):
+def edit_item(request, table_name, item_id):
+    # Fetch the item details to pre-fill the form
     try:
         with connection.cursor() as cursor:
-            # Check if the table exists
-            cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-            result = cursor.fetchone()
+            cursor.execute(f"""
+                SELECT * FROM {table_name} WHERE id = %s
+            """, [item_id])
+            item = cursor.fetchone()
+            if not item:
+                raise Http404(f"Item with ID {item_id} not found in table {table_name}.")
+            
+            # Extract fields dynamically based on the column names (you can adjust this as needed)
+            # Assuming the columns are in this order: id, title, description, quantity_stock, etc.
+            item_columns = ['id', 'title', 'description', 'quantity_stock', 'reorder_level', 'price', 'purchase_price', 'notes', 'completed']
+            item_data = dict(zip(item_columns, item))
 
-            if result:
-                # Fetch the item from the table that matches ID
-                cursor.execute(f"SELECT * FROM {table_name} WHERE id = %s", [item_id])
-                item = cursor.fetchone()
-
-                if not item:
-                    return redirect("inventoryApp:home")  # If item is not found, redirect to home
-
-                if request.method == "POST":
-                    # Process the form and update the item
-                    new_title = request.POST.get("title")
-                    new_quantity = request.POST.get("quantity")
-                    new_completed = "completed" in request.POST  # Checkbox handling
-
-                    # Perform the update in the database
-                    cursor.execute(
-                        f"UPDATE {table_name} SET title = %s, quantity = %s, completed = %s WHERE id = %s",
-                        [new_title, new_quantity, new_completed, item_id]
-                    )
-                    return redirect("inventoryApp:home")  # After saving, redirect to the homepage
-
-                # Render the edit form with the current item data
-                return render(request, "edit_item.html", {"item": item})
-
-            else:
-                return redirect("inventoryApp:home")  # If table doesn't exist, redirect to home
     except Exception as e:
-        print(f"Error: {e}")
-        return redirect("inventoryApp:home")
+        return Http404(f"Error fetching item: {str(e)}")
+    
+    if request.method == 'POST':
+        # Get data from the form
+        title = request.POST['title']
+        description = request.POST['description']
+        quantity_stock = request.POST['quantity_stock']
+        reorder_level = request.POST['reorder_level']
+        price = request.POST['price']
+        purchase_price = request.POST['purchase_price']
+        notes = request.POST['notes']
+        completed = 'completed' in request.POST  # Checkbox handling
+
+        # Handle file upload (optional, if needed)
+        image = request.FILES.get('image', None)
+        if image:
+            # Handle image upload logic here
+            pass
+        
+        try:
+            # Update the item in the database
+            with connection.cursor() as cursor:
+                cursor.execute(f"""
+                    UPDATE {table_name} 
+                    SET title = %s, description = %s, quantity_stock = %s, reorder_level = %s, 
+                        price = %s, purchase_price = %s, notes = %s, completed = %s
+                    WHERE id = %s
+                """, [title, description, quantity_stock, reorder_level, price, purchase_price, notes, completed, item_id])
+
+                # Log the action in the history table
+                user_id = request.user.id
+                cursor.execute(f"""
+                    INSERT INTO history_inventoryhistory (action, timestamp, details, item_id, user_id)
+                    VALUES ('update', NOW(), 'Updated item {item_id} in table {table_name}.', %s, %s)
+                """, [item_id, user_id])
+
+        except Exception as e:
+            return Http404(f"Error updating item: {str(e)}")
+
+        return redirect('inventoryApp:home')  # Redirect after successful update
+
+    # Render the form with the current item data
+    return render(request, 'edit_item.html', {'item': item_data, 'table_name': table_name})
 
 
+def log_inventory_action(action, details, item_id, user_id):
+    """
+    Logs inventory actions (DELETE, UPDATE, INSERT, etc.) to the history table.
+    
+    :param action: The type of action performed (DELETE, UPDATE, INSERT)
+    :param details: A string describing what was changed
+    :param item_id: The ID of the affected item
+    :param user_id: The ID of the user who performed the action
+    """
+    try:
+        timestamp = datetime.datetime.now()  # Ensure datetime is used properly
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO history_inventoryhistory (action, timestamp, details, item, user)
+                VALUES (%s, %s, %s, %s, %s)
+            """, [action, timestamp, details, item_id, user_id])
+    except Exception as e:
+        print(f"Error logging action: {str(e)}")
 
 
 
