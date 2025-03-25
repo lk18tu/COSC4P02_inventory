@@ -128,6 +128,9 @@ def add_item(request, table_name):
                             purchace_price, notes, image_path
                         ]
                     )
+
+                    # log change
+                    log_inventory_action("ADD", "Added item: "+title, product_number , 0000 )
                     return redirect("inventoryApp:home")
                 else:
                     raise Http404(f"Table '{table_name}' does not exist.")
@@ -165,6 +168,9 @@ def add_inventory(request):
                 
                 InvTable_Metadata.objects.create(table_name=new_table_name, table_type="inventory", table_location="Placeholder")
 
+                # log change
+                log_inventory_action("ADD INV", "Added: "+new_table_name, 0 , 0000 )
+
             return redirect("inventoryApp:home")
         except Exception as e:
             return HttpResponse(f"Error creating table: {e}", status=500)
@@ -183,6 +189,8 @@ def archive_table(request, table_name):
             table_metadata.save()
 
             print(f"Table '{table_name}' archived successfully.")
+            # log change
+            log_inventory_action("ARCHIVED INV", "Archived: "+table_name, 0 , 0000 )
         except Exception as e:
             print(f"Error archiving table '{table_name}': {e}")
 
@@ -279,12 +287,9 @@ def edit_item(request, table_name, item_id):
                     WHERE id = %s
                 """, [title, description, quantity_stock, reorder_level, price, purchase_price, notes, completed, item_id])
 
-                # Log the action in the history table
-                user_id = request.user.id
-                cursor.execute(f"""
-                    INSERT INTO history_inventoryhistory (action, timestamp, details, item_id, user_id)
-                    VALUES ('update', NOW(), 'Updated item {item_id} in table {table_name}.', %s, %s)
-                """, [item_id, user_id])
+
+                # log change
+                log_inventory_action("EDIT", "Updated: "+title, item_id, 0000 )
 
         except Exception as e:
             return Http404(f"Error updating item: {str(e)}")
