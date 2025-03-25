@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import InvItem
+from .models import InvItem, InvTable_Metadata
 
-# Register your models here.
-
-admin.site.register(InvItem)
+@admin.register(InvItem)
+class InvItemAdmin(admin.ModelAdmin):
+    list_display = ('title', 'quantity', 'completed')  

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Create Supply Order</h2>
+<form method="POST">
+  {% csrf_token %}
+  <div class="mb-3">
+    <label for="supplier">Supplier</label>
+    <select name="supplier" class="form-select">
+      {% for sup in suppliers %}
+      <option value="{{ sup.pk }}">{{ sup.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <label for="order_date">Order Date</label>
+    <input type="date" name="order_date" class="form-control">
+  </div>
+  <div class="mb-3">
+    <label for="status">Status</label>
+    <select name="status" class="form-select">
+      <option value="PENDING">Pending</option>
+      <option value="RECEIVED">Received</option>
+      <option value="CANCELLED">Cancelled</option>
+    </select>
+  </div>
+  <div class="mb-3">
+    <label for="notes">Notes</label>
+    <textarea name="notes" class="form-control"></textarea>
+  </div>
+  <button type="submit" class="btn btn-primary">Create Order</button>
+</form>
+
+{% endblock %}

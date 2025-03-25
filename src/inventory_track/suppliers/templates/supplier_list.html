@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2>Supplier List</h2>
+<a href="{% url 'suppliers:supplier_create' %}" class="btn btn-primary mb-3">Add New Supplier</a>
+<ul class="list-group">
+  {% for s in suppliers %}
+  <li class="list-group-item d-flex justify-content-between align-items-center">
+    {{ s.name }} 
+    <span>
+      <a href="{% url 'suppliers:supplier_edit' s.pk %}" class="btn btn-sm btn-warning">Edit</a>
+    </span>
+  </li>
+  {% endfor %}
+</ul>
+
+{% endblock %}
