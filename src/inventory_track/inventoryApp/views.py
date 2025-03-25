@@ -367,6 +367,8 @@ def upload_csv(request, table_name):
                 except Exception as e:
                     return HttpResponse(f"Error inserting data: {str(e)}", status=400)
 
+            # log change
+            log_inventory_action("BULK", "Uploaded: "+csv_file.name+" To " + table_name+". Mode = "+ mode, 0, 0000 )
         return redirect('inventoryApp:home')
 
     return render(request, 'csv_upload.html', {'table_name': table_name})
