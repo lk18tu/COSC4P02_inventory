@@ -16,6 +16,7 @@ urlpatterns = [
     path("archive_table/<str:table_name>/", views.archive_table, name="archive_table"),
     path("unarchive_table/<str:table_name>/", views.unarchive_table, name="unarchive_table"),
     path("upload_csv/<str:table_name>/", views.upload_csv, name="upload_csv"),
+    path('download-template/', views.download_inventory_template, name='download_inventory_template'),
 ]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

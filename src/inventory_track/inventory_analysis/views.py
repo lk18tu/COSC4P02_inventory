@@ -7,6 +7,7 @@ from io import BytesIO
 import base64
 from .models import InventoryItem
 from django.db.models import Sum
+from django.db import connection
 
 
 DEEPSEEK_API_KEY = "sk-a63cce70f55d493d99f9c0ad4993b4f9"
@@ -15,21 +16,44 @@ DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
 
 MODEL_NAME = "deepseek-chat"
 
-def get_inventory_context():
-    items = InventoryItem.objects.all().order_by("quantity")[:10]
-    if not items:
-        return "No inventory data available."
+def get_available_inventory_tables():
+    """Retrieve available inventory table names from inventoryapp_invtable_metadata where table_type='inventory'."""
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT table_name FROM inventoryapp_invtable_metadata WHERE table_type = 'inventory'")
+            tables = [row[0] for row in cursor.fetchall()]  # Extract table names
+        return tables
+    except Exception as e:
+        print(f"Error fetching inventory tables: {e}")
+        return []
 
-    inventory_info = "\n".join([f"{item.name}: {item.quantity} in stock" for item in items])
+def get_inventory_context(selected_table):
+    with connection.cursor() as cursor:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(f"SELECT title, quantity_stock FROM {selected_table} ORDER BY quantity_stock ASC LIMIT 10")
+                rows = cursor.fetchall()
+                print("Feched")
+                if rows:
+                    inventory_info = "\n".join([f"{title}: {quantity_stock} in stock" for title, quantity_stock in rows])
+        except Exception as e:
+            print(f"error fetching {str(e)}")
+            inventory_info = f"Error fetching inventory: {str(e)}"
+
+    
     context = f"Current Inventory Data:\n{inventory_info}\n\n"
     return context
 
 def llm_advisor(request):
-    if request.method == "POST":
+    inventory_tables = get_available_inventory_tables()  # Fetch table names
+    selected_table = request.GET.get("table") or request.POST.get("table") or (inventory_tables[0] if inventory_tables else None)
+
+    if request.method == "POST" and selected_table:
         try:
             user_input = request.POST.get("query", "").strip()
 
-            inventory_context = get_inventory_context()
+           
+            inventory_context = get_inventory_context(selected_table) if selected_table else "No inventory table selected."
 
             data = {
                 "model": MODEL_NAME,
@@ -59,7 +83,10 @@ def llm_advisor(request):
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
-    return render(request, "inventory_analysis/llm_advisor.html")
+    return render(request, "inventory_analysis/llm_advisor.html", {
+        "inventory_tables": inventory_tables,
+        "selected_table": selected_table
+    })
 
 
 def search_inventory(request):

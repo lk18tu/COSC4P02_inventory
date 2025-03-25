@@ -1,10 +1,12 @@
 
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from .models import InvItem, InvTable_Metadata
+from userauth.models import UserProfile
 from django.db import connection, DatabaseError
 from django.contrib import messages
 from django.http import Http404
 from django.conf import settings
+import datetime
 import csv, os
 
 
@@ -126,6 +128,9 @@ def add_item(request, table_name):
                             purchace_price, notes, image_path
                         ]
                     )
+
+                    # log change
+                    log_inventory_action("ADD", "Added item: "+title, product_number , 0000 )
                     return redirect("inventoryApp:home")
                 else:
                     raise Http404(f"Table '{table_name}' does not exist.")
@@ -163,6 +168,9 @@ def add_inventory(request):
                 
                 InvTable_Metadata.objects.create(table_name=new_table_name, table_type="inventory", table_location="Placeholder")
 
+                # log change
+                log_inventory_action("ADD INV", "Added: "+new_table_name, 0 , 0000 )
+
             return redirect("inventoryApp:home")
         except Exception as e:
             return HttpResponse(f"Error creating table: {e}", status=500)
@@ -181,6 +189,8 @@ def archive_table(request, table_name):
             table_metadata.save()
 
             print(f"Table '{table_name}' archived successfully.")
+            # log change
+            log_inventory_action("ARCHIVED INV", "Archived: "+table_name, 0 , 0000 )
         except Exception as e:
             print(f"Error archiving table '{table_name}': {e}")
 
@@ -214,6 +224,14 @@ def delete_item(request, item_id, table_name):
             if result:
                 # Delete the item from the table
                 cursor.execute(f"DELETE FROM {table_name} WHERE id = %s", [item_id])
+
+                # get username for logging
+                user_profile = UserProfile.objects.get(user=request.user)
+                username = user_profile.user.username
+
+                # log change
+                log_inventory_action("DELETE", "N/A", item_id, 0000 )
+
                 return redirect("inventoryApp:home")
             else:
                 raise Http404(f"Table '{table_name}' does not exist.")
@@ -223,92 +241,156 @@ def delete_item(request, item_id, table_name):
         return redirect("inventoryApp:home")
 
 
-def edit_item(request, item_id, table_name):
+def edit_item(request, table_name, item_id):
+    # Fetch the item details to pre-fill the form
     try:
         with connection.cursor() as cursor:
-            # Check if the table exists
-            cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-            result = cursor.fetchone()
+            cursor.execute(f"""
+                SELECT * FROM {table_name} WHERE id = %s
+            """, [item_id])
+            item = cursor.fetchone()
+            if not item:
+                raise Http404(f"Item with ID {item_id} not found in table {table_name}.")
+            
+            # Extract fields dynamically based on the column names (you can adjust this as needed)
+            # Assuming the columns are in this order: id, title, description, quantity_stock, etc.
+            item_columns = ['id', 'title', 'description', 'quantity_stock', 'reorder_level', 'price', 'purchase_price', 'notes', 'completed']
+            item_data = dict(zip(item_columns, item))
 
-            if result:
-                # Fetch the item from the table that matches ID
-                cursor.execute(f"SELECT * FROM {table_name} WHERE id = %s", [item_id])
-                item = cursor.fetchone()
-
-                if not item:
-                    return redirect("inventoryApp:home")  # If item is not found, redirect to home
-
-                if request.method == "POST":
-                    # Process the form and update the item
-                    new_title = request.POST.get("title")
-                    new_quantity = request.POST.get("quantity")
-                    new_completed = "completed" in request.POST  # Checkbox handling
-
-                    # Perform the update in the database
-                    cursor.execute(
-                        f"UPDATE {table_name} SET title = %s, quantity = %s, completed = %s WHERE id = %s",
-                        [new_title, new_quantity, new_completed, item_id]
-                    )
-                    return redirect("inventoryApp:home")  # After saving, redirect to the homepage
-
-                # Render the edit form with the current item data
-                return render(request, "edit_item.html", {"item": item})
-
-            else:
-                return redirect("inventoryApp:home")  # If table doesn't exist, redirect to home
     except Exception as e:
-        print(f"Error: {e}")
-        return redirect("inventoryApp:home")
+        return Http404(f"Error fetching item: {str(e)}")
+    
+    if request.method == 'POST':
+        # Get data from the form
+        title = request.POST['title']
+        description = request.POST['description']
+        quantity_stock = request.POST['quantity_stock']
+        reorder_level = request.POST['reorder_level']
+        price = request.POST['price']
+        purchase_price = request.POST['purchase_price']
+        notes = request.POST['notes']
+        completed = 'completed' in request.POST  # Checkbox handling
+
+        # Handle file upload (optional, if needed)
+        image = request.FILES.get('image', None)
+        if image:
+            # Handle image upload logic here
+            pass
+        
+        try:
+            # Update the item in the database
+            with connection.cursor() as cursor:
+                cursor.execute(f"""
+                    UPDATE {table_name} 
+                    SET title = %s, description = %s, quantity_stock = %s, reorder_level = %s, 
+                        price = %s, purchase_price = %s, notes = %s, completed = %s
+                    WHERE id = %s
+                """, [title, description, quantity_stock, reorder_level, price, purchase_price, notes, completed, item_id])
 
 
+                # log change
+                log_inventory_action("EDIT", "Updated: "+title, item_id, 0000 )
+
+        except Exception as e:
+            return Http404(f"Error updating item: {str(e)}")
+
+        return redirect('inventoryApp:home')  # Redirect after successful update
+
+    # Render the form with the current item data
+    return render(request, 'edit_item.html', {'item': item_data, 'table_name': table_name})
+
+
+def log_inventory_action(action, details, item_id, user_id):
+    """
+    Logs inventory actions (DELETE, UPDATE, INSERT, etc.) to the history table.
+    
+    :param action: The type of action performed (DELETE, UPDATE, INSERT)
+    :param details: A string describing what was changed
+    :param item_id: The ID of the affected item
+    :param user_id: The ID of the user who performed the action
+    """
+    try:
+        timestamp = datetime.datetime.now()  # Ensure datetime is used properly
+        with connection.cursor() as cursor:
+            cursor.execute("""
+                INSERT INTO history_inventoryhistory (action, timestamp, details, item, user)
+                VALUES (%s, %s, %s, %s, %s)
+            """, [action, timestamp, details, item_id, user_id])
+    except Exception as e:
+        print(f"Error logging action: {str(e)}")
 
 
 
 def upload_csv(request, table_name):
     if request.method == 'POST':
-        csv_file = request.FILES['csv_file']
-        mode = request.POST.get('mode')
+        csv_file = request.FILES.get('csv_file')
+        mode = request.POST.get('upload_mode')  # Fetch append/replace mode
 
-        # Process CSV file: overwrite or append
-        if csv_file.name.endswith('.csv'):
-            decoded_file = csv_file.read().decode('utf-8').splitlines()
-            reader = csv.reader(decoded_file)
-            headers = next(reader)
-
-            # Example: Dynamically connect to specific table
-            # table_model = get_table_model(table_name)
-
-            if mode == 'overwrite':
-                # Code to truncate/clear the table (custom function you'd implement)
-                pass  # clear_table(table_model)
-
-            # Code to insert rows (custom function you'd implement)
-            for row in reader:
-                pass  # insert_row(table_model, row)
-
-            return redirect('inventoryApp:home')
-        else:
+        if not csv_file or not csv_file.name.endswith('.csv'):
             return HttpResponse("Invalid file format. Please upload a CSV file.", status=400)
 
+        decoded_file = csv_file.read().decode('utf-8').splitlines()
+        reader = csv.reader(decoded_file)
+        headers = next(reader)  # Read CSV headers
+
+        expected_headers = ["Product Number", "UPC", "Title", "Description", "Quantity in Stock",
+                            "Reorder Level", "Price", "Purchase Price", "Notes"]
+
+        # Validate CSV headers
+        if headers != expected_headers:
+            return HttpResponse("Invalid CSV format. Ensure headers match the template.", status=400)
+
+        with connection.cursor() as cursor:
+            # Clear table if 'replace' mode is selected
+            if mode == 'replace':
+                cursor.execute(f"DELETE FROM {table_name}")
+
+            # Insert new rows
+            query = f"""
+                INSERT INTO {table_name} 
+                (product_number, upc, title, description, quantity_stock, reorder_level, price, purchace_price, notes)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """
+            for row in reader:
+                try:
+                    cursor.execute(query, (
+                        row[0],  # product_number
+                        row[1],  # upc
+                        row[2],  # title
+                        row[3],  # description
+                        int(row[4]),  # quantity_stock
+                        int(row[5]),  # reorder_level
+                        float(row[6]),  # price
+                        float(row[7]),  # purchase_price
+                        row[8] if len(row) > 8 else ""  # notes
+                    ))
+                except Exception as e:
+                    return HttpResponse(f"Error inserting data: {str(e)}", status=400)
+
+            # log change
+            log_inventory_action("BULK", "Uploaded: "+csv_file.name+" To " + table_name+". Mode = "+ mode, 0, 0000 )
+        return redirect('inventoryApp:home')
+
     return render(request, 'csv_upload.html', {'table_name': table_name})
+
+
+def download_inventory_template(request):
+    # Create the HTTP response with CSV content type
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="inventory_template.csv"'
+
+    # Create CSV writer
+    writer = csv.writer(response)
+    
+    # Define the header row
+    writer.writerow(["Product Number", "UPC", "Title", "Description", "Quantity in Stock", 
+                     "Reorder Level", "Price", "Purchase Price", "Notes"])
+
+    return response
 
 
 def get_table_columns(table_name):
     with connection.cursor() as cursor:
         return [col.name for col in connection.introspection.get_table_description(cursor, table_name)]
 
-def download_template(request, table_name):
-    
 
-    try:
-        columns = get_table_columns(table_name)
-    except Exception as e:
-        return HttpResponse(f"Error retrieving columns: {str(e)}", status=400)
-
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="{table_name}_template.csv"'
-
-    writer = csv.writer(response)
-    writer.writerow(columns)  # Only headers, no data
-
-    return response

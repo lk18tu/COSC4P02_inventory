@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload Inventory CSV{% endblock %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Inventory CSV</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Upload Inventory CSV</h1>
+        <h2>{{ table_name }}</h2>
+        
+
+        
+        <!-- Upload CSV Form -->
+        <form method="POST" enctype="multipart/form-data" onsubmit="return confirmReplace()">
+            {% csrf_token %}
+        
+            <!-- File Upload -->
+            <div class="mb-3">
+                <label for="csv_file" class="form-label">Upload CSV File</label>
+                <input type="file" class="form-control" id="csv_file" name="csv_file" required>
+            </div>
+        
+            <!-- Download Template -->
+            <div class="mb-3">
+                <a href="{% url 'inventoryApp:download_inventory_template' %}" class="btn btn-secondary">Download Template</a>
+            </div>
+        
+            <!-- Upload Mode Selection -->
+            <div class="mb-3">
+                <label for="upload_mode" class="form-label">Upload Mode</label>
+                <select class="form-select" id="upload_mode" name="upload_mode">
+                    <option value="append">Append to Current Inventory</option>
+                    <option value="replace">Replace Current Inventory</option>
+                </select>
+            </div>
+        
+            <button type="submit" class="btn btn-primary">Upload CSV</button>
+        </form>
+    </div>
+
+    <script>
+        // Basic CSV file validation
+        document.getElementById('csv_file').addEventListener('change', function () {
+            const file = this.files[0];
+            if (file && file.type !== 'text/csv') {
+                alert('Please upload a valid CSV file.');
+                this.value = '';
+            }
+        });
+
+
+        function confirmReplace() {
+        let mode = document.getElementById('upload_mode').value;
+        if (mode === 'replace') {
+            return confirm("⚠️ Are you sure you want to replace the current inventory? This action cannot be undone.");
+        }
+        return true;
+    }
+    </script>
+</body>
+{% endblock %}

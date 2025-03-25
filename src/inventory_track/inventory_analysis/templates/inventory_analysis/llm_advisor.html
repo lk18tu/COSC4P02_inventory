@@ -7,10 +7,26 @@
             <h4 class="mb-0">AI Inventory Advisor</h4>
         </div>
         <div class="card-body">
+
+            <!--select table-->
+            <form method="GET" id="table-select-form" action="{% url 'inventory_analysis:llm_advisor' %}">
+                <label for="table-select" class="form-label">Select Inventory Table:</label>
+                <select name="table" id="table-select" class="form-select" onchange="this.form.submit()">
+                    {% for table in inventory_tables %}
+                        <option value="{{ table }}" {% if table == selected_table %}selected{% endif %}>{{ table }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            
             <form method="POST" id="llm-form">
                 {% csrf_token %}
+
+                <!-- Preserve the selected table when submitting -->
+                <input type="hidden" name="table" value="{{ selected_table }}">
+
                 <div class="mb-3">
                     <label for="query-input" class="form-label">Ask a question about inventory:</label>
+
                     <textarea name="query" id="query-input" rows="4" class="form-control" placeholder="Enter your question" required></textarea>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">

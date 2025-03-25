@@ -1,38 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Item{% endblock %}
+
+{% block content %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Item</title>
-    <!-- Load static files -->
-    {% load static %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 </head>
 <body>
     <div class="container mt-5">
-        <h1 class="text-center mb-4">Edit Item: {{ item.title }}</h1>
+        <h1>Edit Item: {{ item.title }}</h1>
 
-        <form method="post">
+        <form method="POST" enctype="multipart/form-data">
             {% csrf_token %}
+            
+            <!-- Title -->
             <div class="mb-3">
                 <label for="title" class="form-label">Title</label>
-                <input type="text" id="title" name="title" class="form-control" value="{{ item.1 }}" required>
+                <input type="text" class="form-control" id="title" name="title" value="{{ item.title }}" required>
             </div>
-        
+
+            <!-- Description -->
             <div class="mb-3">
-                <label for="quantity" class="form-label">Quantity</label>
-                <input type="number" id="quantity" name="quantity" class="form-control" value="{{ item.3 }}" required>
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" name="description" rows="3" required>{{ item.description }}</textarea>
             </div>
-        
+
+            <!-- Quantity in Stock -->
+            <div class="mb-3">
+                <label for="quantity_stock" class="form-label">Quantity in Stock</label>
+                <input type="number" class="form-control" id="quantity_stock" name="quantity_stock" value="{{ item.quantity_stock }}" required>
+            </div>
+
+            <!-- Reorder Level -->
+            <div class="mb-3">
+                <label for="reorder_level" class="form-label">Reorder Level</label>
+                <input type="number" class="form-control" id="reorder_level" name="reorder_level" value="{{ item.reorder_level }}" required>
+            </div>
+
+            <!-- Price -->
+            <div class="mb-3">
+                <label for="price" class="form-label">Price</label>
+                <input type="number" class="form-control" id="price" name="price" value="{{ item.price }}" step="0.01" required>
+            </div>
+
+            <!-- Purchase Price -->
+            <div class="mb-3">
+                <label for="purchase_price" class="form-label">Purchase Price</label>
+                <input type="number" class="form-control" id="purchase_price" name="purchase_price" value="{{ item.purchase_price }}" step="0.01" required>
+            </div>
+
+            <!-- Notes -->
+            <div class="mb-3">
+                <label for="notes" class="form-label">Notes</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3">{{ item.notes }}</textarea>
+            </div>
+
+            <!-- Image -->
+            <div class="mb-3">
+                <label for="image" class="form-label">Upload New Image (Optional)</label>
+                <input type="file" class="form-control" id="image" name="image" accept="image/*">
+            </div>
+
+            <!-- Completed Checkbox -->
             <div class="form-check mb-3">
-                <input type="checkbox" id="completed" name="completed" class="form-check-input" {% if item.2 %}checked{% endif %}>
-                <label for="completed" class="form-check-label">Completed</label>
+                <input type="checkbox" class="form-check-input" id="completed" name="completed" {% if item.completed %}checked{% endif %}>
+                <label class="form-check-label" for="completed">Completed</label>
             </div>
-        
+
             <button type="submit" class="btn btn-primary">Save Changes</button>
         </form>
     </div>
 </body>
-</html>
+{% endblock %}
