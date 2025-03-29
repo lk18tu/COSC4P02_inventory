@@ -1,0 +1,44 @@
+{% extends "base_tenant.html" %}
+{% load static %}
+
+{% block title %}Login - Track My Inventory{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card bg-gray-800 shadow">
+                <div class="card-header bg-blue-600 text-white">
+                    <h3 class="mb-0 font-bold">Tenant Login</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="username" class="form-label text-white">Username</label>
+                            <input type="text" class="form-control bg-gray-700 text-white border-0" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label text-white">Password</label>
+                            <input type="password" class="form-control bg-gray-700 text-white border-0" id="password" name="password" required>
+                        </div>
+                        <button type="submit" class="btn bg-blue-600 text-white">Login</button>
+                    </form>
+                    
+                    <div class="mt-3">
+                        <p class="text-gray-300">Don't have an account? <a href="{% url 'register_tenant' %}" class="text-blue-600">Register here</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

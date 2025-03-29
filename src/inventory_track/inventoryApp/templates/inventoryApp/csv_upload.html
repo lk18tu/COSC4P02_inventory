@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload Inventory CSV{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card bg-gray-800 shadow">
+                <div class="card-header bg-blue-600 text-white">
+                    <h3 class="mb-0 font-bold">Upload Inventory CSV for {{ table_name }}</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <!-- Upload CSV Form -->
+                    <form method="POST" enctype="multipart/form-data" onsubmit="return confirmReplace()">
+                        {% csrf_token %}
+                    
+                        <!-- File Upload -->
+                        <div class="mb-3">
+                            <label for="csv_file" class="form-label text-white">Upload CSV File</label>
+                            <input type="file" class="form-control form-control-dark" id="csv_file" name="csv_file" required>
+                        </div>
+                    
+                        <!-- Upload Mode Selection -->
+                        <div class="mb-3">
+                            <label for="upload_mode" class="form-label text-white">Upload Mode</label>
+                            <select class="form-select form-control-dark" id="upload_mode" name="upload_mode">
+                                <option value="append">Append to Current Inventory</option>
+                                <option value="replace">Replace Current Inventory</option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <a href="{% url 'inventoryApp:download_inventory_template' %}" class="btn bg-gray-700 text-gray-300 btn-gray">
+                                <i class="bi bi-download"></i> Download Template
+                            </a>
+                            <div>
+                                <a href="/{{ tenant_url }}/invManage/" class="btn bg-gray-700 text-gray-300 btn-gray me-2">Cancel</a>
+                                <button type="submit" class="btn bg-blue-600 text-white">Upload CSV</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Basic CSV file validation
+    document.getElementById('csv_file').addEventListener('change', function () {
+        const file = this.files[0];
+        if (file && file.type !== 'text/csv') {
+            alert('Please upload a valid CSV file.');
+            this.value = '';
+        }
+    });
+
+    function confirmReplace() {
+        let mode = document.getElementById('upload_mode').value;
+        if (mode === 'replace') {
+            return confirm("⚠️ Are you sure you want to replace the current inventory? This action cannot be undone.");
+        }
+        return true;
+    }
+</script>
+{% endblock %}

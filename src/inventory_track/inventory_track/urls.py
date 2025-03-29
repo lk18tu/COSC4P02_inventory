@@ -19,18 +19,22 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 from django.contrib.auth import views as auth_views
+from tenant_manager.views import tenant_landing
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('userauth/', include('userauth.urls')),  # Include userauth app URLs
-    path('messaging/', include('messaging.urls')),  # Add Messaging app
-    path('updateStock/', include('updateStock.urls', namespace='updateStock')),
-    path('manager/', include('manager.urls', namespace='manager')),
-    path('notifications/', include('notifications.urls')),
-    path('invManage/', include('inventoryApp.urls', namespace='inventoryApp')),
-    path("", lambda request: redirect("userauth/login/")),  # Redirect root to login page
-    path('inventory_analysis/', include('inventory_analysis.urls', namespace='inventory_analysis')),
-    path('history/', include(('history.urls', 'history'), namespace='history')),
-    path('suppliers/', include('suppliers.urls', namespace='suppliers')),
+    path('', lambda request: redirect('landing_page'), name='root'),
+    path('tenant_manager/', include('tenant_manager.urls')),
     
+    # Tenant-specific URLs
+    path('<str:tenant_url>/', tenant_landing, name='tenant_landing'),
+    path('<str:tenant_url>/userauth/', include('userauth.urls')),
+    path('<str:tenant_url>/messaging/', include('messaging.urls')),
+    path('<str:tenant_url>/updateStock/', include('updateStock.urls', namespace='updateStock')),
+    path('<str:tenant_url>/manager/', include('manager.urls', namespace='manager')),
+    path('<str:tenant_url>/notifications/', include('notifications.urls')),
+    path('<str:tenant_url>/invManage/', include('inventoryApp.urls', namespace='inventoryApp')),
+    path('<str:tenant_url>/inventory_analysis/', include('inventory_analysis.urls', namespace='inventory_analysis')),
+    path('<str:tenant_url>/history/', include(('history.urls', 'history'), namespace='history')),
+    path('<str:tenant_url>/suppliers/', include('suppliers.urls', namespace='suppliers')),
 ]

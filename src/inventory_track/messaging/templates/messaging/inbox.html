@@ -9,27 +9,27 @@
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h2 class="mb-0"><i class="bi bi-envelope"></i> Your Inbox</h2>
             <div>
-                <a href="{% url 'messaging:contacts' %}" class="btn btn-outline-light btn-sm me-2">
+                <a href="{% url 'messaging:contacts' tenant_url=tenant_url %}" class="btn btn-outline-light btn-sm me-2">
                     <i class="bi bi-person-lines-fill"></i> Contacts
                 </a>
-                <a href="{% url 'messaging:send_message' %}" class="btn btn-outline-light btn-sm">
+                <a href="{% url 'messaging:send_message' tenant_url=tenant_url %}" class="btn btn-outline-light btn-sm">
                     <i class="bi bi-pencil-square"></i> Compose
                 </a>
             </div>
         </div>
 
-        <div class="card-body">
+        <div class="card-body bg-gray-800">
             {% if messages %}
                 <div class="list-group">
                     {% for message in messages %}
-                        <a href="{% url 'messaging:read_message' message.id %}" 
-                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center 
-                           {% if not message.read %} list-group-item-warning fw-bold {% endif %}">
+                        <a href="{% url 'messaging:read_message' message_id=message.id tenant_url=tenant_url %}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center bg-gray-700 text-white mb-2 border-0
+                           {% if not message.read %} border-start border-danger border-5 {% endif %}">
                             <div>
-                                <h5 class="mb-1">{{ message.subject|default:"No Subject" }}</h5>
-                                <p class="mb-1"><strong>From: {{ message.sender.username }}</strong></p>
+                                <h5 class="mb-1 text-white">{{ message.subject|default:"No Subject" }}</h5>
+                                <p class="mb-1 text-gray-300"><strong>From: {{ message.sender.username }}</strong></p>
                                 {% load tz %}
-                                <small class="text-muted">Sent at: {% timezone "America/Toronto" %}{{ message.timestamp|date:"Y-m-d H:i" }}{% endtimezone %}</small>
+                                <small class="text-gray-400">Sent at: {% timezone "America/Toronto" %}{{ message.timestamp|date:"Y-m-d H:i" }}{% endtimezone %}</small>
                             </div>
                             {% if not message.read %}
                                 <span class="badge bg-danger rounded-pill">New</span>
@@ -38,16 +38,32 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <p class="text-muted text-center">No messages in your inbox.</p>
+                <p class="text-gray-300 text-center">No messages in your inbox.</p>
             {% endif %}
         </div>
 
-        <div class="card-footer text-end">
-            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+        <div class="card-footer text-end bg-gray-800 border-top border-gray-700">
+            <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Dashboard
             </a>
         </div>
     </div>
 </div>
+
+<style>
+/* Custom colors to ensure text readability */
+.bg-gray-700 { background-color: #374151; }
+.bg-gray-800 { background-color: #1f2937; }
+.text-gray-300 { color: #d1d5db; }
+.text-gray-400 { color: #9ca3af; }
+
+/* Override Bootstrap list group styles */
+.list-group-item {
+    transition: background-color 0.2s;
+}
+.list-group-item:hover {
+    background-color: #4B5563 !important;
+}
+</style>
 {% endblock %}
 

@@ -8,7 +8,7 @@
   <!-- Header: Title and Inventory Management link -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Update Stock - {{ table_data.table_name }}</h2>
-    <a href="{% url 'inventoryApp:home' %}" class="btn btn-outline-primary">
+    <a href="{% url 'inventoryApp:home' tenant_url=tenant_url %}" class="btn btn-outline-primary">
       <i class="bi bi-pencil-square"></i> Edit Inventory
     </a>
   </div>
@@ -75,7 +75,7 @@
                   <td>{{ row.8 }}</td>
                   <td>{{ row.10 }}</td>
                   <td>
-                    <a href="{% url 'updateStock:update_stock' table_data.table_name row.0 %}" class="btn btn-warning btn-sm">Edit</a>
+                    <a href="{% url 'updateStock:update_stock' table_name=table_data.table_name item_id=row.0 tenant_url=tenant_url %}" class="btn btn-warning btn-sm">Edit</a>
                   </td>
                 </tr>
               {% endfor %}
@@ -88,7 +88,7 @@
     </div>
     <!-- Back to Dashboard Button -->
     <div class="card-footer text-center">
-      <a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+      <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-secondary">Back to Dashboard</a>
     </div>
   </div>
 </div>

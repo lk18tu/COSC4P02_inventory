@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add Custom Field{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card bg-gray-800 shadow">
+                <div class="card-header bg-blue-600 text-white">
+                    <h3 class="mb-0 font-bold">Add Custom Field</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="field_name" class="form-label text-white">Field Name</label>
+                            <input type="text" id="field_name" name="field_name" class="form-control form-control-dark" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="field_value" class="form-label text-white">Field Value</label>
+                            <input type="text" id="field_value" name="field_value" class="form-control form-control-dark" required>
+                        </div>
+
+                        <div class="text-end mt-4">
+                            <a href="{% url 'home' %}" class="btn bg-gray-700 text-gray-300 btn-gray">Cancel</a>
+                            <button type="submit" class="btn bg-blue-600 text-white ms-2">Add Field</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

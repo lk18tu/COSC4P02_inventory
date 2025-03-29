@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Edit Item{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="card bg-gray-800 shadow">
+                <div class="card-header bg-blue-600 text-white">
+                    <h3 class="mb-0 font-bold">Edit Item: {{ item.title }}</h3>
+                </div>
+                <div class="card-body">
+                    <form method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <!-- Title -->
+                        <div class="mb-3">
+                            <label for="title" class="form-label text-white">Title</label>
+                            <input type="text" class="form-control form-control-dark" id="title" name="title" value="{{ item.title }}" required>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label text-white">Description</label>
+                            <textarea class="form-control form-control-dark" id="description" name="description" rows="3" required>{{ item.description }}</textarea>
+                        </div>
+
+                        <div class="row">
+                            <!-- Quantity in Stock -->
+                            <div class="col-md-6 mb-3">
+                                <label for="quantity_stock" class="form-label text-white">Quantity in Stock</label>
+                                <input type="number" class="form-control form-control-dark" id="quantity_stock" name="quantity_stock" value="{{ item.quantity_stock }}" required>
+                            </div>
+
+                            <!-- Reorder Level -->
+                            <div class="col-md-6 mb-3">
+                                <label for="reorder_level" class="form-label text-white">Reorder Level</label>
+                                <input type="number" class="form-control form-control-dark" id="reorder_level" name="reorder_level" value="{{ item.reorder_level }}" required>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Price -->
+                            <div class="col-md-6 mb-3">
+                                <label for="price" class="form-label text-white">Price</label>
+                                <input type="number" class="form-control form-control-dark" id="price" name="price" value="{{ item.price }}" step="0.01" required>
+                            </div>
+
+                            <!-- Purchase Price -->
+                            <div class="col-md-6 mb-3">
+                                <label for="purchase_price" class="form-label text-white">Purchase Price</label>
+                                <input type="number" class="form-control form-control-dark" id="purchase_price" name="purchase_price" value="{{ item.purchase_price }}" step="0.01" required>
+                            </div>
+                        </div>
+
+                        <!-- Notes -->
+                        <div class="mb-3">
+                            <label for="notes" class="form-label text-white">Notes</label>
+                            <textarea class="form-control form-control-dark" id="notes" name="notes" rows="3">{{ item.notes }}</textarea>
+                        </div>
+
+                        <!-- Image -->
+                        <div class="mb-3">
+                            <label for="image" class="form-label text-white">Upload New Image (Optional)</label>
+                            <input type="file" class="form-control form-control-dark" id="image" name="image" accept="image/*">
+                        </div>
+
+                        <!-- Completed Checkbox -->
+                        <div class="form-check mb-3">
+                            <input type="checkbox" class="form-check-input" id="completed" name="completed" {% if item.completed %}checked{% endif %}>
+                            <label class="form-check-label text-white" for="completed">Completed</label>
+                        </div>
+
+                        <div class="text-end mt-4">
+                            <a href="/{{ tenant_url }}/invManage/" class="btn bg-gray-700 text-gray-300 btn-gray">Cancel</a>
+                            <button type="submit" class="btn bg-blue-600 text-white ms-2">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

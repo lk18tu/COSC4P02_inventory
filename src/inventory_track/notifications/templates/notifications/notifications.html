@@ -4,35 +4,62 @@
 {% block title %}Notifications{% endblock %}
 
 {% block content %}
-<h1>Your Notifications</h1>
-
-{% for notification in notifications %}
-    <p>
-        {{ notification.message }} ({{ notification.created_at|date:"Y-m-d H:i" }})
-        {% if not notification.is_read %}
-            <a href="{% url 'notifications:mark_notification_read' notification.id %}" class="mark-as-read" data-id="{{ notification.id }}">
-                Mark as Read
+<div class="container mt-4">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h2 class="mb-0"><i class="bi bi-bell"></i> Your Notifications</h2>
+        </div>
+        
+        <div class="card-body bg-gray-800">
+            {% if notifications %}
+                <div class="list-group">
+                    {% for notification in notifications %}
+                        <div class="list-group-item bg-gray-700 text-white mb-2 border-0 d-flex justify-content-between align-items-center">
+                            <div>
+                                <p class="mb-1">{{ notification.message }}</p>
+                                <small class="text-gray-400">{{ notification.created_at|date:"Y-m-d H:i" }}</small>
+                            </div>
+                            {% if not notification.is_read %}
+                                <a href="{% url 'notifications:mark_notification_read' notification_id=notification.id tenant_url=tenant_url %}" 
+                                   class="btn btn-sm btn-outline-light mark-as-read" data-id="{{ notification.id }}">
+                                    Mark as Read
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-gray-300 text-center">No notifications.</p>
+            {% endif %}
+        </div>
+        
+        <div class="card-footer text-end bg-gray-800 border-top border-gray-700">
+            <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
             </a>
-        {% endif %}
-    </p>
-{% empty %}
-    <p>No notifications.</p>
-{% endfor %}
+        </div>
+    </div>
+</div>
 
-<br>
-<a href="{% url 'dashboard' %}" class="btn btn-secondary">Back to Dashboard</a>
+<style>
+/* Custom colors for readability */
+.bg-gray-700 { background-color: #374151; }
+.bg-gray-800 { background-color: #1f2937; }
+.text-gray-300 { color: #d1d5db; }
+.text-gray-400 { color: #9ca3af; }
+</style>
 
 <!-- jQuery for AJAX -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    // Example of AJAX “Mark as Read”
+    // Example of AJAX "Mark as Read"
     $(".mark-as-read").click(function(event) {
         event.preventDefault();
         var notificationId = $(this).data("id");
         var linkElement = $(this);
 
         $.ajax({
-            url: "{% url 'notifications:mark_notification_read' 0 %}".replace("0", notificationId),
+            url: $(this).attr("href"),
             type: "GET",
             success: function(response) {
                 linkElement.parent().remove();  

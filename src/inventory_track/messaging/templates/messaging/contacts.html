@@ -2,16 +2,18 @@
 {% block title %}Contacts{% endblock %}
 {% block content %}
 <div class="container mt-4">
-    <div class="card shadow">
-        <div class="card-header bg-info text-white d-flex justify-content-between">
-            <h4>📇 Your Contacts</h4>
-            <a href="{% url 'messaging:inbox' %}" class="btn btn-outline-light btn-sm">Inbox</a>
+    <div class="card shadow border-0">
+        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">📇 Your Contacts</h4>
+            <a href="{% url 'messaging:inbox' tenant_url=tenant_url %}" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-envelope"></i> Inbox
+            </a>
         </div>
-        <div class="card-body">
+        <div class="card-body bg-gray-700">
             
             <!-- Display Django messages (success, error, warning) -->
             {% if messages %}
-                <div class="alert alert-dismissible fade show">
+                <div class="alert-container mb-4">
                     {% for message in messages %}
                         <div class="alert 
                             {% if message.tags == 'error' %}alert-danger
@@ -24,44 +26,113 @@
             {% endif %}
 
             <!-- Contact add form -->
-            <form method="POST">
+            <form method="POST" class="mb-4">
                 {% csrf_token %}
-                <div class="input-group mb-3">
-                    <input type="text" name="contact" class="form-control" placeholder="Enter username or email to add" required>
-                    <button class="btn btn-primary" type="submit">Add Contact</button>
+                <div class="input-group">
+                    <input type="text" name="contact" class="form-control bg-gray-800 text-white border-gray-600" placeholder="Enter username or email to add" required>
+                    <button class="btn btn-primary" type="submit">
+                        <i class="bi bi-person-plus"></i> Add Contact
+                    </button>
                 </div>
+                <small class="text-gray-400 mt-1 d-block">Add contacts to easily message them later.</small>
             </form>
             
             <!-- If multiple users matched by email, let user choose -->
             {% if candidates %}
-                <form method="POST" class="mb-4">
-                    {% csrf_token %}
-                    <div class="mb-2">
-                        <label class="form-label">Multiple users found for this email. Please select one:</label>
-                        <select name="selected_username" class="form-select" required>
-                            {% for user in candidates %}
-                                <option value="{{ user.username }}">{{ user.username }} ({{ user.email }})</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <button class="btn btn-success" type="submit">Confirm Add</button>
-                </form>
+                <div class="bg-gray-800 p-3 rounded mb-4 border-start border-info border-4">
+                    <form method="POST" class="mb-0">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label text-white">Multiple users found for this email. Please select one:</label>
+                            <select name="selected_username" class="form-select bg-gray-700 text-white border-gray-600" required>
+                                {% for user in candidates %}
+                                    <option value="{{ user.username }}">{{ user.username }} ({{ user.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button class="btn btn-success" type="submit">
+                            <i class="bi bi-check2"></i> Confirm Add
+                        </button>
+                    </form>
+                </div>
             {% endif %}
 
             <!-- Contact list display -->
             {% if contacts %}
-                <ul class="list-group">
-                    {% for c in contacts %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            {{ c.contact.username }} ({{ c.contact.email }})
-                            <a href="{% url 'messaging:delete_contact' c.id %}" class="btn btn-sm btn-danger">Remove</a>
-                        </li>
-                    {% endfor %}
-                </ul>
+                <div class="contacts-list">
+                    <h5 class="text-white mb-3">Your Contact List</h5>
+                    <ul class="list-group">
+                        {% for c in contacts %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center bg-gray-800 text-white border-gray-600 mb-2">
+                                <div>
+                                    <i class="bi bi-person-circle me-2"></i>
+                                    <span>{{ c.contact.username }}</span>
+                                    <small class="text-gray-400 ms-2">({{ c.contact.email }})</small>
+                                </div>
+                                <div>
+                                    <a href="{% url 'messaging:send_message' tenant_url=tenant_url %}" class="btn btn-sm btn-outline-primary me-2" 
+                                       onclick="document.getElementById('recipientInput').value='{{ c.contact.username }}';">
+                                        <i class="bi bi-chat-dots"></i> Message
+                                    </a>
+                                    <a href="{% url 'messaging:delete_contact' contact_id=c.id tenant_url=tenant_url %}" 
+                                       class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i> Remove
+                                    </a>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
             {% else %}
-                <p>No contacts yet.</p>
+                <div class="text-center p-4 bg-gray-800 rounded">
+                    <i class="bi bi-people text-gray-400" style="font-size: 2rem;"></i>
+                    <p class="text-gray-300 mt-2">No contacts yet. Add some contacts above to get started.</p>
+                </div>
             {% endif %}
         </div>
     </div>
 </div>
+
+<style>
+/* Custom colors for readability */
+.bg-gray-700 { background-color: #374151; }
+.bg-gray-800 { background-color: #1f2937; }
+.text-gray-300 { color: #d1d5db; }
+.text-gray-400 { color: #9ca3af; }
+.border-gray-600 { border-color: #4B5563; }
+
+/* Form control focus styles */
+.form-control:focus, .form-select:focus {
+    background-color: #2d3748;
+    color: white;
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25);
+}
+
+/* List group hover effect */
+.list-group-item {
+    transition: background-color 0.2s;
+}
+.list-group-item:hover {
+    background-color: #2d3748 !important;
+}
+
+/* Button outlines */
+.btn-outline-primary {
+    color: #60a5fa;
+    border-color: #60a5fa;
+}
+.btn-outline-primary:hover {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+.btn-outline-danger {
+    color: #f87171;
+    border-color: #f87171;
+}
+.btn-outline-danger:hover {
+    background-color: #ef4444;
+    border-color: #ef4444;
+}
+</style>
 {% endblock %}

@@ -14,7 +14,7 @@
       <input type="number" class="form-control" id="quantity" name="quantity" value="{{ current_quantity }}" min="0" required>
     </div>
     <button type="submit" class="btn btn-success">Update</button>
-    <a href="{% url 'updateStock:product_list' %}?table={{ table_name }}" class="btn btn-secondary">Cancel</a>
+    <a href="{% url 'updateStock:product_list' tenant_url=tenant_url %}?table={{ table_name }}" class="btn btn-secondary">Cancel</a>
   </form>
 </div>
 {% endblock %}

@@ -1,28 +1,61 @@
 {% extends "base.html" %}
 
+{% block title %}Inventory Analysis{% endblock %}
+
 {% block content %}
-<h2>Inventory Analysis</h2>
+<div class="container mt-4">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white">
+            <h2 class="mb-0">Inventory Analysis</h2>
+        </div>
+        
+        <div class="card-body bg-gray-800">
+            <!-- Inventory Bar Chart -->
+            {% if inventory_chart %}
+                <div class="mb-4">
+                    <h3 class="text-white mb-3">Stock Levels</h3>
+                    <div class="text-center">
+                        <img src="data:image/png;base64,{{ inventory_chart }}" alt="Inventory Chart" class="img-fluid rounded">
+                    </div>
+                    <div class="mt-3 bg-gray-700 p-3 rounded">
+                        <p class="text-white mb-2"><strong>{{ summary|default:"Stock Level Indicators" }}</strong></p>
+                        <div class="d-flex justify-content-center text-gray-300">
+                            <span class="mx-2"><span style="color:red;">⬤</span> Low Stock (0-4)</span>
+                            <span class="mx-2"><span style="color:yellow;">⬤</span> Medium Stock (5-15)</span>
+                            <span class="mx-2"><span style="color:green;">⬤</span> Sufficient Stock (16+)</span>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert bg-gray-700 text-gray-300">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    No inventory data available.
+                </div>
+            {% endif %}
 
-<!-- Inventory Bar Chart -->
-{% if inventory_chart %}
-    <h3>Stock Levels</h3>
-    <img src="data:image/png;base64,{{ inventory_chart }}" alt="Inventory Chart">
-    <p><strong>{{ summary }}</strong></p>
-    <p>
-        <span style="color:red;">⬤ Low Stock (0-4)</span> |
-        <span style="color:yellow;">⬤ Medium Stock (5-15)</span> |
-        <span style="color:green;">⬤ Sufficient Stock (16+)</span>
-    </p>
-{% else %}
-    <p>No inventory data available.</p>
-{% endif %}
+            <!-- Inventory Pie Chart -->
+            {% if inventory_pie_chart %}
+                <div class="mt-5">
+                    <h3 class="text-white mb-3">Inventory Distribution</h3>
+                    <div class="text-center">
+                        <img src="data:image/png;base64,{{ inventory_pie_chart }}" alt="Inventory Pie Chart" class="img-fluid rounded">
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="card-footer text-end bg-gray-800 border-top border-gray-700">
+            <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
 
-<!-- Inventory Pie Chart -->
-{% if inventory_pie_chart %}
-    <h3>Inventory Distribution</h3>
-    <img src="data:image/png;base64,{{ inventory_pie_chart }}" alt="Inventory Pie Chart">
-{% else %}
-    <p>No inventory distribution data available.</p>
-{% endif %}
-
+<style>
+/* Custom colors for readability */
+.bg-gray-700 { background-color: #374151; }
+.bg-gray-800 { background-color: #1f2937; }
+.text-gray-300 { color: #d1d5db; }
+</style>
 {% endblock %}

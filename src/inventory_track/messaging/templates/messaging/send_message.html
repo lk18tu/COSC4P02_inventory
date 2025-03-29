@@ -1,31 +1,18 @@
+{% extends 'base.html' %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Send Message</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <script>
-        function fillRecipient() {
-            var selectedContact = document.getElementById("contactSelect").value;
-            if (selectedContact) {
-                document.getElementById("recipientInput").value = selectedContact;
-            }
-        }
-    </script>
-</head>
-<body class="bg-light">
 
+{% block title %}Send Message{% endblock %}
+
+{% block content %}
 <div class="container mt-5">
-    <div class="card shadow">
+    <div class="card shadow border-0">
         <div class="card-header bg-primary text-white">
             <h4>📩 Send a Message</h4>
         </div>
-        <div class="card-body">
+        <div class="card-body bg-gray-700">
             <!-- Show messages (errors, success, warnings) -->
             {% if messages %}
-                <div class="alert alert-dismissible fade show">
+                <div class="alert-container mb-4">
                     {% for message in messages %}
                         <div class="alert 
                             {% if message.tags == 'error' %}alert-danger
@@ -42,14 +29,14 @@
                 
                 <!-- Input for username or email -->
                 <div class="mb-3">
-                    <label class="form-label">Recipient:</label>
-                    <input type="text" name="recipient" id="recipientInput" class="form-control" placeholder="Enter username or email" required>
+                    <label class="form-label text-white">Recipient:</label>
+                    <input type="text" name="recipient" id="recipientInput" class="form-control bg-gray-800 text-white border-gray-600" placeholder="Enter username or email" required>
                 </div>
 
                 <!-- Contact selection dropdown -->
                 <div class="mb-3">
-                    <label class="form-label">Or Select a Contact</label>
-                    <select id="contactSelect" class="form-select" onchange="fillRecipient()">
+                    <label class="form-label text-white">Or Select a Contact</label>
+                    <select id="contactSelect" class="form-select bg-gray-800 text-white border-gray-600" onchange="fillRecipient()">
                         <option value="">-- Select a Contact --</option>
                         {% for c in contacts %}
                             <option value="{{ c.contact.username }}">{{ c.contact.username }} ({{ c.contact.email }})</option>
@@ -58,21 +45,57 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Subject:</label>
-                    <input type="text" name="subject" class="form-control" placeholder="Enter subject (optional)">
+                    <label class="form-label text-white">Subject:</label>
+                    <input type="text" name="subject" class="form-control bg-gray-800 text-white border-gray-600" placeholder="Enter subject (optional)">
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Message:</label>
-                    <textarea name="content" class="form-control" rows="4" placeholder="Type your message here" required></textarea>
+                    <label class="form-label text-white">Message:</label>
+                    <textarea name="content" class="form-control bg-gray-800 text-white border-gray-600" rows="6" placeholder="Type your message here" required></textarea>
                 </div>
 
-                <button type="submit" class="btn btn-success">Send Message</button>
-                <a href="{% url 'messaging:inbox' %}" class="btn btn-outline-secondary">Back to Inbox</a>
+                <div class="d-flex justify-content-end mt-4">
+                    <a href="{% url 'messaging:inbox' tenant_url=tenant_url %}" class="btn btn-outline-light me-2">
+                        <i class="bi bi-x-circle"></i> Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-send"></i> Send Message
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 </div>
 
-</body>
-</html>
+<style>
+/* Custom colors for readability */
+.bg-gray-700 { background-color: #374151; }
+.bg-gray-800 { background-color: #1f2937; }
+.border-gray-600 { border-color: #4B5563; }
+
+/* Form control focus styles */
+.form-control:focus, .form-select:focus {
+    background-color: #2d3748;
+    color: white;
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25);
+}
+
+/* Placeholder text color */
+::placeholder {
+    color: #9ca3af !important;
+    opacity: 1;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function fillRecipient() {
+        var selectedContact = document.getElementById("contactSelect").value;
+        if (selectedContact) {
+            document.getElementById("recipientInput").value = selectedContact;
+        }
+    }
+</script>
+{% endblock %}

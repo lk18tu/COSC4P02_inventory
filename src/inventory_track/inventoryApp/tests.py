@@ -20,7 +20,7 @@ class AddItemTest(TestCase):
                     quantity_stock INT,
                     reorder_level INT,
                     price DECIMAL(10,2),
-                    purchace_price DECIMAL(10,2),
+                    purchase_price DECIMAL(10,2),
                     notes TEXT,
                     image VARCHAR(255)
                 )
@@ -38,7 +38,7 @@ class AddItemTest(TestCase):
             "quantity_stock": 10,
             "reorder_level": 2,
             "price": 19.99,
-            "purchace_price": 10.00,
+            "purchase_price": 10.00,
             "notes": "Test note",
             "completed": "on"
         }

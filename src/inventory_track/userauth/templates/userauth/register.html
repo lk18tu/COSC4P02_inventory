@@ -44,45 +44,48 @@
             </div>
 
             <!-- Confirm Password Field -->
-            <div class="input-group mb-3">
-                <div class="form-floating">
-                    <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required>
-                    <label for="confirm_password"><i class="bi bi-lock-fill"></i> Confirm Password</label>
-                </div>
-                <button class="btn btn-outline-secondary" type="button" onclick="toggleConfirmPassword()">
-                    <i class="bi bi-eye"></i>
+            <div class="form-floating mb-3">
+                <input type="password" class="form-control" id="confirm_password" name="confirm_password" placeholder="Confirm Password" required>
+                <label for="confirm_password"><i class="bi bi-lock-fill"></i> Confirm Password</label>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <span id="register-text">Register</span>
+                    <div id="register-spinner" class="spinner-border spinner-border-sm text-light d-none" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
                 </button>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100">Register</button>
-        </form>
-
-        <!-- Loader -->
-        <div id="loader" class="text-center mt-3 d-none">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+            <!-- Login Link -->
+            <div class="text-center mt-3">
+                <p>Already have an account? <a href="/{{ tenant_url }}/userauth/login/">Login</a></p>
             </div>
-        </div>
-
-        <p class="mt-3 text-center">
-            Already have an account? 
-            <a href="{% url 'login' %}">Login</a>
-        </p>
+        </form>
     </div>
 </div>
 
-<!-- Scripts specific to Register page -->
 <script>
     function togglePassword() {
-        let pass = document.getElementById("password");
-        pass.type = pass.type === "password" ? "text" : "password";
+        const passwordField = document.getElementById('password');
+        const eyeIcon = document.querySelector('.btn-outline-secondary i');
+        
+        if (passwordField.type === 'password') {
+            passwordField.type = 'text';
+            eyeIcon.classList.remove('bi-eye');
+            eyeIcon.classList.add('bi-eye-slash');
+        } else {
+            passwordField.type = 'password';
+            eyeIcon.classList.remove('bi-eye-slash');
+            eyeIcon.classList.add('bi-eye');
+        }
     }
-    function toggleConfirmPassword() {
-        let pass = document.getElementById("confirm_password");
-        pass.type = pass.type === "password" ? "text" : "password";
-    }
+    
     function showLoader() {
-        document.getElementById("loader").classList.remove("d-none");
+        document.getElementById('register-text').classList.add('d-none');
+        document.getElementById('register-spinner').classList.remove('d-none');
     }
 </script>
 {% endblock %}

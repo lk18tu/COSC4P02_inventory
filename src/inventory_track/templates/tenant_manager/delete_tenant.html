@@ -1,0 +1,32 @@
+{% extends "base_tenant.html" %}
+{% load static %}
+
+{% block title %}Delete Company - Track My Inventory{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card bg-gray-800 shadow">
+                <div class="card-header bg-red-500 text-white">
+                    <h3 class="mb-0 font-bold">Delete Company</h3>
+                </div>
+                <div class="card-body">
+                    <div class="bg-gray-700 p-3 mb-3 rounded">
+                        <i class="bi bi-exclamation-triangle text-yellow-400 fs-4 me-2"></i>
+                        <span class="text-white">Warning: This action cannot be undone. All data associated with this company will be permanently deleted.</span>
+                    </div>
+                    
+                    <p class="text-gray-300">Are you sure you want to delete the company <strong class="text-white">{{ tenant.name }}</strong>?</p>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn bg-red-500 text-white">Yes, Delete Company</button>
+                        <a href="{% url 'tenant_dashboard' %}" class="btn bg-gray-700 text-gray-300">Cancel</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
