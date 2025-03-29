@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add New Inventory Table{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card bg-gray-800 shadow">
+                <div class="card-header bg-blue-600 text-white">
+                    <h3 class="mb-0 font-bold">Add New Inventory Table</h3>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="table_name" class="form-label text-white">Table Name</label>
+                            <input type="text" id="table_name" name="table_name" class="form-control form-control-dark" required>
+                            <small class="text-gray-400">This name will be used to identify your inventory table.</small>
+                        </div>
+                        
+                        <div class="text-end mt-4">
+                            <a href="/{{ tenant_url }}/invManage/" class="btn bg-gray-700 text-gray-300 btn-gray">Cancel</a>
+                            <button type="submit" class="btn bg-blue-600 text-white ms-2">Create Table</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

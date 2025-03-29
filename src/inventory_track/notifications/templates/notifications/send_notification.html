@@ -4,21 +4,60 @@
 {% block title %}Send Notification{% endblock %}
 
 {% block content %}
-<h1>Send Notification</h1>
-<form method="POST">
-    {% csrf_token %}
-    <label>Select User:</label>
-    <select name="user">
-        <option value="all">All Users</option>
-        {% for user in users %}
-            <option value="{{ user.id }}">{{ user.username }}</option>
-        {% endfor %}
-    </select>
+<div class="container mt-4">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Send Notification</h4>
+        </div>
+        
+        <div class="card-body bg-gray-700">
+            <form method="POST">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label class="form-label text-white">Select User:</label>
+                    <select name="user" class="form-select bg-gray-800 text-white border-gray-600">
+                        <option value="all">All Users</option>
+                        {% for user in users %}
+                            <option value="{{ user.id }}">{{ user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-white">Message:</label>
+                    <textarea name="message" class="form-control bg-gray-800 text-white border-gray-600" rows="4" required></textarea>
+                </div>
+                
+                <div class="d-flex justify-content-end">
+                    <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-outline-light me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Send Notification</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-    <label>Message:</label>
-    <textarea name="message" required></textarea>
+<style>
+/* Custom colors for readability */
+.bg-gray-700 { background-color: #374151; }
+.bg-gray-800 { background-color: #1f2937; }
+.border-gray-600 { border-color: #4B5563; }
+.text-gray-300 { color: #d1d5db; }
 
-    <button type="submit">Send</button>
-</form>
+/* Form control focus styles */
+.form-control:focus, .form-select:focus {
+    background-color: #2d3748;
+    color: white;
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25);
+}
+
+/* Placeholder text color */
+::placeholder {
+    color: #9ca3af !important;
+    opacity: 1;
+}
+</style>
 {% endblock %}
 

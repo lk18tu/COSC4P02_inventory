@@ -1,4 +1,3 @@
-
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from .models import InvItem, InvTable_Metadata
 from userauth.models import UserProfile
@@ -8,40 +7,55 @@ from django.http import Http404
 from django.conf import settings
 import datetime
 import csv, os
+from tenant_manager.utils import tenant_context
 
 
 #table_name = f"testuser_invtable"  # Adjust based on the current user
 
 # Create your views here.
-def home(request):
-    # Check if the user requested archived tables
-    table_type = request.GET.get('view', 'inventory')  # Default to "inventory"
-
-    inventory_tables = InvTable_Metadata.objects.filter(table_type=table_type).order_by('table_name')
-
+def home(request, tenant_url=None):
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
+    # Get all inventory tables
+    inventory_tables = InvTable_Metadata.objects.filter(table_type="inventory")
+    
+    # Get archived tables
+    archived_tables = InvTable_Metadata.objects.filter(table_type="archived")
+    
+    # Determine which view to show (normal or archived)
+    current_view = request.GET.get("view", "inventory")
+    
+    # Fetch data for each table
     table_data = []
-    for table in inventory_tables:
-        table_name = table.table_name
+    tables_to_display = inventory_tables if current_view == "inventory" else archived_tables
+    
+    print(f"Found {len(tables_to_display)} tables to display")
+    
+    for table in tables_to_display:
         try:
             with connection.cursor() as cursor:
-                cursor.execute(f"SELECT * FROM {table_name}")  # Query the table
-                columns = [col[0] for col in cursor.description]  # Get column names
-                rows = cursor.fetchall()  # Get all rows
-
+                # Fetch all data from the selected table
+                cursor.execute(f"SELECT * FROM {table.table_name}")
+                columns = [col[0] for col in cursor.description]
+                rows = cursor.fetchall()
+                print(f"Table {table.table_name} has {len(rows)} rows and columns: {columns}")
                 table_data.append({
-                    'table_name': table_name,
+                    'table_name': table.table_name,
                     'columns': columns,
                     'rows': rows
                 })
         except Exception as e:
-            print(f"Error fetching data for {table_name}: {e}")
-            continue  # Skip this table if there's an error
-
-    return render(request, "inventoryHome.html", {
+            print(f"Error fetching data for table {table.table_name}: {e}")
+    
+    context = {
+        "inventory_tables": inventory_tables,
+        "archived_tables": archived_tables,
+        "current_view": current_view,
+        "tenant_url": tenant_url,
         "table_data": table_data,
-        "MEDIA_URL": settings.MEDIA_URL,
-        "current_view": table_type  # Pass the current view type to the template
-    })
+    }
+    
+    return render(request, "inventoryApp/inventoryHome.html", context)
 
 def add_custom_field(request):
     if request.method == "POST":
@@ -76,7 +90,7 @@ from django.conf import settings
 from django.db import connection
 from django.http import Http404
 
-def add_item(request, table_name):
+def add_item(request, table_name, tenant_url=None):
     if request.method == "POST":
         # Get all the data from the form
         product_number = request.POST.get('product_number')
@@ -86,7 +100,7 @@ def add_item(request, table_name):
         quantity_stock = request.POST.get('quantity_stock')
         reorder_level = request.POST.get('reorder_level')
         price = request.POST.get('price')
-        purchace_price = request.POST.get('purchace_price')
+        purchase_price = request.POST.get('purchase_price')
         notes = request.POST.get('notes')
         completed = 1 if request.POST.get('completed') == "on" else 0
         image = request.FILES.get('image')  # Get the uploaded image
@@ -118,39 +132,63 @@ def add_item(request, table_name):
                         INSERT INTO {table_name} (
                             product_number, upc, title, description, 
                             quantity_stock, reorder_level, price, 
-                            purchace_price, notes, image
+                            purchase_price, notes, image
                         ) 
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         [
                             product_number, upc, title, description, 
                             quantity_stock, reorder_level, price, 
-                            purchace_price, notes, image_path
+                            purchase_price, notes, image_path
                         ]
                     )
 
                     # log change
-                    log_inventory_action("ADD", "Added item: "+title, product_number , 0000 )
-                    return redirect("inventoryApp:home")
+                    log_inventory_action("ADD", "Added item: "+title, product_number, 0000)
+                    
+                    # Get tenant URL for redirect
+                    tenant = getattr(request, 'tenant', None)
+                    tenant_url = tenant.domain_url if tenant else tenant_url or ''
+                    return redirect(f"/{tenant_url}/invManage/")
                 else:
                     raise Http404(f"Table '{table_name}' does not exist.")
 
         except Exception as e:
             print(f"Error adding item to table {table_name}: {str(e)}")
-            return redirect("inventoryApp:home")
+            tenant = getattr(request, 'tenant', None)
+            tenant_url = tenant.domain_url if tenant else tenant_url or ''
+            return redirect(f"/{tenant_url}/invManage/")
 
-    return render(request, "add_item.html", {"table_name": table_name})
+    return render(request, "inventoryApp/add_item.html", {"table_name": table_name})
 
 
-def add_inventory(request):
+from django.db import connection
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
+from .models import InvTable_Metadata  # Ensure this is imported
+from .utils import log_inventory_action  # Assuming this is a custom function
+
+def add_inventory(request, tenant_url=None):
+    tenant = getattr(request, 'tenant', None)
+    
     if request.method == "POST":
         new_table_name = request.POST.get("table_name")  # Get the table name from the form
 
+        # Basic validation to prevent SQL injection (simplified)
+        if not new_table_name.isalnum():  # Allow only alphanumeric characters
+            return HttpResponse("Error: Table name must be alphanumeric", status=400)
+
         try:
+            # No need to switch contexts - just use the current connection
             with connection.cursor() as cursor:
-                # Create the table with an additional image column
-                cursor.execute(f"""
-                    CREATE TABLE {new_table_name} (
+                # Debug the current database connection
+                cursor.execute("SELECT DATABASE()")
+                current_db = cursor.fetchone()[0]
+                print(f"Creating table {new_table_name} in database {current_db}")
+                
+                # Create the table with corrected spelling
+                cursor.execute("""
+                    CREATE TABLE `%s` (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         product_number VARCHAR(100),
                         upc VARCHAR(255),
@@ -158,27 +196,30 @@ def add_inventory(request):
                         description VARCHAR(255),
                         quantity_stock INT,
                         reorder_level INT,
-                        price FLOAT(100, 2),
-                        purchace_price FLOAT(100, 2),
+                        price DECIMAL(10, 2),
+                        purchase_price DECIMAL(10, 2),
                         image VARCHAR(255),
                         notes VARCHAR(255)
                     )
-                """)
+                """ % new_table_name)
+
                 # Add entry in the table_metadata table
-                
-                InvTable_Metadata.objects.create(table_name=new_table_name, table_type="inventory", table_location="Placeholder")
+                InvTable_Metadata.objects.create(
+                    table_name=new_table_name,
+                    table_type="inventory",
+                    table_location="Placeholder"
+                )
 
-                # log change
-                log_inventory_action("ADD INV", "Added: "+new_table_name, 0 , 0000 )
-
-            return redirect("inventoryApp:home")
+            tenant_url = tenant.domain_url if tenant else ''
+            return redirect(f"/{tenant_url}/invManage/")
         except Exception as e:
-            return HttpResponse(f"Error creating table: {e}", status=500)
+            print(f"Error creating inventory table: {str(e)}")
+            return HttpResponse(f"Error: {str(e)}", status=500)
+    
+    return render(request, "inventoryApp/add_inventory.html")
 
-    return render(request, "add_inventory.html")
 
-
-def archive_table(request, table_name):
+def archive_table(request, table_name, tenant_url=None):
     if request.method == 'POST':  # Only allow POST request for safety
         try:
             # Get the table entry from metadata
@@ -191,12 +232,18 @@ def archive_table(request, table_name):
             print(f"Table '{table_name}' archived successfully.")
             # log change
             log_inventory_action("ARCHIVED INV", "Archived: "+table_name, 0 , 0000 )
+            
+            # Get tenant URL for redirect
+            tenant = getattr(request, 'tenant', None)
+            tenant_url = tenant.domain_url if tenant else tenant_url or ''
+            return redirect(f"/{tenant_url}/invManage/")
         except Exception as e:
             print(f"Error archiving table '{table_name}': {e}")
+            tenant = getattr(request, 'tenant', None)
+            tenant_url = tenant.domain_url if tenant else tenant_url or ''
+            return redirect(f"/{tenant_url}/invManage/")
 
-    return redirect("inventoryApp:home")  # Redirect back to home
-
-def unarchive_table(request, table_name):
+def unarchive_table(request, table_name, tenant_url=None):
     if request.method == 'POST':  # Only allow POST request for safety
         try:
             # Get the table entry from metadata
@@ -207,14 +254,20 @@ def unarchive_table(request, table_name):
             table_metadata.save()
 
             print(f"Table '{table_name}' unarchived successfully.")
+            
+            # Get tenant URL for redirect
+            tenant = getattr(request, 'tenant', None)
+            tenant_url = tenant.domain_url if tenant else tenant_url or ''
+            return redirect(f"/{tenant_url}/invManage/")
         except Exception as e:
             print(f"Error unarchiving table '{table_name}': {e}")
+            tenant = getattr(request, 'tenant', None)
+            tenant_url = tenant.domain_url if tenant else tenant_url or ''
+            return redirect(f"/{tenant_url}/invManage/")
 
-    return redirect("inventoryApp:home")  # Redirect back to home
 
 
-
-def delete_item(request, item_id, table_name):
+def delete_item(request, table_name, item_id, tenant_url=None):
     try:
         with connection.cursor() as cursor:
             # Ensure the table exists before attempting to delete something from it
@@ -232,16 +285,21 @@ def delete_item(request, item_id, table_name):
                 # log change
                 log_inventory_action("DELETE", "N/A", item_id, 0000 )
 
-                return redirect("inventoryApp:home")
+                # Get tenant URL for redirect
+                tenant = getattr(request, 'tenant', None)
+                tenant_url = tenant.domain_url if tenant else tenant_url or ''
+                return redirect(f"/{tenant_url}/invManage/")
             else:
                 raise Http404(f"Table '{table_name}' does not exist.")
     except Exception as e:
         # Handle database errors or invalid queries
         print(f"Error deleting item: {str(e)}")
-        return redirect("inventoryApp:home")
+        tenant = getattr(request, 'tenant', None)
+        tenant_url = tenant.domain_url if tenant else tenant_url or ''
+        return redirect(f"/{tenant_url}/invManage/")
 
 
-def edit_item(request, table_name, item_id):
+def edit_item(request, table_name, item_id, tenant_url=None):
     # Fetch the item details to pre-fill the form
     try:
         with connection.cursor() as cursor:
@@ -252,10 +310,16 @@ def edit_item(request, table_name, item_id):
             if not item:
                 raise Http404(f"Item with ID {item_id} not found in table {table_name}.")
             
-            # Extract fields dynamically based on the column names (you can adjust this as needed)
-            # Assuming the columns are in this order: id, title, description, quantity_stock, etc.
-            item_columns = ['id', 'title', 'description', 'quantity_stock', 'reorder_level', 'price', 'purchase_price', 'notes', 'completed']
-            item_data = dict(zip(item_columns, item))
+            # Extract fields dynamically based on the column names
+            # Update this to match the correct column order from your database
+            item_columns = ['id', 'product_number', 'upc', 'title', 'description', 'quantity_stock', 
+                           'reorder_level', 'price', 'purchase_price', 'notes', 'image']
+            
+            # Map the SQL result to a dictionary using the correct column names
+            item_data = {}
+            for i, col in enumerate(item_columns):
+                if i < len(item):
+                    item_data[col] = item[i]
 
     except Exception as e:
         return Http404(f"Error fetching item: {str(e)}")
@@ -294,10 +358,13 @@ def edit_item(request, table_name, item_id):
         except Exception as e:
             return Http404(f"Error updating item: {str(e)}")
 
-        return redirect('inventoryApp:home')  # Redirect after successful update
+        # Get tenant URL for redirect
+        tenant = getattr(request, 'tenant', None)
+        tenant_url = tenant.domain_url if tenant else tenant_url or ''
+        return redirect(f"/{tenant_url}/invManage/")
 
     # Render the form with the current item data
-    return render(request, 'edit_item.html', {'item': item_data, 'table_name': table_name})
+    return render(request, 'inventoryApp/edit_item.html', {'item': item_data, 'table_name': table_name})
 
 
 def log_inventory_action(action, details, item_id, user_id):
@@ -321,7 +388,7 @@ def log_inventory_action(action, details, item_id, user_id):
 
 
 
-def upload_csv(request, table_name):
+def upload_csv(request, table_name, tenant_url=None):
     if request.method == 'POST':
         csv_file = request.FILES.get('csv_file')
         mode = request.POST.get('upload_mode')  # Fetch append/replace mode
@@ -348,7 +415,7 @@ def upload_csv(request, table_name):
             # Insert new rows
             query = f"""
                 INSERT INTO {table_name} 
-                (product_number, upc, title, description, quantity_stock, reorder_level, price, purchace_price, notes)
+                (product_number, upc, title, description, quantity_stock, reorder_level, price, purchase_price, notes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
             for row in reader:
@@ -369,7 +436,11 @@ def upload_csv(request, table_name):
 
             # log change
             log_inventory_action("BULK", "Uploaded: "+csv_file.name+" To " + table_name+". Mode = "+ mode, 0, 0000 )
-        return redirect('inventoryApp:home')
+            
+            # Get tenant URL for redirect
+            tenant = getattr(request, 'tenant', None)
+            tenant_url = tenant.domain_url if tenant else tenant_url or ''
+            return redirect(f"/{tenant_url}/invManage/")
 
     return render(request, 'csv_upload.html', {'table_name': table_name})
 

@@ -1,0 +1,272 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{% block title %}Inventory Track{% endblock %}</title>
+    <!-- Bootstrap and Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <script>
+        function updateTime() {
+            const now = new Date();
+            const dateString = now.toLocaleDateString('en-CA', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            const timeString = now.toLocaleTimeString('en-CA', { timeStyle: 'short' });
+            if (document.getElementById('date-time')) {
+                document.getElementById('date-time').innerHTML = `${dateString}, ${timeString}`;
+            }
+        }
+        setInterval(updateTime, 1000);
+    </script>
+    <style>
+        /* Custom colors to match original Tailwind scheme */
+        .bg-gray-900 { background-color: #111827; }
+        .bg-gray-800 { background-color: #1f2937; }
+        .bg-gray-700 { background-color: #374151; }
+        .text-gray-300 { color: #d1d5db; }
+        .text-gray-400 { color: #9ca3af; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-blue-700 { background-color: #1d4ed8; }
+        
+        /* Global Styles */
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #d1d5db;
+        }
+        
+        /* Font customizations */
+        .font-extrabold { font-weight: 800; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background: #1f2937;
+            color: #d1d5db;
+            padding-top: 20px;
+            transition: width 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+        }
+        .sidebar a {
+            display: block;
+            padding: 12px 20px;
+            color: #d1d5db;
+            text-decoration: none;
+            font-size: 16px;
+            transition: 0.3s;
+        }
+        .sidebar a:hover {
+            background-color: #374151;
+            color: white;
+            padding-left: 25px;
+        }
+        .sidebar .logo {
+            text-align: center;
+            font-size: 22px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: white;
+        }
+        /* Content Area */
+        .content {
+            margin-left: 250px;
+            padding: 20px;
+            transition: margin-left 0.3s ease;
+            min-height: 100vh;
+        }
+        /* Welcome Banner */
+        .welcome-section {
+            background: #1f2937;
+            color: #d1d5db;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .welcome-section h2 {
+            color: white;
+        }
+        .date-time {
+            font-size: 14px;
+            color: #9ca3af;
+        }
+        /* Card styling */
+        .card {
+            background-color: #1f2937;
+            border: none;
+            color: #d1d5db;
+        }
+        .card-header {
+            background-color: #374151;
+            border-bottom: 1px solid #4B5563;
+            color: white;
+        }
+        /* Table styling - CRUCIAL FIX FOR TEXT COLOR */
+        .table {
+            color: #d1d5db !important; /* This ensures text color */
+        }
+        .table td, .table th {
+            color: #d1d5db !important; /* Force all cells to have light text */
+            border-color: #4B5563;
+            background-color: #1f2937;
+        }
+        .table thead th {
+            background-color: #374151 !important;
+            color: white !important;
+            border-color: #4B5563;
+        }
+        .table-bordered td, .table-bordered th {
+            border-color: #4B5563;
+        }
+        .table-striped > tbody > tr:nth-of-type(odd) > * {
+            background-color: #283548 !important;
+            color: #d1d5db !important;
+        }
+        .table-striped > tbody > tr:nth-of-type(even) > * {
+            background-color: #1f2937 !important;
+            color: #d1d5db !important;
+        }
+        
+        /* Button styling */
+        .btn-link {
+            color: #60a5fa;
+        }
+        .btn-link:hover {
+            color: #93c5fd;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+            border-color: #1d4ed8;
+        }
+        .btn-danger {
+            background-color: #ef4444;
+            border-color: #ef4444;
+        }
+        .btn-secondary {
+            background-color: #4B5563;
+            border-color: #4B5563;
+        }
+        /* Form controls */
+        .form-control {
+            background-color: #374151;
+            border: 1px solid #4B5563;
+            color: #d1d5db;
+        }
+        .form-control:focus {
+            background-color: #4B5563;
+            color: white;
+            box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.25);
+            border-color: #60a5fa;
+        }
+        /* Input placeholders */
+        ::placeholder {
+            color: #9ca3af !important;
+            opacity: 1;
+        }
+        /* Form labels */
+        .form-label {
+            color: #d1d5db;
+        }
+        /* Badges */
+        .badge.bg-success {
+            background-color: #10b981 !important;
+        }
+        .badge.bg-danger {
+            background-color: #ef4444 !important;
+        }
+        /* Image thumbnail */
+        .img-thumbnail {
+            background-color: #374151;
+            border-color: #4B5563;
+        }
+        /* Override Bootstrap's text-dark class which might be applied */
+        .text-dark {
+            color: #d1d5db !important;
+        }
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+                text-align: center;
+            }
+            .sidebar a {
+                font-size: 14px;
+                padding: 10px;
+            }
+            .content {
+                margin-left: 60px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900" onload="updateTime()">
+
+{% block sidebar %}
+    {% if user.is_authenticated %}
+    <div class="sidebar">
+        <div class="logo">Inventory Track</div>
+        {% with tenant_url=request.tenant.domain_url %}
+        <a href="/{{ tenant_url }}/userauth/dashboard/"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a href="/{{ tenant_url }}/invManage/"><i class="bi bi-box"></i> Inventory</a>
+        <a href="/{{ tenant_url }}/updateStock/products/"><i class="bi bi-pencil-square"></i> Update Stock</a>
+        <a href="/{{ tenant_url }}/messaging/inbox/"><i class="bi bi-chat-dots"></i> Messaging</a>
+        <a href="/{{ tenant_url }}/notifications/" class="notification-icon">
+            <i class="bi bi-bell"></i> Notifications
+            {% if unread_notifications > 0 %}
+                <span class="badge bg-blue-600">{{ unread_notifications }}</span>
+            {% endif %}
+        </a>
+        <a href="/{{ tenant_url }}/inventory_analysis/chart/"><i class="bi bi-bar-chart"></i> Analytics</a>
+        <a href="/{{ tenant_url }}/inventory_analysis/advisor/"><i class="bi bi-lightbulb"></i> AI Advisor</a>
+        <a href="/{{ tenant_url }}/inventory_analysis/search/"><i class="bi bi-search"></i> Search</a>
+        <a href="/{{ tenant_url }}/history/"><i class="bi bi-clock-history"></i> Inventory History</a>
+        <a href="/{{ tenant_url }}/userauth/logout/"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        {% endwith %}
+    </div>
+    {% endif %}
+{% endblock %}
+
+<div class="content">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Add a global override for all table text to ensure it's visible
+    document.addEventListener('DOMContentLoaded', function() {
+        const tables = document.querySelectorAll('table');
+        tables.forEach(table => {
+            table.classList.add('text-gray-300');
+            
+            // Force all cells to have light text
+            const cells = table.querySelectorAll('td, th');
+            cells.forEach(cell => {
+                cell.style.color = '#d1d5db';
+            });
+        });
+    });
+</script>
+</body>
+</html>

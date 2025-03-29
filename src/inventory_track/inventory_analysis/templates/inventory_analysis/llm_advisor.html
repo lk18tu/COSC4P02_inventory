@@ -9,7 +9,7 @@
         <div class="card-body">
 
             <!--select table-->
-            <form method="GET" id="table-select-form" action="{% url 'inventory_analysis:llm_advisor' %}">
+            <form method="GET" id="table-select-form" action="{% url 'inventory_analysis:llm_advisor' tenant_url=tenant_url %}">
                 <label for="table-select" class="form-label">Select Inventory Table:</label>
                 <select name="table" id="table-select" class="form-select" onchange="this.form.submit()">
                     {% for table in inventory_tables %}
@@ -58,7 +58,7 @@ document.getElementById("llm-form").onsubmit = async function(event) {
     responseElement.innerHTML = `<span class="text-info">Thinking... 🤔</span>`;
 
     try {
-        const response = await fetch("{% url 'inventory_analysis:llm_advisor' %}", {
+        const response = await fetch("{% url 'inventory_analysis:llm_advisor' tenant_url=tenant_url %}", {
             method: "POST",
             body: formData
         });

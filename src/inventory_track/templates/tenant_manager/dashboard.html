@@ -1,0 +1,156 @@
+{% extends "base_tenant.html" %}
+{% load static %}
+
+{% block title %}Tenant Dashboard - Track My Inventory{% endblock %}
+
+{% block additional_styles %}
+/* Override feature-card hover effect for company cards specifically */
+.company-card {
+    transition: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.company-card:hover {
+    transform: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Ensure buttons still have hover effects */
+.btn-blue:hover {
+    background-color: #1d4ed8;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+.btn-gray:hover {
+    background-color: #4b5563;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+.bg-red-500:hover {
+    background-color: #dc2626 !important;
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-5">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="text-white font-bold">Your Companies</h1>
+        </div>
+        <div class="col-md-4 text-end">
+            <button class="btn bg-blue-600 text-white me-2 btn-blue" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
+                <i class="bi bi-plus-circle"></i> Add New Company
+            </button>
+            <a href="{% url 'tenant_logout' %}" class="btn bg-gray-700 text-white btn-gray">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
+        </div>
+    </div>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <div class="row">
+        {% if tenants %}
+            {% for tenant in tenants %}
+                <div class="col-md-4 mb-4">
+                    <div class="card bg-gray-800 shadow h-100 company-card">
+                        <div class="card-header bg-blue-600 text-white">
+                            <h5 class="mb-0 font-semibold">{{ tenant.name }}</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="text-gray-300"><strong>Created:</strong> {{ tenant.created_on|date:"F d, Y" }}</p>
+                            <p class="text-gray-300"><strong>URL:</strong> /{{ tenant.domain_url }}/</p>
+                            <p class="text-gray-300"><strong>Status:</strong> 
+                                {% if tenant.is_active %}
+                                    <span class="badge bg-green-500">Active</span>
+                                {% else %}
+                                    <span class="badge bg-red-500">Inactive</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="card-footer bg-gray-700">
+                            <div class="d-flex justify-content-between">
+                                <a href="/{{ tenant.domain_url }}/" class="btn bg-blue-600 text-white btn-sm btn-blue">
+                                    <i class="bi bi-box-arrow-in-right"></i> Visit
+                                </a>
+                                <button class="btn bg-red-500 text-white btn-sm" data-bs-toggle="modal" data-bs-target="#deleteModal{{ tenant.id }}">
+                                    <i class="bi bi-trash"></i> Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Delete Modal for {{ tenant.name }} -->
+                <div class="modal fade" id="deleteModal{{ tenant.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ tenant.id }}" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-red-500 text-white">
+                                <h5 class="modal-title font-bold" id="deleteModalLabel{{ tenant.id }}">Delete Company</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body p-4">
+                                <div class="bg-gray-700 p-3 mb-3 rounded">
+                                    <i class="bi bi-exclamation-triangle text-yellow-400 fs-4 me-2"></i>
+                                    <span class="text-white">Warning: This action cannot be undone. All data associated with this company will be permanently deleted.</span>
+                                </div>
+                                
+                                <p class="text-gray-300">Are you sure you want to delete the company <strong class="text-white">{{ tenant.name }}</strong>?</p>
+                                
+                                <form method="post" action="{% url 'delete_tenant' tenant.id %}">
+                                    {% csrf_token %}
+                                    <div class="text-end mt-4">
+                                        <button type="button" class="btn bg-gray-700 text-gray-300 btn-gray" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn bg-red-500 text-white ms-2">Yes, Delete Company</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="card bg-gray-800 p-4">
+                    <p class="text-gray-300 mb-0">You don't have any companies yet. Click "Add New Company" to create one.</p>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Company Modal -->
+<div class="modal fade" id="addCompanyModal" tabindex="-1" aria-labelledby="addCompanyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-blue-600 text-white">
+                <h5 class="modal-title font-bold" id="addCompanyModalLabel">Add New Company</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form method="post" action="{% url 'add_tenant' %}" id="addCompanyForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="name" class="form-label text-white">Company Name</label>
+                        <input type="text" class="form-control form-control-dark" id="name" name="name" required>
+                        <small class="text-gray-400">This will be used to create your company URL.</small>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn bg-blue-600 text-white px-4">Create Company</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -44,7 +44,10 @@ def get_inventory_context(selected_table):
     context = f"Current Inventory Data:\n{inventory_info}\n\n"
     return context
 
-def llm_advisor(request):
+def llm_advisor(request, tenant_url=None):
+    """Provides AI-powered inventory advice based on user queries."""
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     inventory_tables = get_available_inventory_tables()  # Fetch table names
     selected_table = request.GET.get("table") or request.POST.get("table") or (inventory_tables[0] if inventory_tables else None)
 
@@ -85,16 +88,19 @@ def llm_advisor(request):
 
     return render(request, "inventory_analysis/llm_advisor.html", {
         "inventory_tables": inventory_tables,
-        "selected_table": selected_table
+        "selected_table": selected_table,
+        "tenant_url": tenant_url  # Add tenant_url to context
     })
 
 
-def search_inventory(request):
+def search_inventory(request, tenant_url=None):
     """
     Display all inventory items by default and allow users to filter items using keywords.
     The search is case-insensitive and matches both name and category.
     Duplicate items will be merged, summing up their quantities.
     """
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     query = request.GET.get("q", "").strip()  # Get search query from request
 
     if query:
@@ -115,7 +121,11 @@ def search_inventory(request):
         .order_by("name")  # Sort alphabetically
     )
 
-    return render(request, "inventory_analysis/search_results.html", {"results": merged_inventory, "query": query})
+    return render(request, "inventory_analysis/search_results.html", {
+        "results": merged_inventory, 
+        "query": query,
+        "tenant_url": tenant_url  # Add tenant_url to context
+    })
 
 def generate_inventory_level_chart():
     """
@@ -186,14 +196,17 @@ def generate_inventory_pie_chart():
     return base64.b64encode(buf.read()).decode()
 
 
-def inventory_chart(request):
+def inventory_chart(request, tenant_url=None):
     """
     Render the inventory chart page with different visualizations.
     """
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     inventory_chart_image = generate_inventory_level_chart()  # Remove request argument
     inventory_pie_chart = generate_inventory_pie_chart()  # Generate pie chart
 
     return render(request, "inventory_analysis/inventory_chart.html", {
-        "inventory_chart": inventory_chart_image,  # Fix variable name
-        "inventory_pie_chart": inventory_pie_chart
+        "inventory_chart": inventory_chart_image,
+        "inventory_pie_chart": inventory_pie_chart,
+        "tenant_url": tenant_url  # Add tenant_url to context
     })

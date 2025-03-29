@@ -1,12 +1,17 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from .models import Message, Contact
+from notifications.models import Notification  # Import from notifications app instead
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.db.models import Q
+from django.utils import timezone
 
 @login_required
-def send_message(request):
+def send_message(request, tenant_url=None):
     """Allows users to send messages by username, email, or contact selection."""
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     if request.method == "POST":
         recipient_input = request.POST.get("recipient").strip()
         subject = request.POST.get("subject", "").strip()
@@ -14,7 +19,7 @@ def send_message(request):
 
         if not recipient_input:
             messages.error(request, "Recipient cannot be empty.")
-            return redirect("messaging:send_message")
+            return redirect("messaging:send_message", tenant_url=tenant_url)
 
         try:
             # Determine if the input is an email
@@ -24,44 +29,61 @@ def send_message(request):
                     recipient = matched_users.first()
                 elif matched_users.count() > 1:
                     messages.error(request, "Multiple users found for this email. Please enter username.")
-                    return redirect("messaging:send_message")
+                    return redirect("messaging:send_message", tenant_url=tenant_url)
                 else:
                     messages.error(request, "No user found with this email.")
-                    return redirect("messaging:send_message")
+                    return redirect("messaging:send_message", tenant_url=tenant_url)
             else:
                 recipient = User.objects.get(username=recipient_input)
 
             # Create and send message
             Message.objects.create(sender=request.user, recipient=recipient, subject=subject, content=content)
             messages.success(request, f"Message sent to {recipient.username}.")
-            return redirect("messaging:inbox")
+            return redirect("messaging:inbox", tenant_url=tenant_url)
 
         except User.DoesNotExist:
             messages.error(request, "Recipient not found.")
-            return redirect("messaging:send_message")
+            return redirect("messaging:send_message", tenant_url=tenant_url)
 
     contacts = Contact.objects.filter(user=request.user)
-    return render(request, "messaging/send_message.html", {"contacts": contacts})
+    return render(request, "messaging/send_message.html", {"contacts": contacts, "tenant_url": tenant_url})
 
 # View Inbox
 @login_required
-def inbox(request):
+def inbox(request, tenant_url=None):
     """Displays all received messages for the logged-in user."""
-    messages = Message.objects.filter(recipient=request.user).order_by("-timestamp")
-    return render(request, "messaging/inbox.html", {"messages": messages})
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
+    # Get all messages for the current user
+    messages_received = Message.objects.filter(recipient=request.user).order_by('-timestamp')
+    
+    # Get unread notification count
+    unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
+    
+    context = {
+        'messages': messages_received,
+        'unread_notifications': unread_notifications,
+        'tenant_url': tenant_url,
+    }
+    
+    return render(request, 'messaging/inbox.html', context)
 
 # Read a Message
 @login_required
-def read_message(request, message_id):
+def read_message(request, message_id, tenant_url=None):
     """Displays a single message and marks it as read."""
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     message = Message.objects.get(id=message_id, recipient=request.user)
     message.mark_as_read()
-    return render(request, "messaging/read_message.html", {"message": message})
+    return render(request, "messaging/read_message.html", {"message": message, "tenant_url": tenant_url})
 
 # Add Contacts
 @login_required
-def contacts_view(request):
+def contacts_view(request, tenant_url=None):
     """Handles contact list: display, add, and manage contacts."""
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     contacts = Contact.objects.filter(user=request.user)
     candidates = []
 
@@ -82,13 +104,13 @@ def contacts_view(request):
             except User.DoesNotExist:
                 messages.error(request, "Selected user no longer exists.")
 
-            return redirect("messaging:contacts")
+            return redirect("messaging:contacts", tenant_url=tenant_url)
 
         # Case 2: user inputs raw username or email
         raw_input = request.POST.get("contact").strip()
         if not raw_input:
             messages.error(request, "Input cannot be empty.")
-            return redirect("messaging:contacts")
+            return redirect("messaging:contacts", tenant_url=tenant_url)
 
         # Determine if input is email
         if "@" in raw_input:
@@ -123,11 +145,14 @@ def contacts_view(request):
     return render(request, "messaging/contacts.html", {
         "contacts": contacts,
         "candidates": candidates,
+        "tenant_url": tenant_url,
     })
 
 @login_required
-def delete_contact(request, contact_id):
+def delete_contact(request, contact_id, tenant_url=None):
     """Allows user to remove a contact."""
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     contact = Contact.objects.get(id=contact_id, user=request.user)
     contact.delete()
-    return redirect("messaging:contacts")
+    return redirect("messaging:contacts", tenant_url=tenant_url)

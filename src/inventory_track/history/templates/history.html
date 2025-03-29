@@ -1,38 +1,279 @@
 {% extends 'base.html' %}
 
+{% block title %}Inventory History{% endblock %}
+
 {% block content %}
-<h2>Inventory Change History</h2>
+<div class="container mt-4">
+    <div class="card shadow border-0">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h2 class="mb-0"><i class="bi bi-clock-history"></i> Inventory Change History</h2>
+        </div>
+        
+        <div class="card-body bg-gray-900">
+            <!-- Search form -->
+            <form method="get" action="{% url 'history:history' tenant_url=tenant_url %}" class="mb-4">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control bg-gray-800 text-white border-gray-700" 
+                           placeholder="Search history..." value="{{ request.GET.search }}">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+            </form>
+            
+            <!-- History table -->
+            <div class="table-responsive">
+                <table class="table custom-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Item</th>
+                            <th scope="col">Action</th>
+                            <th scope="col">User</th>
+                            <th scope="col">Timestamp</th>
+                            <th scope="col">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td class="text-white fw-bold">{{ log.item }}</td>
+                            <td>
+                                {% if log.action == 'add' %}
+                                    <span class="badge bg-success">Added</span>
+                                {% elif log.action == 'update' %}
+                                    <span class="badge bg-warning text-dark">Updated</span>
+                                {% elif log.action == 'delete' %}
+                                    <span class="badge bg-danger">Deleted</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ log.action }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-white">{{ log.user }}</td>
+                            <td class="text-blue-300">{{ log.timestamp|date:"M d, Y H:i" }}</td>
+                            <td class="text-blue-300">{{ log.details }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <div class="empty-state">
+                                    <i class="bi bi-search text-gray-400 fs-1"></i>
+                                    <p class="text-white mt-2">No matching records found</p>
+                                </div>
+                            </td>  
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card-footer text-end bg-gray-900 border-top border-gray-800">
+            <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
 
-<form method="get" action="{% url 'history:history' %}">
-    <input type="text" name="search" placeholder="Search history..." value="{{ request.GET.search }}">
-    <button type="submit">Search</button>
-</form>
+<style>
+/* Custom colors for readability - matching messaging color scheme */
+.bg-gray-700 { background-color: #374151 !important; }
+.bg-gray-800 { background-color: #1f2937 !important; }
+.bg-gray-900 { background-color: #111827 !important; }
+.text-gray-300 { color: #d1d5db !important; }
+.text-gray-400 { color: #9ca3af !important; }
+.border-gray-600 { border-color: #4B5563 !important; }
+.border-gray-700 { border-color: #374151 !important; }
+.border-gray-800 { border-color: #1f2937 !important; }
+.text-blue-300 { color: #93c5fd !important; }
 
-<table class="table table-striped table-bordered">
-    <thead class="thead-dark">
-        <tr>
-            <th>Item</th>
-            <th>Action</th>
-            <th>User</th>
-            <th>Timestamp</th>
-            <th>Details</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for log in logs %}
-        <tr>
-            <td>{{ log.item.title }}</td>
-            <td>{{ log.get_action_display }}</td>
-            <td>{{ log.user.username }}</td>
-            <td>{{ log.timestamp }}</td>
-            <td>{{ log.details }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="5">No matching records found.</td>  
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+/* Custom table styling to match messaging */
+.table.custom-table,
+table.custom-table,
+.table-responsive .table.custom-table {
+    color: white !important;
+    background-color: #1f2937 !important; /* Match messaging bg-gray-800 */
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+}
 
+/* Force dark background on ALL table cells and rows */
+.custom-table tr,
+.custom-table tr td,
+.custom-table tr th,
+.table.custom-table tr,
+.table.custom-table tr td,
+.table.custom-table tr th,
+.table-responsive .table.custom-table tr,
+.table-responsive .table.custom-table tr td,
+.table-responsive .table.custom-table tr th {
+    background-color: #1f2937 !important; /* Match messaging bg-gray-800 */
+}
+
+.custom-table thead tr,
+.table.custom-table thead tr,
+.table-responsive .table.custom-table thead tr {
+    background-color: #374151 !important; /* Match messaging bg-gray-700 for headers */
+}
+
+.custom-table th,
+.table.custom-table th,
+.table-responsive .table.custom-table th {
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 12px 15px !important;
+    border-bottom: 2px solid #4B5563 !important;
+    background-color: #374151 !important; /* Match messaging header color */
+}
+
+.custom-table tbody tr,
+.table.custom-table tbody tr,
+.table-responsive .table.custom-table tbody tr {
+    background-color: #1f2937 !important; /* Match messaging bg-gray-800 */
+    border-bottom: 1px solid #374151 !important;
+}
+
+.custom-table tbody tr:hover,
+.table.custom-table tbody tr:hover,
+.table-responsive .table.custom-table tbody tr:hover {
+    background-color: #283548 !important; /* Slightly lighter on hover - match messaging hover */
+}
+
+.custom-table tbody tr:nth-of-type(odd),
+.table.custom-table tbody tr:nth-of-type(odd),
+.table-responsive .table.custom-table tbody tr:nth-of-type(odd) {
+    background-color: #283548 !important; /* Match messaging alternating row color */
+}
+
+.custom-table tbody tr:nth-of-type(odd):hover,
+.table.custom-table tbody tr:nth-of-type(odd):hover,
+.table-responsive .table.custom-table tbody tr:nth-of-type(odd):hover {
+    background-color: #2d3a4f !important; /* Match messaging hover effect */
+}
+
+.custom-table td,
+.table.custom-table td,
+.table-responsive .table.custom-table td {
+    padding: 12px 15px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #374151 !important;
+    font-weight: 500 !important;
+    color: #d1d5db !important; /* Match messaging text-gray-300 */
+}
+
+/* Additional overrides for table striped variants */
+.table-striped.custom-table > tbody > tr:nth-of-type(odd) > *,
+.table-striped > tbody > tr:nth-of-type(odd) > *,
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #283548 !important; /* Match messaging alternating row color */
+    color: #d1d5db !important;
+}
+
+.table-striped.custom-table > tbody > tr:nth-of-type(even) > *,
+.table-striped > tbody > tr:nth-of-type(even) > *,
+.table-striped tbody tr:nth-of-type(even) {
+    background-color: #1f2937 !important; /* Match messaging bg-gray-800 */
+    color: #d1d5db !important;
+}
+
+/* Make action badges more vibrant */
+.badge.bg-success {
+    background-color: #10b981 !important; /* Green-500 from Tailwind */
+}
+
+.badge.bg-danger {
+    background-color: #ef4444 !important; /* Red-500 from Tailwind */
+}
+
+.badge.bg-warning {
+    background-color: #f59e0b !important; /* Amber-500 from Tailwind */
+    color: #000 !important;
+}
+
+.badge.bg-secondary {
+    background-color: #6b7280 !important; /* Gray-500 from Tailwind */
+    color: white !important;
+}
+
+/* Force specific colors onto rows and cells to override any reset */
+.custom-table tr td.text-white,
+.table.custom-table tr td.text-white {
+    color: white !important;
+}
+
+.custom-table tr td.text-blue-300,
+.table.custom-table tr td.text-blue-300 {
+    color: #93c5fd !important; /* Match messaging blue text */
+    font-weight: 500 !important;
+}
+
+/* Empty state styling */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Form control focus styles */
+.form-control:focus {
+    background-color: #2d3748 !important; /* Match messaging input focus */
+    color: white !important;
+    border-color: #60a5fa !important;
+    box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25) !important;
+}
+
+/* Badge text and background adjustments */
+.badge {
+    font-weight: 500 !important;
+    padding: 0.4em 0.6em !important;
+}
+
+/* Card styling to match messaging */
+.card-body.bg-gray-900 {
+    background-color: #1f2937 !important; /* Match messaging card body */
+}
+
+.card-footer.bg-gray-900 {
+    background-color: #1f2937 !important; /* Match messaging card footer */
+    border-top-color: #374151 !important;
+}
+</style>
+
+<!-- Replace the previous script with this updated one to match messaging colors -->
+<script>
+    // Apply styles after page load to ensure they take precedence
+    document.addEventListener('DOMContentLoaded', function() {
+        // Force background colors on all table cells
+        const tableCells = document.querySelectorAll('.custom-table td');
+        tableCells.forEach(cell => {
+            if (cell.closest('tr').rowIndex % 2 === 0) {
+                cell.style.backgroundColor = '#1f2937'; // Even rows
+            } else {
+                cell.style.backgroundColor = '#283548'; // Odd rows
+            }
+            cell.style.color = '#d1d5db'; // text-gray-300
+        });
+        
+        // Force white text on specific cells
+        const whiteCells = document.querySelectorAll('.custom-table td.text-white');
+        whiteCells.forEach(cell => {
+            cell.style.color = 'white';
+        });
+        
+        // Force blue text on specific cells
+        const blueCells = document.querySelectorAll('.custom-table td.text-blue-300');
+        blueCells.forEach(cell => {
+            cell.style.color = '#93c5fd';
+        });
+        
+        // Force header backgrounds
+        const headerCells = document.querySelectorAll('.custom-table th');
+        headerCells.forEach(cell => {
+            cell.style.backgroundColor = '#374151';
+            cell.style.color = 'white';
+        });
+    });
+</script>
 {% endblock %}

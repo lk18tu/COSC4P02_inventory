@@ -17,8 +17,10 @@ def is_admin(user):
     return user.is_superuser
 
 @user_passes_test(is_admin)
-def send_notification(request):
+def send_notification(request, tenant_url=None):
     """Allows admins to send notifications to users."""
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     if request.method == "POST":
         user_id = request.POST.get("user")
         message = request.POST.get("message")
@@ -29,22 +31,25 @@ def send_notification(request):
             users = User.objects.filter(id=int(user_id))
         else:
             messages.error(request, "Invalid user selection")
-            return redirect("send_notification")
-
+            return redirect("notifications:send_notification", tenant_url=tenant_url)
 
         for user in users:
             Notification.objects.create(user=user, message=message)
 
         messages.success(request, "Notification sent successfully!")
-        return redirect("dashboard")
+        return redirect("dashboard", tenant_url=tenant_url)
 
     users = User.objects.all()
-    return render(request, "notifications/send_notification.html", {"users": users})
+    return render(request, "notifications/send_notification.html", {
+        "users": users,
+        "tenant_url": tenant_url,
+    })
 
 @login_required
-def view_notifications(request):
-
+def view_notifications(request, tenant_url=None):
     """Displays a user's notifications."""
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     print("Current user:", request.user)
     notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
      
@@ -57,34 +62,27 @@ def view_notifications(request):
         "notifications/notifications.html",
         {
             "notifications": notifications,
-            "unread_notifications": unread_notifications,  
+            "unread_notifications": unread_notifications,
+            "tenant_url": tenant_url,  # Add tenant_url to the context
         }
     )
 
 @login_required
-def mark_notification_read(request, notification_id):
+def mark_notification_read(request, notification_id, tenant_url=None):
     """Marks a notification as read."""
-    notification = get_object_or_404(Notification, id=notification_id, user=request.user)
-    notification.mark_as_read()
-    return redirect("notifications:view_notifications")
-
-    notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
-    unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
-
-    return render(request, "notifications/notifications.html", {
-        "notifications": notifications,
-        "unread_notifications": unread_notifications,
-    })
-
-
-@login_required
-def mark_notification_read(request, notification_id):
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     notification.is_read = True
     notification.save()
 
     unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
 
-    return redirect("notifications:view_notifications")
+    if request.is_ajax():
+        return JsonResponse({
+            "unread_notifications": unread_notifications
+        })
+    
+    return redirect("notifications:view_notifications", tenant_url=tenant_url)
 
 

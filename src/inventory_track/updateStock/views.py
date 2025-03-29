@@ -5,11 +5,13 @@ from django.http import Http404
 from inventoryApp.models import InvTable_Metadata
 from django.conf import settings
 
-def product_list(request):
+def product_list(request, tenant_url=None):
     """
     Display data from a selected inventory table.
     If no table is selected via GET, default to the first available inventory table.
     """
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+
     # Get the selected table name from GET parameters
     table_name = request.GET.get('table')
 
@@ -36,16 +38,21 @@ def product_list(request):
         except Exception as e:
             messages.error(request, f"Error fetching data for table {table_name}: {e}")
 
-    return render(request, 'updateStock/product_list.html', {
+    context = {
         'table_data': table_data,
         'inventory_tables': inventory_tables,
-        'MEDIA_URL': settings.MEDIA_URL
-    })
+        'MEDIA_URL': settings.MEDIA_URL,
+        'tenant_url': tenant_url
+    }
 
-def update_stock(request, table_name, item_id):
+    return render(request, 'updateStock/product_list.html', context)
+
+def update_stock(request, table_name, item_id, tenant_url=None):
     """
     Update the quantity_stock field for a given item in the specified table.
     """
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     if request.method == 'POST':
         new_quantity = request.POST.get('quantity')
         try:
@@ -57,8 +64,8 @@ def update_stock(request, table_name, item_id):
             messages.success(request, "Stock updated successfully.")
         except Exception as e:
             messages.error(request, f"Error updating stock: {e}")
-        # Redirect to the correct URL (note the path is '/updateStock/products/')
-        return redirect(f"/updateStock/products/?table={table_name}")
+        # Redirect to the correct URL with tenant_url
+        return redirect(f"/{tenant_url}/updateStock/products/?table={table_name}")
     else:
         try:
             with connection.cursor() as cursor:
@@ -73,9 +80,11 @@ def update_stock(request, table_name, item_id):
                     raise Http404("Item not found.")
         except Exception as e:
             messages.error(request, f"Error fetching item data: {e}")
-            return redirect(f"/updateStock/products/?table={table_name}")
+            return redirect(f"/{tenant_url}/updateStock/products/?table={table_name}")
+        
         return render(request, 'updateStock/update_stock.html', {
             'table_name': table_name,
             'item_id': item_id,
-            'current_quantity': current_quantity
+            'current_quantity': current_quantity,
+            'tenant_url': tenant_url
         })

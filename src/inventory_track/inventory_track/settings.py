@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'inventory_analysis',
     'history',
     'suppliers',
+    'tenant_manager',
 ]
 
 MIDDLEWARE = [
@@ -66,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'tenant_manager.middleware.TenantMiddleware',
 ]
 
 ROOT_URLCONF = 'inventory_track.urls'
@@ -81,6 +83,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'tenant_manager.context_processors.tenant_context',
             ],
         },
     },
@@ -167,4 +170,7 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = os.getenv('EMAIL_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')
+
+# Add database router
+DATABASE_ROUTERS = ['tenant_manager.db_router.TenantRouter']
 

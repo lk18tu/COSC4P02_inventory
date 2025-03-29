@@ -14,6 +14,7 @@ from inventory_analysis.views import generate_inventory_pie_chart
 from django.urls import reverse_lazy
 from django.contrib.auth.views import PasswordResetView
 from django.contrib.messages.views import SuccessMessageMixin
+from django.http import JsonResponse
 
 logger = logging.getLogger(__name__)
 
@@ -21,30 +22,75 @@ logger = logging.getLogger(__name__)
 def manager_required(user):
     return user.is_authenticated and hasattr(user, 'profile') and user.profile.is_manager()
 
-def register(request):
+def register(request, tenant_url=None):
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     if request.method == 'POST':
-        username = request.POST['username']
-        email = request.POST['email']
-        password = request.POST['password']
-        confirm_password = request.POST['confirm_password']
+        # Debug: print the POST data to see what's being submitted
+        print("POST data:", request.POST)
         
-        if password == confirm_password:
+        # Get form data using the field names from the modal
+        username = request.POST.get('username', '')
+        email = request.POST.get('email', '')
+        password1 = request.POST.get('password1', '')
+        password2 = request.POST.get('password2', '') 
+        
+        # Check if this is an AJAX request (from modal)
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        # Validate form data
+        if not username or not email or not password1:
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'message': 'All fields are required'})
+            messages.error(request, 'All fields are required')
+        elif password2 and password1 != password2:
+            # If password2 exists and doesn't match password1
+            if is_ajax:
+                return JsonResponse({'status': 'error', 'message': 'Passwords do not match'})
+            messages.error(request, 'Passwords do not match')
+        else:
             if User.objects.filter(username=username).exists():
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'User already exists'})
                 messages.error(request, 'User already exists')
             elif User.objects.filter(email=email).exists():
+                if is_ajax:
+                    return JsonResponse({'status': 'error', 'message': 'Email already exists'})
                 messages.error(request, 'Email already exists')
             else:
-                user = User.objects.create_user(username=username, email=email, password=password)
-                # UserProfile with default 'employee' type
-                UserProfile.objects.create(user=user)
-                user.save()
+                # Use password1 from the modal form
+                user = User.objects.create_user(username=username, email=email, password=password1)
+                
+                # Check if this is the first user for this tenant
+                is_first_user = User.objects.count() == 1
+                
+                # Create UserProfile - make first user a manager
+                if is_first_user:
+                    UserProfile.objects.create(user=user, user_type='manager')
+                else:
+                    UserProfile.objects.create(user=user, user_type='employee')
+                
+                # Log the user in automatically
+                login(request, user)
+                
                 messages.success(request, 'Registration successful')
-                return redirect('login')
-        else:
-            messages.error(request, 'Passwords do not match')
-    return render(request, 'userauth/register.html')
+                
+                if is_ajax:
+                    return JsonResponse({
+                        'status': 'success', 
+                        'message': 'Registration successful',
+                        'redirect_url': f'/{tenant_url}/userauth/dashboard/'
+                    })
+                    
+                # Redirect directly to dashboard instead of login page
+                return redirect(f'/{tenant_url}/userauth/dashboard/')
+    
+    # For GET requests, this should never be called if the template is deprecated
+    return redirect(f'/{tenant_url}/')
 
-def user_login(request):
+def user_login(request, tenant_url=None):
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     if request.method == 'POST':
         username = request.POST['username']
         password = request.POST['password']
@@ -53,17 +99,22 @@ def user_login(request):
             login(request, user)
             # profile exists (for existing users)
             UserProfile.objects.get_or_create(user=user)
-            return redirect('dashboard')
+            return redirect(f'/{tenant_url}/userauth/dashboard/')
         else:
             messages.error(request, 'Username or password does not match')
-    return render(request, 'userauth/login.html')
+    return render(request, 'userauth/login.html', {'tenant_url': tenant_url})
 
-def user_logout(request):
+def user_logout(request, tenant_url=None):
+    """Logs out the user and redirects to the tenant landing page."""
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
     logout(request)
-    return redirect('login')
+    # Redirect to the tenant landing page instead of the login page
+    return redirect(f'/{tenant_url}/')
 
 @login_required
-def dashboard(request):
+def dashboard(request, tenant_url=None):
+    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    
     eastern = pytz.timezone('US/Eastern')
     current_time = datetime.datetime.now(eastern)
     formatted_date_time = current_time.strftime("%B %d, %Y, %I:%M %p EST")
@@ -80,8 +131,7 @@ def dashboard(request):
         "current_time": formatted_date_time,
         "is_manager": request.user.profile.is_manager(),
         "inventory_pie_chart": inventory_pie_chart,
-        # If you also use "inventory_tables" for your dropdown, include it here
-        # "inventory_tables": InvTable_Metadata.objects.filter(table_type="inventory"),
+        "tenant_url": tenant_url,
     }
     return render(request, "userauth/dashboard.html", context)
 
@@ -90,7 +140,10 @@ class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
     template_name = 'userauth/password_reset.html'
     email_template_name = 'userauth/password_reset_email.html'
     subject_template_name = 'userauth/password_reset_subject.txt'
-    success_message = "We've emailed you instructions for setting your password, if an account exists with the email you entered."
+    success_message = "We've emailed you instructions for setting your password, " \
+                      "if an account exists with the email you entered. You should receive them shortly." \
+                      " If you don't receive an email, " \
+                      "please make sure you've entered the address you registered with, and check your spam folder."
     success_url = reverse_lazy('password_reset_done')
 
     def form_valid(self, form):

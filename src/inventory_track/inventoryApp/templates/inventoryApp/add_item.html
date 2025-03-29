@@ -1,0 +1,121 @@
+{% extends 'base_company.html' %}
+{% load static %}
+
+{% block title %}Add Item{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3 class="mb-0 text-white font-bold">Add Item to {{ table_name }} Table</h3>
+        </div>
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Product Number -->
+                    <div class="col-md-6 mb-3">
+                        <label for="product_number" class="form-label text-gray-300">Product Number</label>
+                        <input type="text" class="form-control" id="product_number" name="product_number" required>
+                    </div>
+
+                    <!-- UPC -->
+                    <div class="col-md-6 mb-3">
+                        <label for="upc" class="form-label text-gray-300">UPC</label>
+                        <input type="text" class="form-control" id="upc" name="upc" required>
+                    </div>
+                </div>
+
+                <!-- Title -->
+                <div class="mb-3">
+                    <label for="title" class="form-label text-gray-300">Title</label>
+                    <input type="text" class="form-control" id="title" name="title" required>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-3">
+                    <label for="description" class="form-label text-gray-300">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                </div>
+
+                <div class="row">
+                    <!-- Quantity in Stock -->
+                    <div class="col-md-6 mb-3">
+                        <label for="quantity_stock" class="form-label text-gray-300">Quantity in Stock</label>
+                        <input type="number" class="form-control" id="quantity_stock" name="quantity_stock" required>
+                    </div>
+
+                    <!-- Reorder Level -->
+                    <div class="col-md-6 mb-3">
+                        <label for="reorder_level" class="form-label text-gray-300">Reorder Level</label>
+                        <input type="number" class="form-control" id="reorder_level" name="reorder_level" required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Price -->
+                    <div class="col-md-6 mb-3">
+                        <label for="price" class="form-label text-gray-300">Price</label>
+                        <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+                    </div>
+
+                    <!-- Purchase Price -->
+                    <div class="col-md-6 mb-3">
+                        <label for="purchase_price" class="form-label text-gray-300">Purchase Price</label>
+                        <input type="number" class="form-control" id="purchase_price" name="purchase_price" step="0.01" required>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="mb-3">
+                    <label for="notes" class="form-label text-gray-300">Notes</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                </div>
+
+                <!-- Image -->
+                <div class="mb-3">
+                    <label for="image" class="form-label text-gray-300">Upload Image (Optional)</label>
+                    <input type="file" class="form-control" id="image" name="image" accept="image/*" onchange="validateImageName()">
+                </div>
+
+                <!-- Completed Checkbox -->
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="completed" name="completed">
+                    <label class="form-check-label text-gray-300" for="completed">Completed</label>
+                </div>
+
+                <div class="text-end mt-4">
+                    <a href="/{{ tenant_url }}/invManage/" class="btn btn-secondary me-2">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Add Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Image name validation
+    function validateImageName() {
+        const fileInput = document.getElementById('image');
+        const fileName = fileInput.value.split('\\').pop(); // Get the file name
+        const errorMessage = document.getElementById('image-error');
+
+        if (fileName.length > 250) {
+            if (!errorMessage) {
+                const errorDiv = document.createElement('div');
+                errorDiv.id = 'image-error';
+                errorDiv.style.color = '#ef4444';
+                errorDiv.innerText = 'File name must be less than 250 characters.';
+                fileInput.parentElement.appendChild(errorDiv);
+            }
+            fileInput.setCustomValidity('File name must be less than 250 characters.');
+        } else {
+            fileInput.setCustomValidity(''); // Clear custom validity if the name is fine
+            if (errorMessage) {
+                errorMessage.remove(); // Remove the error message if the validation passes
+            }
+        }
+    }
+</script>
+{% endblock %}
