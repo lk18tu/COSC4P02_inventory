@@ -8,12 +8,13 @@ import base64
 from .models import InventoryItem
 from django.db.models import Sum
 from django.db import connection
+from dotenv import load_dotenv
+import os
 
-
-DEEPSEEK_API_KEY = "sk-a63cce70f55d493d99f9c0ad4993b4f9"
-
+# Load environment variables
+load_dotenv()
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
-
 MODEL_NAME = "deepseek-chat"
 
 def get_available_inventory_tables():
