@@ -89,3 +89,7 @@ Each tenant's data is completely isolated in its own database, ensuring security
 - When creating new views, always include `tenant_url=None` parameter and handle it appropriately
 - Use URL patterns that include the tenant URL when creating links between pages
 - Test functionality across multiple tenants to ensure proper isolation
+
+## Documentation
+
+- [AI Inventory Advisor Guide](docs/ai_advisor.md)

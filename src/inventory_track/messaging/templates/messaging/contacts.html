@@ -29,7 +29,7 @@
             <form method="POST" class="mb-4">
                 {% csrf_token %}
                 <div class="input-group">
-                    <input type="text" name="contact" class="form-control bg-gray-800 text-white border-gray-600" placeholder="Enter username or email to add" required>
+                    <input type="text" name="contact" class="form-control bg-gray-700 text-white border-gray-600" placeholder="Enter username or email to add" required>
                     <button class="btn btn-primary" type="submit">
                         <i class="bi bi-person-plus"></i> Add Contact
                     </button>
@@ -133,6 +133,19 @@
 .btn-outline-danger:hover {
     background-color: #ef4444;
     border-color: #ef4444;
+}
+.form-control::placeholder {
+    color: #5d5d5d !important;
+    opacity: 1 !important;
+}
+select.form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23FFFFFF' viewBox='0 0 20 20'%3E%3Cpath d='M5.516 7.548A.625.625 0 0 1 6.4 7.5l3.6 3.6 3.6-3.6a.625.625 0 0 1 .883.884l-4.042 4.042a.625.625 0 0 1-.883 0L5.516 8.432a.625.625 0 0 1 0-.884Z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem top 50%;
+    background-size: 16px 12px;
 }
 </style>
 {% endblock %}
