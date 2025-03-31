@@ -71,18 +71,17 @@ def view_notifications(request, tenant_url=None):
 def mark_notification_read(request, notification_id, tenant_url=None):
     """Marks a notification as read."""
     tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-    
+
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     notification.is_read = True
     notification.save()
 
     unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count()
 
-    if request.is_ajax():
-        return JsonResponse({
-            "unread_notifications": unread_notifications
-        })
-    
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({"unread_notifications": unread_notifications})
+
     return redirect("notifications:view_notifications", tenant_url=tenant_url)
+
 
 
