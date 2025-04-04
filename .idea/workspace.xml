@@ -4,12 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="78dbae21-7da9-499c-a4a9-8b041f3dcd83" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/src/inventory_track/inventoryApp/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/inventory_track/inventoryApp/views.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/static/css/stytle.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/static/inventory_template.csv" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/test/.gitkeep" beforeDir="false" />
-    </list>
+    <list default="true" id="78dbae21-7da9-499c-a4a9-8b041f3dcd83" name="Changes" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -46,9 +41,9 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "django.template.preview.state": "SHOW_EDITOR_AND_PREVIEW",
-    "git-widget-placeholder": "feature/tenant__manager",
+    "git-widget-placeholder": "Analysis-table",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/SharedFolder/COSC4P02_inventory",
+    "last_opened_file_path": "D:/Ameya/School/COSC_4P02/InventoryManagement/COSC4P02_inventory/src/inventory_track",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -88,8 +83,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-PY-243.26053.29" />
-        <option value="bundled-python-sdk-b1dbf8ef85a6-4df51de95216-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.26053.29" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-PY-242.23339.19" />
+        <option value="bundled-python-sdk-0029f7779945-399fe30bd8c1-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-242.23339.19" />
       </set>
     </attachedChunks>
   </component>
@@ -111,6 +106,7 @@
       <workItem from="1742533421024" duration="109000" />
       <workItem from="1742686079283" duration="42000" />
       <workItem from="1743122650197" duration="247000" />
+      <workItem from="1743634064839" duration="22000" />
     </task>
     <servers />
   </component>
