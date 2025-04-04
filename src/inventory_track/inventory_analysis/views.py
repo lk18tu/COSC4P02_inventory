@@ -5,13 +5,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 from io import BytesIO
 import base64
-from .models import InventoryItem
+from inventoryApp.models import InvItem as InventoryItem
 from django.db.models import Sum
 from django.db import connection
 from dotenv import load_dotenv
 import os
 
-from inventoryApp.models import InvItem
+
 
 # Load environment variables
 load_dotenv()
@@ -98,36 +98,35 @@ def llm_advisor(request, tenant_url=None):
 def search_inventory(request, tenant_url=None):
     """
     Display all inventory items by default and allow users to filter items using keywords.
-    The search is case-insensitive and matches both name and category.
+    The search is case-insensitive and matches the title field.
     Duplicate items will be merged, summing up their quantities.
     """
     tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-    
+
     query = request.GET.get("q", "").strip()  # Get search query from request
 
     if query:
-        # Search items by name or category
+        # Search items by title (case-insensitive)
         items = InventoryItem.objects.filter(
-            name__icontains=query
-        ) | InventoryItem.objects.filter(
-            category__icontains=query
+            title__icontains=query
         )
     else:
         # If no search query is provided, fetch all items
         items = InventoryItem.objects.all()
 
-    # Aggregate items by name and category
+    # Aggregate items by title
     merged_inventory = (
-        items.values("name", "category")  # Group by name and category
+        items.values("title")  # Group by title
         .annotate(total_quantity=Sum("quantity"))  # Sum up quantities
-        .order_by("name")  # Sort alphabetically
+        .order_by("title")  # Sort alphabetically
     )
 
     return render(request, "inventory_analysis/search_results.html", {
-        "results": merged_inventory, 
+        "results": merged_inventory,
         "query": query,
         "tenant_url": tenant_url  # Add tenant_url to context
     })
+
 
 def generate_inventory_level_chart(selected_table):
     """
@@ -172,46 +171,55 @@ def generate_inventory_level_chart(selected_table):
         print("Error generating level chart:", e)
         return None
 
-def generate_inventory_pie_chart(selected_table):
+
+# In inventory_analysis/views.py
+
+def generate_inventory_pie_chart(selected_table=None):
     """
-    Generate a pie chart representing the percentage of each product's stock,
-    using data from the specified dynamic table.
+    Generate a pie chart representing the percentage of each product's stock.
+    If selected_table is provided, fetch data from that table; otherwise, use the default InvItem model.
     """
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(f"SELECT title, quantity_stock FROM {selected_table}")
-            data = cursor.fetchall()
-        if not data:
+    if selected_table:
+        try:
+            with connection.cursor() as cursor:
+                # Adjust the query to fetch title and quantity_stock from the selected table
+                cursor.execute(f"SELECT title, quantity_stock FROM {selected_table}")
+                rows = cursor.fetchall()
+                if not rows:
+                    return None
+                names = [row[0] for row in rows]
+                quantities = np.array([row[1] for row in rows])
+        except Exception as e:
+            print(f"Error fetching data for pie chart from table {selected_table}: {e}")
             return None
-
-        names = [row[0] for row in data]
-        quantities = np.array([row[1] for row in data])
-
-        # Ignore if total quantity is zero
-        if np.sum(quantities) == 0:
+    else:
+        # Import InvItem here to avoid circular imports if necessary
+        from inventoryApp.models import InvItem
+        items = InvItem.objects.all()
+        if not items:
             return None
+        names = [item.title for item in items]
+        quantities = np.array([item.quantity for item in items])
 
-        plt.figure(figsize=(8, 8))
-        plt.pie(
-            quantities,
-            labels=names,
-            autopct='%1.1f%%',
-            startangle=140,
-            colors=plt.cm.Paired.colors
-        )
-        plt.title("Inventory Distribution")
-
-        # Convert the chart to Base64
-        buf = BytesIO()
-        plt.savefig(buf, format="png")
-        plt.close()
-        buf.seek(0)
-        return base64.b64encode(buf.read()).decode()
-
-    except Exception as e:
-        print("Error generating pie chart:", e)
+    if sum(quantities) == 0:
         return None
 
+    # Generate the pie chart
+    plt.figure(figsize=(8, 8))
+    plt.pie(
+        quantities,
+        labels=names,
+        autopct='%1.1f%%',
+        startangle=140,
+        colors=plt.cm.Paired.colors
+    )
+    plt.title("Inventory Distribution")
+
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    plt.close()  # Close the figure to free up memory
+    return base64.b64encode(buf.read()).decode()
 
 
 def inventory_chart(request, tenant_url=None):
