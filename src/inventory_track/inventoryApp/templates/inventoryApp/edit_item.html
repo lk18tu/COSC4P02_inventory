@@ -67,11 +67,7 @@
                             <input type="file" class="form-control form-control-dark" id="image" name="image" accept="image/*">
                         </div>
 
-                        <!-- Completed Checkbox -->
-                        <div class="form-check mb-3">
-                            <input type="checkbox" class="form-check-input" id="completed" name="completed" {% if item.completed %}checked{% endif %}>
-                            <label class="form-check-label text-white" for="completed">Completed</label>
-                        </div>
+                        
 
                         <div class="text-end mt-4">
                             <a href="/{{ tenant_url }}/invManage/" class="btn bg-gray-700 text-gray-300 btn-gray">Cancel</a>

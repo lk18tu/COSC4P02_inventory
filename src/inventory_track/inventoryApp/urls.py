@@ -6,6 +6,8 @@ from django.conf.urls.static import static
 
 app_name = "inventoryApp"
 
+
+
 urlpatterns = [
     path("", views.home, name="home"),
     path("add_inventory/", views.add_inventory, name="add_inventory"),
@@ -17,6 +19,9 @@ urlpatterns = [
     path("unarchive_table/<str:table_name>/", views.unarchive_table, name="unarchive_table"),
     path("upload_csv/<str:table_name>/", views.upload_csv, name="upload_csv"),
     path('download-template/', views.download_inventory_template, name='download_inventory_template'),
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

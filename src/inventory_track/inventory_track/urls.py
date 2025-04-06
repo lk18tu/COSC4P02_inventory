@@ -20,6 +20,8 @@ from django.urls import path, include
 from django.shortcuts import redirect
 from django.contrib.auth import views as auth_views
 from tenant_manager.views import tenant_landing
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -38,3 +40,5 @@ urlpatterns = [
     path('<str:tenant_url>/history/', include(('history.urls', 'history'), namespace='history')),
     path('<str:tenant_url>/suppliers/', include('suppliers.urls', namespace='suppliers')),
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

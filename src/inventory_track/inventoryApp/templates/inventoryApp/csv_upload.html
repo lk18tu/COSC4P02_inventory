@@ -40,7 +40,7 @@
                         </div>
                         
                         <div class="d-flex justify-content-between align-items-center mt-4">
-                            <a href="{% url 'inventoryApp:download_inventory_template' %}" class="btn bg-gray-700 text-gray-300 btn-gray">
+                            <a href="{% url 'inventoryApp:download_inventory_template' tenant_url=request.tenant.domain_url %}" class="btn bg-gray-700 text-gray-300 btn-gray">
                                 <i class="bi bi-download"></i> Download Template
                             </a>
                             <div>

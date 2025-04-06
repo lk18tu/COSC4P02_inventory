@@ -20,7 +20,7 @@ def home(request, tenant_url=None):
     inventory_tables = InvTable_Metadata.objects.filter(table_type="inventory")
     
     # Get archived tables
-    archived_tables = InvTable_Metadata.objects.filter(table_type="archived")
+    archived_tables = InvTable_Metadata.objects.filter(table_type="archived_inventory")
     
     # Determine which view to show (normal or archived)
     current_view = request.GET.get("view", "inventory")
@@ -41,6 +41,7 @@ def home(request, tenant_url=None):
                 print(f"Table {table.table_name} has {len(rows)} rows and columns: {columns}")
                 table_data.append({
                     'table_name': table.table_name,
+                    'table_friendly_name': table.table_friendly_name,
                     'columns': columns,
                     'rows': rows
                 })
@@ -102,7 +103,6 @@ def add_item(request, table_name, tenant_url=None):
         price = request.POST.get('price')
         purchase_price = request.POST.get('purchase_price')
         notes = request.POST.get('notes')
-        completed = 1 if request.POST.get('completed') == "on" else 0
         image = request.FILES.get('image')  # Get the uploaded image
 
         try:
@@ -172,7 +172,9 @@ def add_inventory(request, tenant_url=None):
     tenant = getattr(request, 'tenant', None)
     
     if request.method == "POST":
-        new_table_name = request.POST.get("table_name")  # Get the table name from the form
+        Friendly_new_table_name = request.POST.get("table_name")  # Get the table name from the form
+        new_table_name = Friendly_new_table_name.replace(" ", "") #deletes spaces to allow for table name creation (SQL doest allow spaces)
+
 
         # Basic validation to prevent SQL injection (simplified)
         if not new_table_name.isalnum():  # Allow only alphanumeric characters
@@ -207,7 +209,7 @@ def add_inventory(request, tenant_url=None):
                 InvTable_Metadata.objects.create(
                     table_name=new_table_name,
                     table_type="inventory",
-                    table_location="Placeholder"
+                    table_friendly_name = Friendly_new_table_name
                 )
 
             tenant_url = tenant.domain_url if tenant else ''
@@ -310,19 +312,17 @@ def edit_item(request, table_name, item_id, tenant_url=None):
             if not item:
                 raise Http404(f"Item with ID {item_id} not found in table {table_name}.")
             
-            # Extract fields dynamically based on the column names
-            # Update this to match the correct column order from your database
+            # Column names based on your DB structure
             item_columns = ['id', 'product_number', 'upc', 'title', 'description', 'quantity_stock', 
-                           'reorder_level', 'price', 'purchase_price', 'notes', 'image']
+                           'reorder_level', 'price', 'purchase_price', 'image', 'notes']
             
-            # Map the SQL result to a dictionary using the correct column names
-            item_data = {}
-            for i, col in enumerate(item_columns):
-                if i < len(item):
-                    item_data[col] = item[i]
+            # Map SQL result to dictionary
+            item_data = {col: item[i] for i, col in enumerate(item_columns) if i < len(item)}
 
+    except Http404:
+        raise
     except Exception as e:
-        return Http404(f"Error fetching item: {str(e)}")
+        return HttpResponse(f"<h1>Error fetching item:</h1><p>{str(e)}</p>", status=500)
     
     if request.method == 'POST':
         # Get data from the form
@@ -333,37 +333,45 @@ def edit_item(request, table_name, item_id, tenant_url=None):
         price = request.POST['price']
         purchase_price = request.POST['purchase_price']
         notes = request.POST['notes']
-        completed = 'completed' in request.POST  # Checkbox handling
 
-        # Handle file upload (optional, if needed)
+
+        # Handle file upload (only update if a new file is provided)
         image = request.FILES.get('image', None)
+        image_filename = item_data.get('image')  # Keep the existing image by default
+
         if image:
-            # Handle image upload logic here
-            pass
-        
+            # Save new image
+            image_dir = os.path.join(settings.MEDIA_ROOT, 'inventory_images')
+            os.makedirs(image_dir, exist_ok=True)  # Ensure directory exists
+            
+            image_filename = f"{table_name}_{item_id}_{image.name}"
+            image_path = os.path.join(image_dir, image_filename)
+
+            with open(image_path, 'wb+') as destination:
+                for chunk in image.chunks():
+                    destination.write(chunk)
+
+            # Store the relative path to the database
+            image_filename = f"inventory_images/{image_filename}"
+
         try:
-            # Update the item in the database
+            # Update item in the database
             with connection.cursor() as cursor:
                 cursor.execute(f"""
                     UPDATE {table_name} 
                     SET title = %s, description = %s, quantity_stock = %s, reorder_level = %s, 
-                        price = %s, purchase_price = %s, notes = %s, completed = %s
+                        price = %s, purchase_price = %s, notes = %s, image = %s
                     WHERE id = %s
-                """, [title, description, quantity_stock, reorder_level, price, purchase_price, notes, completed, item_id])
-
-
-                # log change
-                log_inventory_action("EDIT", "Updated: "+title, item_id, 0000 )
+                """, [title, description, quantity_stock, reorder_level, price, purchase_price, notes, image_filename, item_id])
 
         except Exception as e:
-            return Http404(f"Error updating item: {str(e)}")
+            return HttpResponse(f"<h1>Error updating item:</h1><p>{str(e)}</p>", status=500)
 
-        # Get tenant URL for redirect
+        # Redirect after saving
         tenant = getattr(request, 'tenant', None)
         tenant_url = tenant.domain_url if tenant else tenant_url or ''
         return redirect(f"/{tenant_url}/invManage/")
 
-    # Render the form with the current item data
     return render(request, 'inventoryApp/edit_item.html', {'item': item_data, 'table_name': table_name})
 
 
@@ -442,20 +450,22 @@ def upload_csv(request, table_name, tenant_url=None):
             tenant_url = tenant.domain_url if tenant else tenant_url or ''
             return redirect(f"/{tenant_url}/invManage/")
 
-    return render(request, 'csv_upload.html', {'table_name': table_name})
+    return render(request, 'inventoryApp/csv_upload.html', {'table_name': table_name})
 
 
-def download_inventory_template(request):
+def download_inventory_template(request, tenant_url=None):
     # Create the HTTP response with CSV content type
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="inventory_template.csv"'
+    response['Content-Disposition'] = f'attachment; filename="inventory_template.csv"'  
 
     # Create CSV writer
     writer = csv.writer(response)
     
     # Define the header row
-    writer.writerow(["Product Number", "UPC", "Title", "Description", "Quantity in Stock", 
-                     "Reorder Level", "Price", "Purchase Price", "Notes"])
+    writer.writerow([
+        "Product Number", "UPC", "Title", "Description", "Quantity in Stock", 
+        "Reorder Level", "Price", "Purchase Price", "Notes"
+    ])
 
     return response
 
