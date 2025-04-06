@@ -1,5 +1,6 @@
 from django.db import models
 
+#currently not using
 class InvItem(models.Model):
     title = models.CharField(max_length=250)
     completed = models.BooleanField(default=False)
@@ -13,7 +14,7 @@ def __str__(self):
 class InvTable_Metadata(models.Model):
     table_name = models.CharField(max_length=255, unique=True)
     table_type = models.CharField(max_length=50)
-    table_location = models.CharField(max_length=255)
+    table_friendly_name = models.CharField(max_length=255)
 
 def __str__(self):
     return self.table_name

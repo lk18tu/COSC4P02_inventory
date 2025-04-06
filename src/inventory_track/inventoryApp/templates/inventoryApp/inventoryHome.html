@@ -33,7 +33,7 @@
                     <div class="card-header d-flex justify-content-between align-items-center">
                         <h3 class="mb-0 text-white">
                             <button class="btn btn-link text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ table.table_name }}" aria-expanded="false" aria-controls="collapse-{{ table.table_name }}">
-                                <i class="bi bi-chevron-down"></i> {{ table.table_name }}
+                                <i class="bi bi-chevron-down"></i> {{ table.table_friendly_name }}
                             </button>
                         </h3>
                     </div>
@@ -87,7 +87,7 @@
                                     <tbody>
                                         {% for row in table.rows %}
                                             <tr>
-                                                <td class="align-middle text-gray-300"><img src="/media/{{ row.9 }}" alt="No Image" width="80" class="img-thumbnail bg-dark"></td> <!--Image-->
+                                                <td class="align-middle text-gray-300"><img src="{% get_media_prefix %}{{ row.9 }}" alt="No Image" width="80" class="img-thumbnail bg-dark"></td> <!--Image-->
                                                 <td class="align-middle font-semibold text-white">{{ row.3 }}</td> <!--Title-->
                                                 <td class="align-middle text-gray-300">{{ row.1 }}</td> <!--Product Number-->
                                                 <td class="align-middle text-gray-300">{{ row.2 }}</td> <!--UPC-->
