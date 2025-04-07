@@ -1,0 +1,79 @@
+{% extends 'base_company.html' %}
+{% load static %}
+
+{% block title %}Item Detail{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Product Title -->
+    <h2 class="text-white">{{ item.title }}</h2>
+
+    <!-- Product Info Section -->
+    <div class="row">
+        <!-- Left Column: Basic Info -->
+        <div class="col-md-6">
+            <p><strong class="text-white">UPC:</strong> {{ item.upc }}</p>
+            <p><strong class="text-white">Description:</strong> {{ item.description }}</p>
+            <p><strong class="text-white">Stock:</strong> {{ item.quantity_stock }}</p>
+            <p><strong class="text-white">Reorder Level:</strong> {{ item.reorder_level }}</p>
+            <p><strong class="text-white">Price:</strong> ${{ item.price }}</p>
+            <p><strong class="text-white">Purchase Price:</strong> ${{ item.purchase_price }}</p>
+            <p><strong class="text-white">Notes:</strong> {{ item.notes }}</p>
+        </div>
+
+        <!-- Right Column: Image -->
+        <div class="col-md-6 text-center">
+            {% if item.image %}
+                <!-- Display item image if available -->
+                <img src="/media/{{ item.image }}" alt="{{ item.title }}" class="img-fluid rounded" style="max-height:300px;">
+            {% else %}
+                <!-- Placeholder if no image -->
+                <p class="text-gray-400">No image available.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <hr class="text-gray-500">
+
+    <!-- Button to trigger AI Wiki generation -->
+    <button class="btn btn-primary" onclick="fetchWiki('{{ item.title }}')">
+        Generate AI Wiki
+    </button>
+
+    <!-- Wiki Result Box -->
+    <div class="mt-4 bg-gray-800 p-3 rounded">
+        <h4 class="text-white">Product Wiki</h4>
+        <pre id="wiki-content" class="text-gray-300">Click the button above to generate the wiki content...</pre>
+    </div>
+</div>
+
+<a href="/{{ tenant_url }}/product_wiki/view/?name={{ item.title }}" class="btn btn-outline-info mt-3">
+    Open Full Wiki Page
+</a>
+
+<!-- JavaScript to call product_wiki API -->
+<script>
+function fetchWiki(productName) {
+    const wikiBox = document.getElementById("wiki-content");
+    wikiBox.innerText = "Generating wiki for " + productName + " ...";
+
+    // Dynamically extract the tenant URL from current path
+    const tenant = window.location.pathname.split('/')[1];
+
+    // Fetch AI-generated wiki from the product_wiki app
+    fetch(`/${tenant}/product_wiki/generate/?name=` + encodeURIComponent(productName))
+        .then(res => res.json())
+        .then(data => {
+            if (data.response) {
+                wikiBox.innerText = data.response;
+            } else {
+                wikiBox.innerText = "Error: " + (data.error || "Unknown error.");
+            }
+        })
+        .catch(err => {
+            console.error("Fetch failed", err);
+            wikiBox.innerText = "Network error while fetching wiki.";
+        });
+}
+</script>
+{% endblock %}
