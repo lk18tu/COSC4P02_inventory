@@ -138,7 +138,7 @@ def add_item(request, table_name, tenant_url=None):
                         """,
                         [
                             product_number, upc, title, description, 
-                            quantity_stock, reorder_level, price, 
+                            0, reorder_level, price, 
                             purchase_price, notes, image_path
                         ]
                     )
@@ -189,8 +189,8 @@ def add_inventory(request, tenant_url=None):
                 print(f"Creating table {new_table_name} in database {current_db}")
                 
                 # Create the table with corrected spelling
-                cursor.execute("""
-                    CREATE TABLE `%s` (
+                cursor.execute(f"""
+                    CREATE TABLE `{new_table_name}_classes` (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         product_number VARCHAR(100),
                         upc VARCHAR(255),
@@ -203,11 +203,25 @@ def add_inventory(request, tenant_url=None):
                         image VARCHAR(255),
                         notes VARCHAR(255)
                     )
-                """ % new_table_name)
+                """)
+
+                # Create the individual item tracking table
+                cursor.execute(f"""
+                    CREATE TABLE `{new_table_name}_items` (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        class_id INT,
+                        tracking_number VARCHAR(100) UNIQUE,
+                        status VARCHAR(20),
+                        location VARCHAR(100),
+                        date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        FOREIGN KEY (class_id) REFERENCES {new_table_name}_classes(id)
+                    )
+                """)
 
                 # Add entry in the table_metadata table
                 InvTable_Metadata.objects.create(
-                    table_name=new_table_name,
+                    table_name=new_table_name+"_classes",
                     table_type="inventory",
                     table_friendly_name = Friendly_new_table_name
                 )
@@ -328,7 +342,6 @@ def edit_item(request, table_name, item_id, tenant_url=None):
         # Get data from the form
         title = request.POST['title']
         description = request.POST['description']
-        quantity_stock = request.POST['quantity_stock']
         reorder_level = request.POST['reorder_level']
         price = request.POST['price']
         purchase_price = request.POST['purchase_price']
@@ -359,10 +372,10 @@ def edit_item(request, table_name, item_id, tenant_url=None):
             with connection.cursor() as cursor:
                 cursor.execute(f"""
                     UPDATE {table_name} 
-                    SET title = %s, description = %s, quantity_stock = %s, reorder_level = %s, 
+                    SET title = %s, description = %s, reorder_level = %s, 
                         price = %s, purchase_price = %s, notes = %s, image = %s
                     WHERE id = %s
-                """, [title, description, quantity_stock, reorder_level, price, purchase_price, notes, image_filename, item_id])
+                """, [title, description, reorder_level, price, purchase_price, notes, image_filename, item_id])
 
         except Exception as e:
             return HttpResponse(f"<h1>Error updating item:</h1><p>{str(e)}</p>", status=500)
@@ -408,24 +421,25 @@ def upload_csv(request, table_name, tenant_url=None):
         reader = csv.reader(decoded_file)
         headers = next(reader)  # Read CSV headers
 
-        expected_headers = ["Product Number", "UPC", "Title", "Description", "Quantity in Stock",
+        # Removed Quantity in Stock from expected headers
+        expected_headers = ["Product Number", "UPC", "Title", "Description",
                             "Reorder Level", "Price", "Purchase Price", "Notes"]
 
-        # Validate CSV headers
         if headers != expected_headers:
             return HttpResponse("Invalid CSV format. Ensure headers match the template.", status=400)
 
         with connection.cursor() as cursor:
-            # Clear table if 'replace' mode is selected
             if mode == 'replace':
                 cursor.execute(f"DELETE FROM {table_name}")
 
-            # Insert new rows
+            # Add quantity_stock (set to 0) in the insert
             query = f"""
                 INSERT INTO {table_name} 
-                (product_number, upc, title, description, quantity_stock, reorder_level, price, purchase_price, notes)
+                (product_number, upc, title, description, quantity_stock,
+                 reorder_level, price, purchase_price, notes)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """
+
             for row in reader:
                 try:
                     cursor.execute(query, (
@@ -433,24 +447,23 @@ def upload_csv(request, table_name, tenant_url=None):
                         row[1],  # upc
                         row[2],  # title
                         row[3],  # description
-                        int(row[4]),  # quantity_stock
-                        int(row[5]),  # reorder_level
-                        float(row[6]),  # price
-                        float(row[7]),  # purchase_price
-                        row[8] if len(row) > 8 else ""  # notes
+                        0,       # quantity_stock hardcoded to 0
+                        int(row[4]),  # reorder_level
+                        float(row[5]),  # price
+                        float(row[6]),  # purchase_price
+                        row[7] if len(row) > 7 else ""  # notes
                     ))
                 except Exception as e:
                     return HttpResponse(f"Error inserting data: {str(e)}", status=400)
 
-            # log change
-            log_inventory_action("BULK", "Uploaded: "+csv_file.name+" To " + table_name+". Mode = "+ mode, 0, 0000 )
-            
-            # Get tenant URL for redirect
+            log_inventory_action("BULK", f"Uploaded: {csv_file.name} To {table_name}. Mode = {mode}", 0, 0000)
+
             tenant = getattr(request, 'tenant', None)
             tenant_url = tenant.domain_url if tenant else tenant_url or ''
             return redirect(f"/{tenant_url}/invManage/")
 
     return render(request, 'inventoryApp/csv_upload.html', {'table_name': table_name})
+
 
 
 def download_inventory_template(request, tenant_url=None):
@@ -463,7 +476,7 @@ def download_inventory_template(request, tenant_url=None):
     
     # Define the header row
     writer.writerow([
-        "Product Number", "UPC", "Title", "Description", "Quantity in Stock", 
+        "Product Number", "UPC", "Title", "Description", 
         "Reorder Level", "Price", "Purchase Price", "Notes"
     ])
 
