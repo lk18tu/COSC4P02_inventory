@@ -11,7 +11,7 @@ from django.db import connection
 from dotenv import load_dotenv
 import os
 
-
+from inventoryApp.models import InvItem
 
 # Load environment variables
 load_dotenv()
@@ -96,80 +96,74 @@ def llm_advisor(request, tenant_url=None):
 
 
 def search_inventory(request, tenant_url=None):
-    """
-    Display all inventory items by default and allow users to filter items using keywords.
-    The search is case-insensitive and matches the title field.
-    Duplicate items will be merged, summing up their quantities.
-    """
     tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-
-    query = request.GET.get("q", "").strip()  # Get search query from request
+    query = request.GET.get("q", "").strip()
 
     if query:
-        # Search items by title (case-insensitive)
-        items = InventoryItem.objects.filter(
-            title__icontains=query
-        )
+        # Search items by title (case-insensitive) and aggregate in the same step if not using union
+        items = InventoryItem.objects.filter(title__icontains=query).values("title").annotate(total_quantity=Sum("quantity")).order_by("title")
     else:
-        # If no search query is provided, fetch all items
-        items = InventoryItem.objects.all()
-
-    # Aggregate items by title
-    merged_inventory = (
-        items.values("title")  # Group by title
-        .annotate(total_quantity=Sum("quantity"))  # Sum up quantities
-        .order_by("title")  # Sort alphabetically
-    )
+        # If no search query is provided, fetch and aggregate all items
+        items = InventoryItem.objects.all().values("title").annotate(total_quantity=Sum("quantity")).order_by("title")
 
     return render(request, "inventory_analysis/search_results.html", {
-        "results": merged_inventory,
+        "results": items,
         "query": query,
-        "tenant_url": tenant_url  # Add tenant_url to context
+        "tenant_url": tenant_url
     })
 
 
-def generate_inventory_level_chart(selected_table):
+
+def generate_inventory_level_chart(selected_table=None):
     """
-    Generate an inventory level bar chart with a reorder alert threshold,
-    using data from the specified dynamic table.
+    Generate an inventory level bar chart with a reorder alert threshold using data from the
+    specified dynamic table (if provided) or the default InvItem model data.
     """
     try:
-        with connection.cursor() as cursor:
-            cursor.execute(f"SELECT title, quantity_stock FROM {selected_table}")
-            data = cursor.fetchall()
-        if not data:
-            return None
-
-        names = [row[0] for row in data]
-        quantities = np.array([row[1] for row in data])
-
-        # Define colors (low stock: red, medium: yellow, sufficient: green)
-        colors = np.where(quantities < 5, 'red', np.where(quantities <= 15, 'yellow', 'green'))
-
-        plt.figure(figsize=(12, 6))
-        bars = plt.bar(names, quantities, color=colors, edgecolor="black")
-        plt.axhline(y=5, color='black', linestyle='--', linewidth=1.5, label="Reorder Threshold (5 units)")
-
-        for bar, qty in zip(bars, quantities):
-            plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5, str(qty),
-                     ha='center', fontsize=10)
-
-        plt.xticks(rotation=45)
-        plt.title("Inventory Levels & Reorder Alerts", fontsize=14, fontweight="bold")
-        plt.xlabel("Product Name")
-        plt.ylabel("Stock Quantity")
-        plt.legend()
-
-        # Convert the chart to Base64
-        buf = BytesIO()
-        plt.savefig(buf, format="png")
-        plt.close()  # Close the figure to free memory
-        buf.seek(0)
-        return base64.b64encode(buf.read()).decode()
-
+        if selected_table:
+            with connection.cursor() as cursor:
+                # Query using dynamic table; InvItem in your invApp uses 'title' and 'quantity_stock'
+                cursor.execute(f"SELECT title, quantity_stock FROM {selected_table} ORDER BY quantity_stock ASC")
+                data = cursor.fetchall()
+            if not data:
+                return None
+            names = [row[0] for row in data]
+            quantities = np.array([row[1] for row in data])
+        else:
+            # Default: use the InvItem model from inventoryApp
+            from inventoryApp.models import InvItem
+            items = InvItem.objects.all()
+            if not items:
+                return None
+            names = [item.title for item in items]
+            quantities = np.array([item.quantity for item in items])
     except Exception as e:
         print("Error generating level chart:", e)
         return None
+
+    # Define colors for each stock level
+    colors = np.where(quantities < 5, 'red', np.where(quantities <= 15, 'yellow', 'green'))
+
+    plt.figure(figsize=(12, 6))
+    bars = plt.bar(names, quantities, color=colors, edgecolor="black")
+    plt.axhline(y=5, color='black', linestyle='--', linewidth=1.5, label="Reorder Threshold (5 units)")
+
+    for bar, qty in zip(bars, quantities):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5, str(qty),
+                 ha='center', fontsize=10)
+
+    plt.xticks(rotation=45)
+    plt.title("Inventory Levels & Reorder Alerts", fontsize=14, fontweight="bold")
+    plt.xlabel("Product Name")
+    plt.ylabel("Stock Quantity")
+    plt.legend()
+
+    buf = BytesIO()
+    plt.savefig(buf, format="png")
+    buf.seek(0)
+    plt.close()  # Free memory by closing the figure
+    return base64.b64encode(buf.read()).decode()
+
 
 
 # In inventory_analysis/views.py
@@ -177,34 +171,32 @@ def generate_inventory_level_chart(selected_table):
 def generate_inventory_pie_chart(selected_table=None):
     """
     Generate a pie chart representing the percentage of each product's stock.
-    If selected_table is provided, fetch data from that table; otherwise, use the default InvItem model.
+    If selected_table is provided, fetch data from that dynamic table; otherwise, use the default InvItem model.
     """
-    if selected_table:
-        try:
+    try:
+        if selected_table:
             with connection.cursor() as cursor:
-                # Adjust the query to fetch title and quantity_stock from the selected table
+                # Use the dynamic table's columns: 'title' and 'quantity_stock'
                 cursor.execute(f"SELECT title, quantity_stock FROM {selected_table}")
                 rows = cursor.fetchall()
-                if not rows:
-                    return None
-                names = [row[0] for row in rows]
-                quantities = np.array([row[1] for row in rows])
-        except Exception as e:
-            print(f"Error fetching data for pie chart from table {selected_table}: {e}")
-            return None
-    else:
-        # Import InvItem here to avoid circular imports if necessary
-        from inventoryApp.models import InvItem
-        items = InvItem.objects.all()
-        if not items:
-            return None
-        names = [item.title for item in items]
-        quantities = np.array([item.quantity for item in items])
+            if not rows:
+                return None
+            names = [row[0] for row in rows]
+            quantities = np.array([row[1] for row in rows])
+        else:
+            from inventoryApp.models import InvItem
+            items = InvItem.objects.all()
+            if not items:
+                return None
+            names = [item.title for item in items]
+            quantities = np.array([item.quantity for item in items])
+    except Exception as e:
+        print(f"Error fetching data for pie chart: {e}")
+        return None
 
     if sum(quantities) == 0:
         return None
 
-    # Generate the pie chart
     plt.figure(figsize=(8, 8))
     plt.pie(
         quantities,
@@ -214,12 +206,12 @@ def generate_inventory_pie_chart(selected_table=None):
         colors=plt.cm.Paired.colors
     )
     plt.title("Inventory Distribution")
-
     buf = BytesIO()
     plt.savefig(buf, format="png")
     buf.seek(0)
-    plt.close()  # Close the figure to free up memory
+    plt.close()  # Free memory
     return base64.b64encode(buf.read()).decode()
+
 
 
 def inventory_chart(request, tenant_url=None):
@@ -228,7 +220,6 @@ def inventory_chart(request, tenant_url=None):
     The table is selected via a GET parameter (or defaults to the first available table).
     """
     tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-    # Get the selected table name from GET; default to the first available table if not provided.
     inventory_tables = get_available_inventory_tables()
     selected_table = request.GET.get("table") or (inventory_tables[0] if inventory_tables else None)
 
@@ -242,3 +233,4 @@ def inventory_chart(request, tenant_url=None):
         "inventory_tables": inventory_tables,
         "tenant_url": tenant_url
     })
+

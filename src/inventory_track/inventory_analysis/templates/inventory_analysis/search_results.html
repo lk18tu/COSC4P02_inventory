@@ -15,8 +15,7 @@
     <ul>
         {% for item in results %}
         <li>
-            <strong>{{ item.name }}</strong>
-            (Category: {{ item.category|default:"Uncategorized" }})
+            <strong>{{ item.title }}</strong>
             - Stock: {{ item.total_quantity }}
         </li>
         {% endfor %}
