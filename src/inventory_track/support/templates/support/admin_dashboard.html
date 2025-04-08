@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Admin Dashboard</title>
+    <style>
+        /* Dark Red Theme for Admin Dashboard */
+        body {
+            background-color: #1b1b1b; /* Dark Mode */
+            font-family: 'Inter', sans-serif;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+
+        h2 {
+            font-weight: 800;
+            font-size: 2rem;
+            text-transform: uppercase;
+            background: linear-gradient(120deg, #ff6b6b, #e3342f);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        a {
+            color: #ff6b6b;
+            font-weight: bold;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: 1px solid #ff6b6b;
+            display: inline-block;
+            margin-bottom: 20px;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        a:hover {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        /* Centering the dashboard */
+        .dashboard-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            flex-wrap: wrap;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .ticket-section {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(255, 0, 0, 0.3);
+            min-height: 300px;
+        }
+
+        .ticket-section h3 {
+            color: #ff6b6b;
+            border-bottom: 2px solid #ff6b6b;
+            padding-bottom: 10px;
+            text-align: left;
+        }
+
+        .ticket {
+            background: #222;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0px 2px 5px rgba(255, 0, 0, 0.2);
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .ticket h4 {
+            color: #ff6b6b;
+            margin-bottom: 5px;
+        }
+
+        .ticket p {
+            margin: 5px 0;
+        }
+
+        .status {
+            font-weight: bold;
+            padding: 5px 10px;
+            border-radius: 5px;
+            display: inline-block;
+        }
+
+        .status.open {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        .status.closed {
+            background: #4caf50;
+            color: white;
+        }
+
+        /* Editable Fields */
+        select, input {
+            background: #333;
+            color: white;
+            border: 1px solid #ff6b6b;
+            padding: 5px;
+            border-radius: 5px;
+            margin-top: 5px;
+            width: 100%;
+        }
+
+        .save-btn {
+            background: #ff6b6b;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        .save-btn:hover {
+            background: #e3342f;
+        }
+
+        /* Responsive Layout */
+        @media (min-width: 768px) {
+            .dashboard-container {
+                flex-direction: row;
+            }
+            .ticket-section {
+                width: 48%;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body>
+    <h2>Support Admin Dashboard</h2>
+
+    <a href="{% url 'support_admin:support_admin_logout' %}">Logout</a>
+
+    <div class="dashboard-container">
+        <!-- Open Tickets Section -->
+        <div class="ticket-section">
+            <h3>Open Tickets</h3>
+            {% for ticket in tickets %}
+                {% if ticket.status == 'open' %}
+                    <div class="ticket">
+                        <h4>{{ ticket.subject }}</h4>
+                        <p><strong>Company:</strong> {{ ticket.company }}</p>
+                        <p><strong>Description:</strong> {{ ticket.description }}</p>
+                        <p><strong>Username:</strong> {{ ticket.username }}</p>
+                        <p><i class="fa fa-envelope"></i> {{ ticket.user_email }}</p>
+                        <p><i class="fa fa-phone"></i> {{ ticket.user_phone }}</p>
+                        <p><strong>Created At:</strong> {{ ticket.created_at }}</p>
+
+                        <form method="POST" action="{% url 'support_admin:update_ticket' ticket.id %}">
+                            {% csrf_token %}
+
+                            <!-- Editable Status -->
+                            <label for="status-{{ ticket.id }}">Status:</label>
+                            <select id="status-{{ ticket.id }}" name="status">
+                                <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>Open</option>
+                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Closed</option>
+                            </select>
+
+                            <!-- Editable Assigned To -->
+                            <label for="assigned_to-{{ ticket.id }}">Assigned To:</label>
+                            <select id="assigned_to-{{ ticket.id }}" name="assigned_to">
+                                <option value="No one" {% if ticket.assigned_to == 'No one' %}selected{% endif %}>No one</option>
+                                <option value="Mason De Fazio" {% if ticket.assigned_to == 'Mason De Fazio' %}selected{% endif %}>Mason De Fazio</option>
+                                <option value="Laszlo Kerekes" {% if ticket.assigned_to == 'Laszlo Kerekes' %}selected{% endif %}>Laszlo Kerekes</option>
+                                <option value="Yukin Hu" {% if ticket.assigned_to == 'Yukin Hu' %}selected{% endif %}>Yukin Hu</option>
+                                <option value="Ameya Chindarkar" {% if ticket.assigned_to == 'Ameya Chindarkar' %}selected{% endif %}>Ameya Chindarkar</option>
+                                <option value="Shawn Bal" {% if ticket.assigned_to == 'Shawn Bal' %}selected{% endif %}>Shawn Bal</option>
+                                <option value="Di Han" {% if ticket.assigned_to == 'Di Han' %}selected{% endif %}>Di Han</option>
+                            </select>
+
+
+                            <!-- Editable Notes -->
+                            <label for="notes-{{ ticket.id }}">Notes:</label>
+                            <input type="text" id="notes-{{ ticket.id }}" name="notes" value="{{ ticket.notes }}">
+
+                            <button type="submit" class="save-btn">Save Changes</button>
+                        </form>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+
+        <!-- Closed Tickets Section -->
+        <div class="ticket-section">
+            <h3>Closed Tickets</h3>
+            {% for ticket in tickets %}
+                {% if ticket.status == 'closed' %}
+                    <div class="ticket">
+                        <h4>{{ ticket.subject }}</h4>
+                        <p><strong>Company:</strong> {{ ticket.company }}</p>
+                        <p><strong>Description:</strong> {{ ticket.description }}</p>
+                        <p><strong>Username:</strong> {{ ticket.username }}</p>
+                        <p><strong>Contacts:</strong></p>
+                        <p><i class="fa fa-envelope"></i> {{ ticket.user_email }}</p>
+                        <p><i class="fa fa-phone"></i> {{ ticket.user_phone }}</p>
+                        <p><strong>Created At:</strong> {{ ticket.created_at }}</p>
+
+                        <form method="POST" action="{% url 'support_admin:update_ticket' ticket.id %}">
+                            {% csrf_token %}
+
+                            <!-- Editable Status -->
+                            <label for="status-{{ ticket.id }}">Status:</label>
+                            <select id="status-{{ ticket.id }}" name="status">
+                                <option value="open" {% if ticket.status == 'open' %}selected{% endif %}>Open</option>
+                                <option value="closed" {% if ticket.status == 'closed' %}selected{% endif %}>Closed</option>
+                            </select>
+
+                            <!-- Editable Assigned To -->
+                            <label for="assigned_to-{{ ticket.id }}">Assigned To:</label>
+                            <select id="assigned_to-{{ ticket.id }}" name="assigned_to">
+                                
+                                <option value="Mason De Fazio" {% if ticket.assigned_to == admin.username %}selected{% endif %}>Mason De Fazio</option>
+                                <option value="Lazslo" {% if ticket.assigned_to == admin.username %}selected{% endif %}>Laszlo</option>
+                            </select>
+
+                            <!-- Editable Notes -->
+                            <label for="notes-{{ ticket.id }}">Notes:</label>
+                            <input type="text" id="notes-{{ ticket.id }}" name="notes" value="{{ ticket.notes }}">
+
+                            <button type="submit" class="save-btn">Save Changes</button>
+                        </form>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

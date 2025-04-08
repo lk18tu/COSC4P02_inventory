@@ -27,6 +27,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', lambda request: redirect('landing_page'), name='root'),
     path('tenant_manager/', include('tenant_manager.urls')),
+    path('support-admin/', include('support.urls_admin', namespace='support_admin')),
     
     # Tenant-specific URLs
     path('<str:tenant_url>/', tenant_landing, name='tenant_landing'),
@@ -39,6 +40,7 @@ urlpatterns = [
     path('<str:tenant_url>/inventory_analysis/', include('inventory_analysis.urls', namespace='inventory_analysis')),
     path('<str:tenant_url>/history/', include(('history.urls', 'history'), namespace='history')),
     path('<str:tenant_url>/suppliers/', include('suppliers.urls', namespace='suppliers')),
+    path('<str:tenant_url>/support/', include('support.urls', namespace='support')),
     path('<str:tenant_url>/product_wiki/', include('product_wiki.urls', namespace='product_wiki')),
 ]
 if settings.DEBUG:

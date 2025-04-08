@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'history',
     'suppliers',
     'tenant_manager',
+    'support',
     'product_wiki',
 ]
 
