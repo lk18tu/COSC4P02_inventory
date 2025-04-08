@@ -7,3 +7,4 @@ matplotlib
 requests
 urllib3
 python-dotenv
+markdown

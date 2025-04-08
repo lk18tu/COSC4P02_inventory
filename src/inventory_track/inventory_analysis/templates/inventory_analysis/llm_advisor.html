@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load markdown_extras %}
 
 {% block content %}
 <div class="container mt-5">
@@ -44,11 +45,12 @@
             <h5 class="mb-0">Response</h5>
         </div>
         <div class="card-body">
-            <p id="llm-response" class="text-white">Waiting for your question...</p>
+            <div id="llm-response" class="text-white markdown-body">Waiting for your question...</div>
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 document.getElementById("llm-form").onsubmit = async function(event) {
     event.preventDefault();
@@ -64,9 +66,9 @@ document.getElementById("llm-form").onsubmit = async function(event) {
         });
 
         const data = await response.json();
-
+        
         if (data.response) {
-            responseElement.innerText = data.response;
+            responseElement.innerHTML = marked.parse(data.response);
         } else if (data.error) {
             responseElement.innerHTML = `<span class="text-danger">Error: ${data.error}</span>`;
         }

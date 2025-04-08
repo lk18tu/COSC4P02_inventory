@@ -19,6 +19,7 @@ urlpatterns = [
     path("unarchive_table/<str:table_name>/", views.unarchive_table, name="unarchive_table"),
     path("upload_csv/<str:table_name>/", views.upload_csv, name="upload_csv"),
     path('download-template/', views.download_inventory_template, name='download_inventory_template'),
+    path("item_detail/<str:table_name>/<int:item_id>/", views.item_detail, name="item_detail"),
 ]
 
 if settings.DEBUG:

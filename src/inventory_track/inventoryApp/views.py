@@ -475,3 +475,23 @@ def get_table_columns(table_name):
         return [col.name for col in connection.introspection.get_table_description(cursor, table_name)]
 
 
+def item_detail(request, table_name, item_id, tenant_url=None):
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute(f"SELECT * FROM {table_name} WHERE id = %s", [item_id])
+            row = cursor.fetchone()
+            if not row:
+                raise Http404("Item not found.")
+
+            columns = ['id', 'product_number', 'upc', 'title', 'description', 'quantity_stock',
+                       'reorder_level', 'price', 'purchase_price', 'image', 'notes']
+            item = dict(zip(columns, row))
+
+    except Exception as e:
+        return HttpResponse(f"Error loading item: {e}", status=500)
+
+    return render(request, "inventoryApp/item_detail.html", {
+        "item": item,
+        "table_name": table_name,
+        "tenant_url": tenant_url
+    })

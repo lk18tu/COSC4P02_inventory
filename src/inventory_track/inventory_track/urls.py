@@ -39,6 +39,7 @@ urlpatterns = [
     path('<str:tenant_url>/inventory_analysis/', include('inventory_analysis.urls', namespace='inventory_analysis')),
     path('<str:tenant_url>/history/', include(('history.urls', 'history'), namespace='history')),
     path('<str:tenant_url>/suppliers/', include('suppliers.urls', namespace='suppliers')),
+    path('<str:tenant_url>/product_wiki/', include('product_wiki.urls', namespace='product_wiki')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

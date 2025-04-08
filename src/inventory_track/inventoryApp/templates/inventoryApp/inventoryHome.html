@@ -87,8 +87,16 @@
                                     <tbody>
                                         {% for row in table.rows %}
                                             <tr>
-                                                <td class="align-middle text-gray-300"><img src="{% get_media_prefix %}{{ row.9 }}" alt="No Image" width="80" class="img-thumbnail bg-dark"></td> <!--Image-->
-                                                <td class="align-middle font-semibold text-white">{{ row.3 }}</td> <!--Title-->
+                                                <td class="align-middle text-gray-300">
+                                                    <a href="/{{ tenant_url }}/invManage/item_detail/{{ table.table_name }}/{{ row.0 }}/"><!-- Link to detail page -->
+                                                        <img src="{% get_media_prefix %}{{ row.9 }}" alt="No Image" width="80" class="img-thumbnail bg-dark">
+                                                    </a>
+                                                </td> <!--Image-->
+                                                <td class="align-middle font-semibold">
+                                                    <a href="/{{ tenant_url }}/invManage/item_detail/{{ table.table_name }}/{{ row.0 }}/" class="text-white text-decoration-underline">
+                                                        {{ row.3 }}
+                                                    </a>
+                                                </td><!--Title-->
                                                 <td class="align-middle text-gray-300">{{ row.1 }}</td> <!--Product Number-->
                                                 <td class="align-middle text-gray-300">{{ row.2 }}</td> <!--UPC-->
                                                 <td class="align-middle text-gray-300">{{ row.4 }}</td> <!--Desc.-->
