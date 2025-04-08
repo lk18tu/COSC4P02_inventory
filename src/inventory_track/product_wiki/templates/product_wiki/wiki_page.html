@@ -1,4 +1,5 @@
 {% extends "base_company.html" %}
+{% load markdown_extras %}
 {% block title %}AI Product Wiki{% endblock %}
 
 {% block content %}
@@ -8,7 +9,9 @@
     {% if wiki %}
         <!-- Display AI generated wiki -->
         <div class="bg-gray-800 p-4 rounded mt-3">
-            <pre class="text-gray-300" style="white-space: pre-wrap;">{{ wiki }}</pre>
+            <div class="markdown-body">
+                {{ wiki|markdown|safe }}
+            </div>
         </div>
     {% else %}
         <!-- Show loading message -->
