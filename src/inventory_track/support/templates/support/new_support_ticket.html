@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit Support Ticket</title>
+    <style>
+        /* Base styles */
+        body {
+            background-color: #111827;
+            font-family: 'Inter', sans-serif;
+            color: #d1d5db;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h2 {
+            font-weight: 800;
+            font-size: 2rem;
+            text-transform: uppercase;
+            background: linear-gradient(120deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -moz-background-clip: text;
+            -ms-background-clip: text;
+            -o-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        form {
+            width: 50%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #1f2937;
+            border-radius: 10px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            font-weight: bold;
+            margin: 10px 0 5px;
+            color: #d1d5db;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            background-color: #374151;
+            border: none;
+            border-radius: 5px;
+            color: white;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            background-color: #4B5563;
+            box-shadow: 0 0 5px rgba(37, 99, 235, 0.5);
+        }
+
+        textarea {
+            height: 100px;
+            resize: none;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            text-decoration: none;
+            font-weight: bold;
+            color: white;
+            background-color: #2563eb;
+            border-radius: 5px;
+            transition: background 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Submit a Support Ticket</h2>
+
+    <form action="{% url 'support:submit_ticket' tenant_url=request.resolver_match.kwargs.tenant_url %}" method="POST">
+        {% csrf_token %}
+        
+        <label for="email">Primary Email Contact:</label>
+        <input type="text" id="email" name="email" required>
+
+        <label for="username">Company Username:</label>
+        <input type="text" id="username" name="username" required>
+
+        <label for="phone">Phone Number:</label>
+        <input type="text" id="phone" name="phone" required>
+
+        <label for="subject">Problem Subject:</label>
+        <input type="text" id="subject" name="subject" required>
+
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" required></textarea>
+
+        <input class="btn" type="submit" value="Submit Ticket">
+    </form>
+
+</body>
+</html>
