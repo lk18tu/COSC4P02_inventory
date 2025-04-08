@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}Inventory Analysis{% endblock %}
 
@@ -8,8 +9,23 @@
         <div class="card-header bg-primary text-white">
             <h2 class="mb-0">Inventory Analysis</h2>
         </div>
-        
+
         <div class="card-body bg-gray-800">
+            <!-- Drop down for selecting inventory table -->
+            <form method="GET" action="">
+                <div class="mb-4">
+                    <label for="tableSelect" class="form-label text-white">Select Inventory Table:</label>
+                    <select id="tableSelect" name="table" class="form-select">
+                        {% for table in inventory_tables %}
+                        <option value="{{ table }}" {% if table == selected_table %}selected{% endif %}>
+                            {{ table }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-secondary mt-2">View Table</button>
+                </div>
+            </form>
+
             <!-- Inventory Bar Chart -->
             {% if inventory_chart %}
                 <div class="mb-4">
@@ -43,7 +59,7 @@
                 </div>
             {% endif %}
         </div>
-        
+
         <div class="card-footer text-end bg-gray-800 border-top border-gray-700">
             <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back to Dashboard
@@ -53,9 +69,9 @@
 </div>
 
 <style>
-/* Custom colors for readability */
-.bg-gray-700 { background-color: #374151; }
-.bg-gray-800 { background-color: #1f2937; }
-.text-gray-300 { color: #d1d5db; }
+    /* Custom color classes for readability */
+    .bg-gray-700 { background-color: #374151; }
+    .bg-gray-800 { background-color: #1f2937; }
+    .text-gray-300 { color: #d1d5db; }
 </style>
 {% endblock %}

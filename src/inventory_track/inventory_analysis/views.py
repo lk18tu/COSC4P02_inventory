@@ -96,60 +96,86 @@ def llm_advisor(request, tenant_url=None):
 
 def search_inventory(request, tenant_url=None):
     """
-    Display all inventory items by default and allow users to filter items using keywords.
-    The search is case-insensitive and matches both name and category.
-    Duplicate items will be merged, summing up their quantities.
+    Search through all dynamic inventory tables (from invApp) for items whose title
+    matches the query. Each result will include the table name where the item is located.
     """
     tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-    
-    query = request.GET.get("q", "").strip()  # Get search query from request
+    query = request.GET.get("q", "").strip()  # Get search query
+
+    # Get a list of available inventory table names from your metadata
+    inventory_tables = get_available_inventory_tables()
+    results = []
 
     if query:
-        # Search items by name or category
-        items = InventoryItem.objects.filter(
-            name__icontains=query
-        ) | InventoryItem.objects.filter(
-            category__icontains=query
-        )
+        for table in inventory_tables:
+            try:
+                with connection.cursor() as cursor:
+                    # Use a LIKE query on the 'title' field in each dynamic table.
+                    # Adjust the field name if your dynamic tables use a different column name.
+                    cursor.execute(
+                        f"SELECT title, quantity_stock FROM {table} WHERE title LIKE %s",
+                        ['%' + query + '%']
+                    )
+                    rows = cursor.fetchall()
+                    # Append each found row with its table name to the results list.
+                    for row in rows:
+                        results.append({
+                            "title": row[0],
+                            "total_quantity": row[1],
+                            "table_name": table
+                        })
+            except Exception as e:
+                print(f"Error searching table {table}: {e}")
+                continue
     else:
-        # If no search query is provided, fetch all items
-        items = InventoryItem.objects.all()
-
-    # Aggregate items by name and category
-    merged_inventory = (
-        items.values("name", "category")  # Group by name and category
-        .annotate(total_quantity=Sum("quantity"))  # Sum up quantities
-        .order_by("name")  # Sort alphabetically
-    )
+        # If no query is provided, you might decide to return an empty result set.
+        results = []
 
     return render(request, "inventory_analysis/search_results.html", {
-        "results": merged_inventory, 
+        "results": results,
         "query": query,
-        "tenant_url": tenant_url  # Add tenant_url to context
+        "tenant_url": tenant_url,
+        "inventory_tables": inventory_tables
     })
 
-def generate_inventory_level_chart():
+
+def generate_inventory_level_chart(selected_table=None):
     """
-    Generate an inventory level bar chart with a reorder alert threshold.
+    Generate an inventory level bar chart with a reorder alert threshold using data from the
+    specified dynamic table (if provided) or the default InvItem model data.
     """
-    items = InventoryItem.objects.all()
-    
-    if not items:
+    try:
+        if selected_table:
+            with connection.cursor() as cursor:
+                # Query using dynamic table; InvItem in your invApp uses 'title' and 'quantity_stock'
+                cursor.execute(f"SELECT title, quantity_stock FROM {selected_table} ORDER BY quantity_stock ASC")
+                data = cursor.fetchall()
+            if not data:
+                return None
+            names = [row[0] for row in data]
+            quantities = np.array([row[1] for row in data])
+        else:
+            # Default: use the InvItem model from inventoryApp
+            from inventoryApp.models import InvItem
+            items = InvItem.objects.all()
+            if not items:
+                return None
+            names = [item.title for item in items]
+            quantities = np.array([item.quantity for item in items])
+    except Exception as e:
+        print("Error generating level chart:", e)
         return None
 
-    names = [item.name for item in items]
-    quantities = np.array([item.quantity for item in items])
-
-    # Define colors (low stock: red, medium: yellow, sufficient: green)
+    # Define colors for each stock level
     colors = np.where(quantities < 5, 'red', np.where(quantities <= 15, 'yellow', 'green'))
 
-    # Generate the inventory level bar chart
     plt.figure(figsize=(12, 6))
     bars = plt.bar(names, quantities, color=colors, edgecolor="black")
     plt.axhline(y=5, color='black', linestyle='--', linewidth=1.5, label="Reorder Threshold (5 units)")
 
     for bar, qty in zip(bars, quantities):
-        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5, str(qty), ha='center', fontsize=10)
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5, str(qty),
+                 ha='center', fontsize=10)
 
     plt.xticks(rotation=45)
     plt.title("Inventory Levels & Reorder Alerts", fontsize=14, fontweight="bold")
@@ -157,29 +183,42 @@ def generate_inventory_level_chart():
     plt.ylabel("Stock Quantity")
     plt.legend()
 
-    # Convert the chart to Base64
     buf = BytesIO()
     plt.savefig(buf, format="png")
     buf.seek(0)
+    plt.close()  # Free memory by closing the figure
     return base64.b64encode(buf.read()).decode()
 
-def generate_inventory_pie_chart():
+
+def generate_inventory_pie_chart(selected_table=None):
     """
     Generate a pie chart representing the percentage of each product's stock.
+    If selected_table is provided, fetch data from that dynamic table; otherwise, use the default InvItem model.
     """
-    items = InventoryItem.objects.all()
-    
-    if not items:
+    try:
+        if selected_table:
+            with connection.cursor() as cursor:
+                # Use the dynamic table's columns: 'title' and 'quantity_stock'
+                cursor.execute(f"SELECT title, quantity_stock FROM {selected_table}")
+                rows = cursor.fetchall()
+            if not rows:
+                return None
+            names = [row[0] for row in rows]
+            quantities = np.array([row[1] for row in rows])
+        else:
+            from inventoryApp.models import InvItem
+            items = InvItem.objects.all()
+            if not items:
+                return None
+            names = [item.title for item in items]
+            quantities = np.array([item.quantity for item in items])
+    except Exception as e:
+        print(f"Error fetching data for pie chart: {e}")
         return None
 
-    names = [item.name for item in items]
-    quantities = np.array([item.quantity for item in items])
-
-    # Ignore items with zero stock
     if sum(quantities) == 0:
-        return None  
+        return None
 
-    # Generate pie chart
     plt.figure(figsize=(8, 8))
     plt.pie(
         quantities,
@@ -189,25 +228,31 @@ def generate_inventory_pie_chart():
         colors=plt.cm.Paired.colors
     )
     plt.title("Inventory Distribution")
-
-    # Save the chart as a Base64 image
     buf = BytesIO()
     plt.savefig(buf, format="png")
     buf.seek(0)
+    plt.close()  # Free memory
     return base64.b64encode(buf.read()).decode()
+
 
 
 def inventory_chart(request, tenant_url=None):
     """
-    Render the inventory chart page with different visualizations.
+    Render the inventory chart page using data from a dynamic table.
+    The table is selected via a GET parameter (or defaults to the first available table).
     """
     tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-    
-    inventory_chart_image = generate_inventory_level_chart()  # Remove request argument
-    inventory_pie_chart = generate_inventory_pie_chart()  # Generate pie chart
+    inventory_tables = get_available_inventory_tables()
+    selected_table = request.GET.get("table") or (inventory_tables[0] if inventory_tables else None)
+
+    inventory_chart_image = generate_inventory_level_chart(selected_table) if selected_table else None
+    inventory_pie_chart = generate_inventory_pie_chart(selected_table) if selected_table else None
 
     return render(request, "inventory_analysis/inventory_chart.html", {
         "inventory_chart": inventory_chart_image,
         "inventory_pie_chart": inventory_pie_chart,
-        "tenant_url": tenant_url  # Add tenant_url to context
+        "selected_table": selected_table,
+        "inventory_tables": inventory_tables,
+        "tenant_url": tenant_url
     })
+

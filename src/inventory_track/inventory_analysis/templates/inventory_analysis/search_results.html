@@ -1,28 +1,43 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block content %}
-<h2>Inventory Search</h2>
+<div class="container my-5">
+  <h2 class="mb-4">Inventory Search</h2>
 
-<!-- Search form -->
-<form action="{% url 'inventory_analysis:search_inventory' tenant_url=tenant_url %}" method="GET">
-    <input type="text" name="q" placeholder="Search inventory..." value="{{ query }}">
-    <button type="submit">Search</button>
-</form>
+  <!-- Search Form -->
+  <form action="{% url 'inventory_analysis:search_inventory' tenant_url=tenant_url %}" method="GET" class="mb-4">
+    <div class="input-group">
+      <input type="text" name="q" class="form-control" placeholder="Search inventory..." value="{{ query }}">
+      <button type="submit" class="btn btn-primary">Search</button>
+    </div>
+  </form>
 
-<!-- Display inventory results -->
-{% if results %}
-    <h3>Search Results{% if query %} for "{{ query }}"{% endif %}:</h3>
-    <ul>
-        {% for item in results %}
-        <li>
-            <strong>{{ item.name }}</strong> 
-            (Category: {{ item.category|default:"Uncategorized" }}) 
-            - Stock: {{ item.total_quantity }}
-        </li>
-        {% endfor %}
-    </ul>
-{% else %}
-    <p>No inventory items found.</p>
-{% endif %}
+  <!-- Display Inventory Results -->
+  {% if results %}
+    <h3 class="mb-3">Search Results{% if query %} for "{{ query }}"{% endif %}:</h3>
+    <div class="list-group">
+      {% for item in results %}
+        <div class="list-group-item">
+          <strong>{{ item.name }}</strong>
+          {% if item.category %}
+            <span class="text-muted">(Category: {{ item.category }})</span>
+          {% else %}
+            <span class="text-muted">(Category: Uncategorized)</span>
+          {% endif %}
+          - Stock: {{ item.total_quantity }}
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="alert alert-info">No inventory items found.</div>
+  {% endif %}
 
+  <!-- Back to Dashboard Button -->
+  <div class="mt-4 text-end">
+    <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-secondary">
+      <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </a>
+  </div>
+</div>
 {% endblock %}
