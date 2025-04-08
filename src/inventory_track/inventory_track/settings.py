@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'suppliers',
     'tenant_manager',
     'support',
+    'product_wiki',
 ]
 
 MIDDLEWARE = [

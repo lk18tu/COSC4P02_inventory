@@ -93,3 +93,4 @@ Each tenant's data is completely isolated in its own database, ensuring security
 ## Documentation
 
 - [AI Inventory Advisor Guide](docs/ai_advisor.md)
+- [AI Wiki documentation](docs/ai_wiki.md)

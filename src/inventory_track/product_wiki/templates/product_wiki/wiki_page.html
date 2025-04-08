@@ -1,0 +1,23 @@
+{% extends "base_company.html" %}
+{% load markdown_extras %}
+{% block title %}AI Product Wiki{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-white">Product Wiki: {{ product_name }}</h2>
+
+    {% if wiki %}
+        <!-- Display AI generated wiki -->
+        <div class="bg-gray-800 p-4 rounded mt-3">
+            <div class="markdown-body">
+                {{ wiki|markdown|safe }}
+            </div>
+        </div>
+    {% else %}
+        <!-- Show loading message -->
+        <div class="alert alert-warning mt-3">
+            Failed to generate wiki for this product.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
