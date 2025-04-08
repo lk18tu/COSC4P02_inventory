@@ -1,5 +1,6 @@
 {% extends 'base_company.html' %}
 {% load static %}
+{% load markdown_extras %}
 
 {% block title %}Item Detail{% endblock %}
 
@@ -55,25 +56,24 @@
 <script>
 function fetchWiki(productName) {
     const wikiBox = document.getElementById("wiki-content");
-    wikiBox.innerText = "Generating wiki for " + productName + " ...";
+    wikiBox.innerHTML = "<em>Generating wiki for " + productName + " ...</em>";
 
-    // Dynamically extract the tenant URL from current path
     const tenant = window.location.pathname.split('/')[1];
 
-    // Fetch AI-generated wiki from the product_wiki app
     fetch(`/${tenant}/product_wiki/generate/?name=` + encodeURIComponent(productName))
         .then(res => res.json())
         .then(data => {
             if (data.response) {
-                wikiBox.innerText = data.response;
+                wikiBox.innerHTML = marked.parse(data.response);
             } else {
-                wikiBox.innerText = "Error: " + (data.error || "Unknown error.");
+                wikiBox.innerHTML = "<span style='color: red;'>Error: " + (data.error || "Unknown error.") + "</span>";
             }
         })
         .catch(err => {
             console.error("Fetch failed", err);
-            wikiBox.innerText = "Network error while fetching wiki.";
+            wikiBox.innerHTML = "<span style='color: red;'>Network error while fetching wiki.</span>";
         });
 }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 {% endblock %}
