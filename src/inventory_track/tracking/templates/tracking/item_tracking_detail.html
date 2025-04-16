@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Item Details{% endblock %}
+
+{% block content %}
+
+<style>
+.progress-container {
+    position: relative;
+    height: 70px;
+    margin: 40px auto;
+    max-width: 800px;
+}
+
+.progress-bar {
+    background-color: #374151;
+    height: 20px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    background-color: #60a5fa;
+    height: 100%;
+    width: 0;
+    transition: width 0.5s ease;
+}
+
+.marker {
+    position: absolute;
+    top: -40px;
+    transform: translateX(-50%);
+    text-align: center;
+}
+
+.marker-label {
+    font-size: 0.85rem;
+    color: #d1d5db;
+    margin-bottom: 4px;
+    white-space: nowrap;
+}
+
+.marker-pin {
+    width: 10px;
+    height: 10px;
+    background-color: #60a5fa;
+    border-radius: 50%;
+    margin: 0 auto;
+    border: 2px solid white;
+}
+
+</style>
+<div class="container mt-4">
+    <h2 class="text-white">Item Details</h2>
+    <div class="card bg-dark text-light p-4">
+        {% for key, value in item.items %}
+            <p><strong>{{ key|capfirst }}:</strong> {{ value }}</p>
+        {% endfor %}
+    </div>
+    <a href="{% url 'tracking:tracking_home' tenant_url=tenant_url %}" class="btn btn-secondary mt-3">Back to Tracking</a>
+
+</div>
+
+
+{% if item.destination_percentage %}
+<div class="progress-container">
+    {% if item.destination_percent_display < 100 %}
+        <!-- Current Location Marker -->
+        <div class="marker" style="left: {{ item.destination_percent_display }}%;">
+            <div class="marker-label">{{ item.location }}</div>
+            <div class="marker-pin"></div>
+        </div>
+
+        <!-- Destination Marker -->
+        <div class="marker" style="left: 100%;">
+            <div class="marker-label">Destination</div>
+            <div class="marker-pin"></div>
+        </div>
+    {% else %}
+        <!-- Final Message for Arrived -->
+        <div class="text-center text-green-400 font-bold mt-3" style="font-size: 1.2rem;">
+            ✅ Arrived at Destination
+        </div>
+    {% endif %}
+
+    <!-- Progress Bar -->
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: {{ item.destination_percent_display }}%;"></div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

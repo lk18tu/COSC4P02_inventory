@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     'tenant_manager',
     'support',
     'product_wiki',
+    'tracking',
 ]
 
 MIDDLEWARE = [

@@ -42,6 +42,7 @@ urlpatterns = [
     path('<str:tenant_url>/suppliers/', include('suppliers.urls', namespace='suppliers')),
     path('<str:tenant_url>/support/', include('support.urls', namespace='support')),
     path('<str:tenant_url>/product_wiki/', include('product_wiki.urls', namespace='product_wiki')),
+    path('<str:tenant_url>/tracking/', include('tracking.urls', namespace='tracking')),
 ]
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
