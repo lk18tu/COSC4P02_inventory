@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Tracking Home{% endblock %}
+
+{% block content %}
+<style>
+    .tracking-form-container {
+        max-width: 600px;
+        margin: 40px auto;
+        background-color: #1f2937;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    }
+
+    .tracking-form-container h1 {
+        color: #c084fc;
+        margin-bottom: 20px;
+        text-align: center;
+        font-weight: 800;
+    }
+
+    .tracking-form-container input[type="text"] {
+        width: 100%;
+        padding: 12px;
+        background-color: #374151;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        font-size: 1rem;
+        margin-bottom: 15px;
+        transition: background-color 0.2s ease;
+    }
+
+    .tracking-form-container input[type="text"]:focus {
+        background-color: #4b5563;
+        outline: none;
+    }
+
+    .tracking-form-container button {
+        width: 100%;
+        padding: 12px;
+        background-color: #6366f1;
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        font-weight: bold;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+        cursor: pointer;
+    }
+
+    .tracking-form-container button:hover {
+        background-color: #4f46e5;
+    }
+
+    .result-section {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #1e293b;
+        padding: 20px;
+        border-radius: 8px;
+    }
+
+    .result-section h3 {
+        color: #60a5fa;
+    }
+
+    .result-section li {
+        color: #d1d5db;
+    }
+</style>
+
+<div class="tracking-form-container">
+    <h1>Track an Item</h1>
+    <form method="GET">
+        <input type="text" id="tracking_number" name="tracking_number" placeholder="Enter Tracking Number" required>
+        <button type="submit">Search</button>
+    </form>
+</div>
+
+{% if result %}
+    <a href="{% url 'tracking:tracked_item_detail' tenant_url=tenant_url tracking_number=result.tracking_number %}">
+
+
+
+        <div class="result-section">
+            <h3>Item Found:</h3>
+            <ul>
+                {% for key, value in result.items %}
+                    <li><strong>{{ key }}:</strong> {{ value }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+    </a>
+{% elif searched %}
+    <div class="result-section">
+        <p>No item found with that tracking number.</p>
+    </div>
+{% endif %}
+{% endblock %}

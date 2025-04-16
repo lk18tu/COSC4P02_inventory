@@ -213,16 +213,23 @@ def add_inventory(request, tenant_url=None):
                         tracking_number VARCHAR(100) UNIQUE,
                         status VARCHAR(20),
                         location VARCHAR(100),
+                        destination_percentage DOUBLE(5,2),
                         date_added DATETIME DEFAULT CURRENT_TIMESTAMP,
                         last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         FOREIGN KEY (class_id) REFERENCES {new_table_name}_classes(id)
                     )
                 """)
 
-                # Add entry in the table_metadata table
+                # Add entry in the table_metadata table for class table
                 InvTable_Metadata.objects.create(
                     table_name=new_table_name+"_classes",
                     table_type="inventory",
+                    table_friendly_name = Friendly_new_table_name
+                )
+                # Add entry in the table_metadata table for items table
+                InvTable_Metadata.objects.create(
+                    table_name=new_table_name+"_items",
+                    table_type="inventory_individual_items",
                     table_friendly_name = Friendly_new_table_name
                 )
 
