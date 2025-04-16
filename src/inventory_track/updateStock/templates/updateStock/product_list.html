@@ -38,15 +38,16 @@
           <table class="table table-bordered table-hover">
             <thead class="table-dark">
               <tr>
+                <th>Tracking ID</th>   <!-- New column for tracking ID -->
                 <th>Image</th>
                 <th>Title</th>
                 <th>Product #</th>
                 <th>UPC</th>
-                <th>Desc.</th>
+                <th>Description</th>
                 <th>Quantity</th>
                 <th>Reorder Level</th>
                 <th>Price</th>
-                <th>Purchace Price</th>
+                <th>Purchase Price</th>
                 <th>Notes</th>
                 <th>Actions</th>
               </tr>
@@ -54,10 +55,9 @@
             <tbody>
               {% for row in table_data.rows %}
                 <tr>
-                  <!-- Assuming columns are as follows:
-                       0: id, 1: product_number, 2: upc, 3: title, 4: description,
-                       5: quantity_stock, 6: reorder_level, 7: price, 8: purchace_price,
-                       9: image, 10: notes -->
+                  {# Assuming that the dynamic query returns the following order: #}
+                  {# 0: id, 1: product_number, 2: upc, 3: title, 4: description, 5: quantity_stock, 6: reorder_level, 7: price, 8: purchace_price, 9: image, 10: notes, 11: tracking_id #}
+                  <td>{{ row.11 }}</td>
                   <td>
                     {% if row.9 %}
                       <img src="{{ MEDIA_URL }}{{ row.9 }}" alt="Image" width="100">
