@@ -1,90 +1,218 @@
-from django.shortcuts import render, redirect, HttpResponse, get_object_or_404
+import uuid
+
+from django.shortcuts import render, get_object_or_404, redirect
 from django.db import connection
 from django.contrib import messages
-from django.http import Http404
+from django.db.models import Q
+
 from inventoryApp.models import InvTable_Metadata
-from django.conf import settings
+from .models import StockTransaction
+
+
 
 def product_list(request, tenant_url=None):
-    """
-    Display data from a selected inventory table.
-    If no table is selected via GET, default to the first available inventory table.
-    """
-    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+    tenant_url = (hasattr(request, "tenant") and request.tenant.domain_url) or tenant_url or ""
+    table_name = request.GET.get("table")
+    tables     = InvTable_Metadata.objects.filter(table_type="inventory").order_by("table_name")
 
-    # Get the selected table name from GET parameters
-    table_name = request.GET.get('table')
+    if not table_name and tables:
+        table_name = tables.first().table_name
 
-    # Retrieve all available inventory tables (for the dropdown)
-    inventory_tables = InvTable_Metadata.objects.filter(table_type="inventory").order_by('table_name')
-
-    # Default to the first available table if none was selected
-    if not table_name and inventory_tables.exists():
-        table_name = inventory_tables.first().table_name
-
-    table_data = {}
+    table_data = {"table_name": None, "friendly_name": "", "columns": [], "rows": []}
     if table_name:
-        try:
-            with connection.cursor() as cursor:
-                # Fetch all data from the selected table
-                cursor.execute(f"SELECT * FROM {table_name}")
-                columns = [col[0] for col in cursor.description]
-                rows = cursor.fetchall()
-                table_data = {
-                    'table_name': table_name,
-                    'columns': columns,
-                    'rows': rows
-                }
-        except Exception as e:
-            messages.error(request, f"Error fetching data for table {table_name}: {e}")
+        meta = get_object_or_404(InvTable_Metadata, table_name=table_name)
+        with connection.cursor() as c:
+            c.execute(f"SELECT * FROM `{table_name}`")
+            cols = [col[0] for col in c.description]
+            rows = c.fetchall()
 
-    context = {
-        'table_data': table_data,
-        'inventory_tables': inventory_tables,
-        'MEDIA_URL': settings.MEDIA_URL,
-        'tenant_url': tenant_url
-    }
+        # most‑recent per‑item batch transaction_id
+        txs = StockTransaction.objects.filter(
+            table_meta=meta
+        ).order_by("item_id", "-created_at")
 
-    return render(request, 'updateStock/product_list.html', context)
+        latest = {}
+        for tx in txs:
+            if tx.item_id not in latest:
+                latest[tx.item_id] = tx.transaction_id
 
-def update_stock(request, table_name, item_id, tenant_url=None):
-    """
-    Update the quantity_stock field for a given item in the specified table.
-    """
-    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-    
-    if request.method == 'POST':
-        new_quantity = request.POST.get('quantity')
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    f"UPDATE {table_name} SET quantity_stock = %s WHERE id = %s",
-                    [new_quantity, item_id]
-                )
-            messages.success(request, "Stock updated successfully.")
-        except Exception as e:
-            messages.error(request, f"Error updating stock: {e}")
-        # Redirect to the correct URL with tenant_url
-        return redirect(f"/{tenant_url}/updateStock/products/?table={table_name}")
+        augmented = []
+        for row in rows:
+            item_id = row[0]
+            augmented.append(row + (latest.get(item_id, ""),))
+
+        table_data = {
+            "table_name":    table_name,
+            "friendly_name": meta.table_friendly_name,
+            "columns":       cols + ["transaction_id"],
+            "rows":          augmented,
+        }
+
+    return render(request, "updateStock/product_list.html", {
+        "tenant_url":       tenant_url,
+        "inventory_tables": tables,
+        "table_data":       table_data,
+    })
+
+
+def item_detail(request, table_name, item_id, tenant_url=None):
+    tenant_url = (hasattr(request, "tenant") and request.tenant.domain_url) or tenant_url or ""
+    meta       = get_object_or_404(InvTable_Metadata, table_name=table_name)
+
+    # — remove a specific unit?
+    if request.method == "POST" and request.POST.get("remove_unit"):
+        remove_tid = request.POST["remove_unit"]
+        # decrement the master stock count
+        with connection.cursor() as c:
+            c.execute(
+                f"UPDATE `{table_name}` "
+                "SET quantity_stock = quantity_stock - 1 "
+                "WHERE id = %s",
+                [item_id]
+            )
+        # log the removal with a unique transaction_id
+        batch_id = uuid.uuid4().hex
+        StockTransaction.objects.create(
+            table_meta     = meta,
+            item_id        = item_id,
+            change         = -1,
+            tracking_id    = remove_tid,
+            transaction_id = batch_id
+        )
+        messages.success(request, f"Unit {remove_tid} removed.")
+        return redirect(
+            "updateStock:item_detail",
+            tenant_url=tenant_url,
+            table_name=table_name,
+            item_id=item_id
+        )
+
+    # — fetch the “master” row —
+    with connection.cursor() as c:
+        c.execute(f"SELECT * FROM `{table_name}` WHERE id = %s", [item_id])
+        cols = [col[0] for col in c.description]
+        row  = c.fetchone()
+    if not row:
+        messages.error(request, "Item not found.")
+        return redirect("updateStock:product_list", tenant_url=tenant_url)
+
+    # determine a display title
+    if "title" in cols:
+        item_title = row[cols.index("title")]
     else:
+        item_title = f"ID {item_id}"
+
+    # — build the live unit list from all +1 / −1 ops —
+    all_txs = StockTransaction.objects.filter(
+        table_meta=meta,
+        item_id=item_id
+    ).order_by("created_at")
+
+    live_units = []
+    for tx in all_txs:
+        if tx.change > 0:
+            live_units.append(tx.tracking_id)
+        elif tx.change < 0 and tx.tracking_id in live_units:
+            live_units.remove(tx.tracking_id)
+
+    # — map slot numbers to tracking IDs, then only show the ones left —
+    unit_map = {}
+    for tid in live_units:
         try:
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    f"SELECT quantity_stock FROM {table_name} WHERE id = %s",
-                    [item_id]
-                )
-                row = cursor.fetchone()
-                if row:
-                    current_quantity = row[0]
-                else:
-                    raise Http404("Item not found.")
-        except Exception as e:
-            messages.error(request, f"Error fetching item data: {e}")
-            return redirect(f"/{tenant_url}/updateStock/products/?table={table_name}")
-        
-        return render(request, 'updateStock/update_stock.html', {
-            'table_name': table_name,
-            'item_id': item_id,
-            'current_quantity': current_quantity,
-            'tenant_url': tenant_url
-        })
+            slot = int(tid.rsplit("_", 1)[1])
+        except (IndexError, ValueError):
+            continue
+        unit_map[slot] = tid
+
+    instances = [
+        {"unit_number": slot, "tracking_id": tid}
+        for slot, tid in sorted(unit_map.items())
+    ]
+    # — history: only show bulk adds (change > 1) and all removals (change < 0) —
+    history = StockTransaction.objects.filter(
+        table_meta=meta,
+        item_id=item_id
+    ).filter(
+        Q(change__gt=1) | Q(change__lt=0)
+    ).order_by("-created_at")
+
+    return render(request, "updateStock/item_detail.html", {
+        "tenant_url": tenant_url,
+        "table_name": table_name,
+        "item_id":    item_id,
+        "item_title": item_title,
+        "instances":  instances,
+        "history":    history,
+    })
+
+
+def add_stock(request, table_name, item_id, tenant_url=None):
+    tenant_url = (hasattr(request, "tenant") and request.tenant.domain_url) or tenant_url or ""
+    meta       = get_object_or_404(InvTable_Metadata, table_name=table_name)
+
+    with connection.cursor() as c:
+        c.execute(f"SELECT title FROM `{table_name}` WHERE id = %s", [item_id])
+        row = c.fetchone()
+    item_title = row[0] if row else f"ID {item_id}"
+
+    if request.method == "POST":
+        amt = int(request.POST["amount"])
+        with connection.cursor() as c:
+            c.execute(
+                f"UPDATE `{table_name}` "
+                "SET quantity_stock = quantity_stock + %s "
+                "WHERE id = %s",
+                [amt, item_id]
+            )
+
+        batch_id = uuid.uuid4().hex
+        friendly = meta.table_friendly_name.replace(" ", "_")
+
+        existing = StockTransaction.objects.filter(
+            table_meta=meta, item_id=item_id, change__gt=0
+        ).values_list("tracking_id", flat=True)
+        nums = [
+            int(tid.rsplit("_", 1)[-1])
+            for tid in existing
+            if tid.startswith(f"{friendly}_")
+        ]
+        start = max(nums, default=0) + 1
+
+        for i in range(start, start + amt):
+            tid = f"{friendly}_{meta.id}_{item_id}_{i}"
+            StockTransaction.objects.create(
+                table_meta     = meta,
+                item_id        = item_id,
+                change         = 1,
+                tracking_id    = tid,
+                transaction_id = batch_id
+            )
+
+        # one single summary row
+        StockTransaction.objects.create(
+            table_meta     = meta,
+            item_id        = item_id,
+            change         = amt,
+            tracking_id    = "",
+            transaction_id = batch_id
+        )
+
+        messages.success(request, f"Added {amt} unit(s).")
+        return redirect("updateStock:item_detail",
+                        tenant_url=tenant_url,
+                        table_name=table_name,
+                        item_id=item_id)
+
+    return render(request, "updateStock/add_stock.html", {
+        "tenant_url": tenant_url,
+        "table_name": table_name,
+        "item_id":    item_id,
+        "item_title": item_title,
+    })
+
+
+def remove_stock(request, table_name, item_id, tenant_url=None):
+    return redirect("updateStock:item_detail",
+                    tenant_url=tenant_url,
+                    table_name=table_name,
+                    item_id=item_id)

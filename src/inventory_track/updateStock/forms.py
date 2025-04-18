@@ -1,7 +1,7 @@
 from django import forms
-from .models import Product
 
-class ProductStockUpdateForm(forms.ModelForm):
-    class Meta:
-        model = Product
-        fields = ['stock']
+class StockForm(forms.Form):
+    quantity = forms.IntegerField(
+        min_value=1,
+        label="Quantity"
+    )

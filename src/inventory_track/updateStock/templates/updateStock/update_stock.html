@@ -1,20 +1,60 @@
+{# updateStock/templates/updateStock/update_stock.html #}
 {% extends "base.html" %}
-{% load static %}
-
-{% block title %}Update Stock{% endblock %}
-
 {% block content %}
-<div class="container mt-4">
-  <h2>Update Stock</h2>
-  <p>Current Quantity: <strong>{{ current_quantity }}</strong></p>
-  <form method="POST">
-    {% csrf_token %}
-    <div class="mb-3">
-      <label for="quantity" class="form-label">New Quantity:</label>
-      <input type="number" class="form-control" id="quantity" name="quantity" value="{{ current_quantity }}" min="0" required>
-    </div>
-    <button type="submit" class="btn btn-success">Update</button>
-    <a href="{% url 'updateStock:product_list' tenant_url=tenant_url %}?table={{ table_name }}" class="btn btn-secondary">Cancel</a>
+<div class="container my-4">
+  <h2>Update Stock – {{ table_data.table_name }}</h2>
+
+  <form method="get" class="mb-3">
+    <select name="table" onchange="this.form.submit()">
+      <option value="">-- choose table --</option>
+      {% for t in inventory_tables %}
+        <option value="{{ t.table_name }}"
+          {% if t.table_name == table_data.table_name %}selected{% endif %}>
+          {{ t.table_name }}
+        </option>
+      {% endfor %}
+    </select>
   </form>
+
+  {% if table_data.rows %}
+    <table class="table table-hover table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Title</th>
+          <th>Quantity</th>
+          <th>Notes</th>
+          <th>Tracking ID</th>
+          <th>Edit</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in table_data.rows %}
+          {% url "updateStock:item_detail" tenant_url table_data.table_name row.0 as detail_url %}
+          <tr>
+            <td>{{ row.0 }}</td>
+            <td>{{ row.3 }}</td>
+            <td>{{ row.5 }}</td>
+            <td>{{ row.10 }}</td>
+            <td>{{ row.11 }}</td>
+            <td>
+              <a href="{{ detail_url }}" class="btn btn-dark btn-sm">
+                Edit
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="text-center text-muted">No items in that table.</p>
+  {% endif %}
+
+  <div class="text-center mt-3">
+    <a href="/{{ tenant_url }}/userauth/dashboard/" class="btn btn-secondary">
+       class="btn btn-secondary">
+      ← Back to Dashboard
+    </a>
+  </div>
 </div>
 {% endblock %}

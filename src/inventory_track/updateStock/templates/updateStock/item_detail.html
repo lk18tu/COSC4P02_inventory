@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container my-4">
+  <h2>{{ item_title }}</h2>
+
+  <div class="mb-3">
+    <a href="{% url 'updateStock:product_list' tenant_url=tenant_url %}?table={{ table_name }}" class="btn btn-secondary btn-sm">← Back</a>
+    <a href="{% url 'updateStock:add_stock' tenant_url=tenant_url table_name=table_name item_id=item_id %}" class="btn btn-primary btn-sm">Add Stock</a>
+  </div>
+
+  <h3>Units ({{ instances|length }})</h3>
+  <table class="table table-bordered">
+    <thead class="table-dark">
+      <tr>
+        <th>Unit&nbsp;#</th>
+        <th>Tracking&nbsp;ID</th>
+        <th>Remove</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for inst in instances %}
+      <tr>
+        <td>{{ inst.unit_number }}</td>
+        <td>{{ inst.tracking_id }}</td>
+        <td>
+          <form method="post" action="{% url 'updateStock:item_detail' tenant_url=tenant_url table_name=table_name item_id=item_id %}" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="remove_unit" value="{{ inst.tracking_id }}">
+            <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+          </form>
+        </td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3">No units.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h3>Transaction History</h3>
+  <table class="table table-striped">
+    <thead class="table-dark">
+      <tr>
+        <th>Date</th>
+        <th>Change</th>
+        <th>Transaction&nbsp;ID</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tx in history %}
+      <tr>
+        <td>{{ tx.created_at|date:"Y-m-d H:i" }}</td>
+        <td class="{% if tx.change > 0 %}text-success{% else %}text-danger{% endif %}">{{ tx.change }}</td>
+        <td>{{ tx.transaction_id|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="3">No transactions yet.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

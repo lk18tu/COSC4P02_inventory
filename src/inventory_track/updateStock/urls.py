@@ -1,10 +1,30 @@
-# updateStock/urls.py
 from django.urls import path
-from .views import product_list, update_stock
+from . import views
 
-app_name = 'updateStock'
+app_name = "updateStock"
 
 urlpatterns = [
-    path('products/', product_list, name='product_list'),
-    path('update/<str:table_name>/<int:item_id>/', update_stock, name='update_stock'),
+    # 1) Dashboard / product list
+    path("products/", views.product_list, name="product_list"),
+
+    # 2) Detail for one item: list units + remove buttons + history
+    path(
+        "products/<str:table_name>/<int:item_id>/",
+        views.item_detail,
+        name="item_detail"
+    ),
+
+    # 3) Add stock form
+    path(
+        "products/<str:table_name>/<int:item_id>/add/",
+        views.add_stock,
+        name="add_stock"
+    ),
+
+    # (Unused bulk‐remove stub, but declared for completeness)
+    path(
+        "products/<str:table_name>/<int:item_id>/remove/",
+        views.remove_stock,
+        name="remove_stock"
+    ),
 ]
