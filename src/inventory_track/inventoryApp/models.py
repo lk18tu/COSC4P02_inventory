@@ -26,6 +26,7 @@ class InvTable_Metadata(models.Model):
     table_name = models.CharField(max_length=255, unique=True)
     table_type = models.CharField(max_length=50)
     table_friendly_name = models.CharField(max_length=255)
+    company_name = models.CharField(max_length=255, default='Default Company')
 
 def __str__(self):
     return self.table_name
