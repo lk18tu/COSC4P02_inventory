@@ -15,12 +15,17 @@ from tenant_manager.utils import tenant_context
 # Create your views here.
 def home(request, tenant_url=None):
     tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
+
+    #get company name
+    tenant = getattr(request, 'tenant', None)
+    company_name = tenant.name if tenant else 'Unknown Company'
     
+
     # Get all inventory tables
-    inventory_tables = InvTable_Metadata.objects.filter(table_type="inventory")
+    inventory_tables = InvTable_Metadata.objects.filter(table_type="inventory", company_name=company_name)
     
     # Get archived tables
-    archived_tables = InvTable_Metadata.objects.filter(table_type="archived_inventory")
+    archived_tables = InvTable_Metadata.objects.filter(table_type="archived_inventory", company_name=company_name)
     
     # Determine which view to show (normal or archived)
     current_view = request.GET.get("view", "inventory")
@@ -170,15 +175,20 @@ from .utils import log_inventory_action  # Assuming this is a custom function
 
 def add_inventory(request, tenant_url=None):
     tenant = getattr(request, 'tenant', None)
+
+    #get company name
+    company_name = tenant.name if tenant else 'Unknown Company'
     
     if request.method == "POST":
         Friendly_new_table_name = request.POST.get("table_name")  # Get the table name from the form
         new_table_name = Friendly_new_table_name.replace(" ", "") #deletes spaces to allow for table name creation (SQL doest allow spaces)
-
+      
 
         # Basic validation to prevent SQL injection (simplified)
         if not new_table_name.isalnum():  # Allow only alphanumeric characters
             return HttpResponse("Error: Table name must be alphanumeric", status=400)
+
+        new_table_name = company_name.replace(" ", "") + "_" +  new_table_name
 
         try:
             # No need to switch contexts - just use the current connection
@@ -224,13 +234,15 @@ def add_inventory(request, tenant_url=None):
                 InvTable_Metadata.objects.create(
                     table_name=new_table_name+"_classes",
                     table_type="inventory",
-                    table_friendly_name = Friendly_new_table_name
+                    table_friendly_name = Friendly_new_table_name,
+                    company_name = company_name
                 )
                 # Add entry in the table_metadata table for items table
                 InvTable_Metadata.objects.create(
                     table_name=new_table_name+"_items",
                     table_type="inventory_individual_items",
-                    table_friendly_name = Friendly_new_table_name
+                    table_friendly_name = Friendly_new_table_name,
+                    company_name = company_name
                 )
 
             tenant_url = tenant.domain_url if tenant else ''
