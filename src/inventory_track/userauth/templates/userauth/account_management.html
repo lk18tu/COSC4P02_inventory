@@ -1,0 +1,347 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Account Management{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Admin Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-white">Account Management</h2>
+        <div>
+            <button class="btn bg-success text-white" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="bi bi-person-plus"></i> Add Employee
+            </button>
+        </div>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Pending Registrations -->
+    <div class="card bg-gray-800 shadow-sm mb-4">
+        <div class="card-header bg-blue-600 text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Pending Registrations</h5>
+            <span class="badge bg-warning text-dark">{{ pending_registrations.count }}</span>
+        </div>
+        <div class="card-body p-0">
+            {% if pending_registrations %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Date Requested</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reg in pending_registrations %}
+                                <tr>
+                                    <td>{{ reg.username }}</td>
+                                    <td>{{ reg.email }}</td>
+                                    <td>{{ reg.created_at|date:"M d, Y" }}</td>
+                                    <td class="text-end">
+                                        <form method="post" action="/{{ tenant_url }}/userauth/approve_registration/{{ reg.id }}/" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-success">
+                                                <i class="bi bi-check-circle"></i> Approve
+                                            </button>
+                                        </form>
+                                        <form method="post" action="/{{ tenant_url }}/userauth/reject_registration/{{ reg.id }}/" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-x-circle"></i> Reject
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-4 text-center text-gray-300">
+                    <p>No pending registrations.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Registered Users -->
+    <div class="card bg-gray-800 shadow-sm">
+        <div class="card-header bg-blue-600 text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Registered Users</h5>
+            <span class="badge bg-info">{{ active_users.count }}</span>
+        </div>
+        <div class="card-body p-0">
+            {% if active_users %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>User Type</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in active_users %}
+                                <tr>
+                                    <td>{{ user.username }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td>
+                                        <form method="post" action="/{{ tenant_url }}/userauth/update_user_type/{{ user.id }}/" class="d-inline user-type-form">
+                                            {% csrf_token %}
+                                            <select name="user_type" class="form-select form-select-sm bg-gray-700 text-white" data-user-id="{{ user.id }}" data-username="{{ user.username }}" data-current-type="{{ user.profile.user_type }}" onchange="confirmUserTypeChange(this)">
+                                                <option value="employee" {% if user.profile.user_type == 'employee' %}selected{% endif %}>Employee</option>
+                                                <option value="manager" {% if user.profile.user_type == 'manager' %}selected{% endif %}>Manager</option>
+                                            </select>
+                                        </form>
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editUserModal{{ user.id }}">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteUserModal{{ user.id }}">
+                                            <i class="bi bi-trash"></i> Delete
+                                        </button>
+                                    </td>
+                                </tr>
+                                
+                                <!-- Delete User Modal for {{ user.username }} -->
+                                <div class="modal fade" id="deleteUserModal{{ user.id }}" tabindex="-1" aria-labelledby="deleteUserModalLabel{{ user.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content bg-gray-800">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title" id="deleteUserModalLabel{{ user.id }}">Delete User</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <p>Are you sure you want to delete the user <strong>{{ user.username }}</strong>?</p>
+                                                <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> This action cannot be undone.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                <form method="post" action="/{{ tenant_url }}/userauth/delete_user/{{ user.id }}/">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">Delete User</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Edit User Modal for {{ user.username }} -->
+                                <div class="modal fade" id="editUserModal{{ user.id }}" tabindex="-1" aria-labelledby="editUserModalLabel{{ user.id }}" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content bg-gray-800">
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title" id="editUserModalLabel{{ user.id }}">Edit User</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form>
+                                                    <div class="mb-3">
+                                                        <label for="editUsername{{ user.id }}" class="form-label">Username</label>
+                                                        <input type="text" class="form-control bg-gray-700 text-white" id="editUsername{{ user.id }}" value="{{ user.username }}" readonly>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="editEmail{{ user.id }}" class="form-label">Email</label>
+                                                        <input type="email" class="form-control bg-gray-700 text-white" id="editEmail{{ user.id }}" value="{{ user.email }}" readonly>
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="editUserType{{ user.id }}" class="form-label">User Type</label>
+                                                        <select class="form-select bg-gray-700 text-white" id="editUserType{{ user.id }}">
+                                                            <option value="employee" {% if user.profile.user_type == 'employee' %}selected{% endif %}>Employee</option>
+                                                            <option value="manager" {% if user.profile.user_type == 'manager' %}selected{% endif %}>Manager</option>
+                                                        </select>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                <button type="button" class="btn btn-primary" onclick="updateUserType('{{ user.id }}')">Save Changes</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="p-4 text-center text-gray-300">
+                    <p>No registered users found.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-gray-800">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="addUserModalLabel">Add New Employee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="/{{ tenant_url }}/userauth/add_user/">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="newUsername" class="form-label">Username</label>
+                        <input type="text" class="form-control bg-gray-700 text-white" id="newUsername" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control bg-gray-700 text-white" id="newEmail" name="email" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control bg-gray-700 text-white" id="newPassword" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newUserType" class="form-label">User Type</label>
+                        <select class="form-select bg-gray-700 text-white" id="newUserType" name="user_type">
+                            <option value="employee" selected>Employee</option>
+                            <option value="manager">Manager</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- User Type Change Confirmation Modal -->
+<div class="modal fade" id="userTypeChangeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-gray-800">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">Change User Type</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to change <strong id="change-username"></strong>'s role from <strong id="change-from-type"></strong> to <strong id="change-to-type"></strong>?</p>
+                <p class="text-warning"><i class="bi bi-exclamation-triangle"></i> This will change the user's permissions in the system.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="cancelTypeChange()">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="confirmTypeChange()">Change Role</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let activeSelect = null;
+    let originalValue = null;
+    
+    function confirmUserTypeChange(selectElement) {
+        // Store reference to the select element
+        activeSelect = selectElement;
+        originalValue = selectElement.getAttribute('data-current-type');
+        const userId = selectElement.getAttribute('data-user-id');
+        const username = selectElement.getAttribute('data-username');
+        const fromType = originalValue;
+        const toType = selectElement.value;
+        
+        // If no change, do nothing
+        if (fromType === toType) {
+            return;
+        }
+        
+        // Set confirmation modal content
+        document.getElementById('change-username').textContent = username;
+        document.getElementById('change-from-type').textContent = fromType.charAt(0).toUpperCase() + fromType.slice(1);
+        document.getElementById('change-to-type').textContent = toType.charAt(0).toUpperCase() + toType.slice(1);
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('userTypeChangeModal'));
+        modal.show();
+        
+        // Prevent form submission
+        return false;
+    }
+    
+    function cancelTypeChange() {
+        // Reset the select to its original value
+        if (activeSelect) {
+            activeSelect.value = originalValue;
+        }
+        
+        // Hide the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('userTypeChangeModal'));
+        modal.hide();
+    }
+    
+    function confirmTypeChange() {
+        if (activeSelect) {
+            const userId = activeSelect.getAttribute('data-user-id');
+            const newType = activeSelect.value;
+            
+            // Create and submit form
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = `/{{ tenant_url }}/userauth/update_user_type/${userId}/`;
+            form.style.display = 'none';
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            form.appendChild(csrfInput);
+            
+            const userTypeInput = document.createElement('input');
+            userTypeInput.type = 'hidden';
+            userTypeInput.name = 'user_type';
+            userTypeInput.value = newType;
+            form.appendChild(userTypeInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+        
+        // Hide the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('userTypeChangeModal'));
+        modal.hide();
+    }
+    
+    function updateUserType(userId) {
+        const userType = document.getElementById(`editUserType${userId}`).value;
+        const form = document.createElement('form');
+        form.method = 'post';
+        form.action = `/{{ tenant_url }}/userauth/update_user_type/${userId}/`;
+        form.style.display = 'none';
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        form.appendChild(csrfInput);
+        
+        const userTypeInput = document.createElement('input');
+        userTypeInput.type = 'hidden';
+        userTypeInput.name = 'user_type';
+        userTypeInput.value = userType;
+        form.appendChild(userTypeInput);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+</script>
+{% endblock %}

@@ -250,6 +250,47 @@
     </div>
 </div>
 
+<!-- Pending Registration Modal -->
+<div class="modal fade" id="pendingRegistrationModal" tabindex="-1" aria-labelledby="pendingRegistrationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title text-dark" id="pendingRegistrationModalLabel">Registration Pending</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p>Your registration request for <strong id="pending-username"></strong> is still pending approval by a manager.</p>
+                <p>You will be able to log in once a company manager approves your registration.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Registration Success Modal -->
+<div class="modal fade" id="registrationSuccessModal" tabindex="-1" aria-labelledby="registrationSuccessModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title font-bold" id="registrationSuccessModalLabel">Registration Successful</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-3">
+                    <i class="bi bi-check-circle" style="font-size: 3rem; color: #4ade80;"></i>
+                </div>
+                <p class="text-center">Your registration has been submitted successfully!</p>
+                <p class="text-center">A manager will review your registration request. You will be able to log in once your account is approved.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const registerForm = document.getElementById('tenantRegisterForm');
@@ -276,8 +317,24 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // Redirect to dashboard on success
-                    window.location.href = data.redirect_url;
+                    // Check if the message contains "awaiting manager approval"
+                    if (data.message && data.message.includes('awaiting manager approval')) {
+                        // Hide the registration modal
+                        const registerModal = bootstrap.Modal.getInstance(document.getElementById('tenantRegisterModal'));
+                        registerModal.hide();
+                        
+                        // Show the success modal
+                        const successModal = new bootstrap.Modal(document.getElementById('registrationSuccessModal'));
+                        successModal.show();
+                        
+                        // Set a delay before redirecting
+                        setTimeout(function() {
+                            window.location.href = data.redirect_url;
+                        }, 5000); // 5 seconds delay
+                    } else {
+                        // Direct redirect for first manager or other successful cases
+                        window.location.href = data.redirect_url;
+                    }
                 } else {
                     // Show error in the modal
                     errorDiv.textContent = data.message;
@@ -288,6 +345,50 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', error);
                 errorDiv.textContent = 'An unexpected error occurred. Please try again.';
                 errorDiv.classList.remove('d-none');
+            });
+        });
+    }
+
+    // Handle login form submission
+    const loginForm = document.getElementById('tenantLoginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Create AJAX request
+            const formData = new FormData(loginForm);
+            
+            fetch(loginForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Redirect to dashboard on success
+                    window.location.href = data.redirect_url;
+                } else if (data.status === 'pending') {
+                    // Show pending registration modal
+                    document.getElementById('pending-username').textContent = data.username;
+                    const pendingModal = new bootstrap.Modal(document.getElementById('pendingRegistrationModal'));
+                    
+                    // Hide the login modal first
+                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('tenantLoginModal'));
+                    loginModal.hide();
+                    
+                    // Show the pending registration modal
+                    pendingModal.show();
+                } else {
+                    // Show error message
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unexpected error occurred. Please try again.');
             });
         });
     }

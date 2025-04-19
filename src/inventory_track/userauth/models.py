@@ -20,6 +20,16 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.user_type}"
 
+class PendingRegistration(models.Model):
+    username = models.CharField(max_length=150, unique=True)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=255)  # Will store hashed password
+    tenant_url = models.CharField(max_length=128)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Pending: {self.username}"
+
 class Notification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     message = models.TextField()
