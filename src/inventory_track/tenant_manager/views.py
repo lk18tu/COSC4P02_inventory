@@ -7,6 +7,7 @@ from .forms import TenantUserCreationForm, TenantCreationForm
 from .models import Tenant
 from django.contrib.auth.models import User
 import re
+from userauth.models import UserProfile
 
 def landing_page(request):
     return render(request, 'tenant_manager/landing.html')
@@ -25,7 +26,8 @@ def register_tenant(request):
                 messages.error(request, 'Email already exists')
             else:
                 user = User.objects.create_user(username=username, email=email, password=password1)
-                user.save()
+                # Create UserProfile with manager type
+                UserProfile.objects.create(user=user, user_type='manager')
                 # Log the user in after registration
                 login(request, user)
                 messages.success(request, f'Account created for {username}. Welcome to your dashboard!')
