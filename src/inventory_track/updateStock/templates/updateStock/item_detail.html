@@ -14,6 +14,8 @@
       <tr>
         <th>Unit&nbsp;#</th>
         <th>Tracking&nbsp;ID</th>
+        <th>Status</th>
+        <th>Location</th>
         <th>Remove</th>
       </tr>
     </thead>
@@ -22,6 +24,8 @@
       <tr>
         <td>{{ inst.unit_number }}</td>
         <td>{{ inst.tracking_id }}</td>
+        <td>{{ inst.status }}</td>
+        <td>{{ inst.location }}</td>
         <td>
           <form method="post" action="{% url 'updateStock:item_detail' tenant_url=tenant_url table_name=table_name item_id=item_id %}" style="display:inline">
             {% csrf_token %}
@@ -32,7 +36,7 @@
       </tr>
       {% empty %}
       <tr>
-        <td colspan="3">No units.</td>
+        <td colspan="5">No units.</td>
       </tr>
       {% endfor %}
     </tbody>
@@ -51,13 +55,13 @@
       {% for tx in history %}
       <tr>
         <td>{{ tx.created_at|date:"Y-m-d H:i" }}</td>
-        <td class="{% if tx.change > 0 %}text-success{% else %}text-danger{% endif %}">{{ tx.change }}</td>
+        <td class="{% if tx.change > 0 %}text-success{% else %}text-danger{% endif %}">
+          {{ tx.change }}
+        </td>
         <td>{{ tx.transaction_id|default:"—" }}</td>
       </tr>
       {% empty %}
-      <tr>
-        <td colspan="3">No transactions yet.</td>
-      </tr>
+      <tr><td colspan="3">No transactions yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>
