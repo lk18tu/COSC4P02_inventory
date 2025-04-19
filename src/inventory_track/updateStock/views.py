@@ -1,13 +1,12 @@
 import uuid
-
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db import connection
+from django.db import ProgrammingError as DBProgrammingError
 from django.contrib import messages
 from django.db.models import Q
 
 from inventoryApp.models import InvTable_Metadata
-from .models import StockTransaction
-
+from .models import StockTransaction, StockUnit
 
 
 def product_list(request, tenant_url=None):
@@ -59,33 +58,47 @@ def item_detail(request, table_name, item_id, tenant_url=None):
     tenant_url = (hasattr(request, "tenant") and request.tenant.domain_url) or tenant_url or ""
     meta       = get_object_or_404(InvTable_Metadata, table_name=table_name)
 
-    # — remove a specific unit?
+    # — remove a specific unit? —
     if request.method == "POST" and request.POST.get("remove_unit"):
         remove_tid = request.POST["remove_unit"]
-        # decrement the master stock count
+
+        # 1) decrement the master stock count
         with connection.cursor() as c:
             c.execute(
                 f"UPDATE `{table_name}` "
                 "SET quantity_stock = quantity_stock - 1 "
                 "WHERE id = %s",
-                [item_id]
+                [item_id],
             )
-        # log the removal with a unique transaction_id
+
+        # 2) log the removal
         batch_id = uuid.uuid4().hex
         StockTransaction.objects.create(
             table_meta     = meta,
             item_id        = item_id,
             change         = -1,
             tracking_id    = remove_tid,
-            transaction_id = batch_id
+            transaction_id = batch_id,
         )
+
+        # 3) update the StockUnit row
+        try:
+            unit = StockUnit.objects.get(
+                table_meta=meta,
+                item_id=item_id,
+                tracking_id=remove_tid
+            )
+            unit.status = "Removed"
+            unit.location = ""
+            unit.save()
+        except StockUnit.DoesNotExist:
+            pass
+
         messages.success(request, f"Unit {remove_tid} removed.")
-        return redirect(
-            "updateStock:item_detail",
-            tenant_url=tenant_url,
-            table_name=table_name,
-            item_id=item_id
-        )
+        return redirect("updateStock:item_detail",
+                        tenant_url=tenant_url,
+                        table_name=table_name,
+                        item_id=item_id)
 
     # — fetch the “master” row —
     with connection.cursor() as c:
@@ -96,13 +109,10 @@ def item_detail(request, table_name, item_id, tenant_url=None):
         messages.error(request, "Item not found.")
         return redirect("updateStock:product_list", tenant_url=tenant_url)
 
-    # determine a display title
-    if "title" in cols:
-        item_title = row[cols.index("title")]
-    else:
-        item_title = f"ID {item_id}"
+    # — determine a display title —
+    item_title = row[cols.index("title")] if "title" in cols else f"ID {item_id}"
 
-    # — build the live unit list from all +1 / −1 ops —
+    # — build the live unit list from all +1/−1 ops —
     all_txs = StockTransaction.objects.filter(
         table_meta=meta,
         item_id=item_id
@@ -115,7 +125,7 @@ def item_detail(request, table_name, item_id, tenant_url=None):
         elif tx.change < 0 and tx.tracking_id in live_units:
             live_units.remove(tx.tracking_id)
 
-    # — map slot numbers to tracking IDs, then only show the ones left —
+    # — map slot numbers to tracking IDs —
     unit_map = {}
     for tid in live_units:
         try:
@@ -128,7 +138,20 @@ def item_detail(request, table_name, item_id, tenant_url=None):
         {"unit_number": slot, "tracking_id": tid}
         for slot, tid in sorted(unit_map.items())
     ]
-    # — history: only show bulk adds (change > 1) and all removals (change < 0) —
+
+    # — fetch status + location from StockUnit —
+    units = StockUnit.objects.filter(
+        table_meta=meta,
+        item_id=item_id,
+        tracking_id__in=[inst["tracking_id"] for inst in instances]
+    )
+    unit_map2 = {u.tracking_id: u for u in units}
+    for inst in instances:
+        u = unit_map2.get(inst["tracking_id"])
+        inst["status"]   = u.status   if u else ""
+        inst["location"] = u.location if u else ""
+
+    # — history: bulk adds (change > 1) and all removals (change < 0) —
     history = StockTransaction.objects.filter(
         table_meta=meta,
         item_id=item_id
@@ -158,47 +181,56 @@ def add_stock(request, table_name, item_id, tenant_url=None):
 
     if request.method == "POST":
         amt = int(request.POST["amount"])
-        # bump the stock count
+
+        # 1) bump the master stock count
         with connection.cursor() as c:
             c.execute(
                 f"UPDATE `{table_name}` "
                 "SET quantity_stock = quantity_stock + %s "
                 "WHERE id = %s",
-                [amt, item_id]
+                [amt, item_id],
             )
 
+        # 2) create StockTransaction rows + StockUnit rows
         batch_id = uuid.uuid4().hex
         slug     = item_title.replace(" ", "_")
 
-        # find existing tracking‑ID numbers for this item
         existing = StockTransaction.objects.filter(
             table_meta=meta, item_id=item_id, change__gt=0
         ).values_list("tracking_id", flat=True)
         nums = [
-            int(tid.rsplit("_", 1)[-1])
-            for tid in existing
-            if tid.startswith(f"{slug}_{item_id}_")
+            int(t.rsplit("_", 1)[-1])
+            for t in existing
+            if t.startswith(f"{slug}_{item_id}_")
         ]
         start = max(nums, default=0) + 1
 
-        # create one row per new unit
         for i in range(start, start + amt):
             tid = f"{slug}_{item_id}_{i}"
+            # a) log transaction
             StockTransaction.objects.create(
                 table_meta     = meta,
                 item_id        = item_id,
                 change         = 1,
                 tracking_id    = tid,
-                transaction_id = batch_id
+                transaction_id = batch_id,
+            )
+            # b) create the unit
+            StockUnit.objects.create(
+                table_meta   = meta,
+                item_id      = item_id,
+                tracking_id  = tid,
+                status       = "In Stock",
+                location     = "Warehouse",
             )
 
-        # one summary row
+        # 3) summary row
         StockTransaction.objects.create(
             table_meta     = meta,
             item_id        = item_id,
             change         = amt,
             tracking_id    = "",
-            transaction_id = batch_id
+            transaction_id = batch_id,
         )
 
         messages.success(request, f"Added {amt} unit(s).")
@@ -213,7 +245,6 @@ def add_stock(request, table_name, item_id, tenant_url=None):
         "item_id":    item_id,
         "item_title": item_title,
     })
-
 
 
 def remove_stock(request, table_name, item_id, tenant_url=None):
