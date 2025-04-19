@@ -150,13 +150,15 @@ def add_stock(request, table_name, item_id, tenant_url=None):
     tenant_url = (hasattr(request, "tenant") and request.tenant.domain_url) or tenant_url or ""
     meta       = get_object_or_404(InvTable_Metadata, table_name=table_name)
 
+    # grab the item title
     with connection.cursor() as c:
         c.execute(f"SELECT title FROM `{table_name}` WHERE id = %s", [item_id])
         row = c.fetchone()
-    item_title = row[0] if row else f"ID {item_id}"
+    item_title = row[0] if row else f"ID_{item_id}"
 
     if request.method == "POST":
         amt = int(request.POST["amount"])
+        # bump the stock count
         with connection.cursor() as c:
             c.execute(
                 f"UPDATE `{table_name}` "
@@ -166,20 +168,22 @@ def add_stock(request, table_name, item_id, tenant_url=None):
             )
 
         batch_id = uuid.uuid4().hex
-        friendly = meta.table_friendly_name.replace(" ", "_")
+        slug     = item_title.replace(" ", "_")
 
+        # find existing tracking‑ID numbers for this item
         existing = StockTransaction.objects.filter(
             table_meta=meta, item_id=item_id, change__gt=0
         ).values_list("tracking_id", flat=True)
         nums = [
             int(tid.rsplit("_", 1)[-1])
             for tid in existing
-            if tid.startswith(f"{friendly}_")
+            if tid.startswith(f"{slug}_{item_id}_")
         ]
         start = max(nums, default=0) + 1
 
+        # create one row per new unit
         for i in range(start, start + amt):
-            tid = f"{friendly}_{meta.id}_{item_id}_{i}"
+            tid = f"{slug}_{item_id}_{i}"
             StockTransaction.objects.create(
                 table_meta     = meta,
                 item_id        = item_id,
@@ -188,7 +192,7 @@ def add_stock(request, table_name, item_id, tenant_url=None):
                 transaction_id = batch_id
             )
 
-        # one single summary row
+        # one summary row
         StockTransaction.objects.create(
             table_meta     = meta,
             item_id        = item_id,
@@ -209,6 +213,7 @@ def add_stock(request, table_name, item_id, tenant_url=None):
         "item_id":    item_id,
         "item_title": item_title,
     })
+
 
 
 def remove_stock(request, table_name, item_id, tenant_url=None):

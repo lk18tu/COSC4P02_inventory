@@ -41,7 +41,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "django.template.preview.state": "SHOW_EDITOR_AND_PREVIEW",
-    "git-widget-placeholder": "updateStock(trackingnumber)",
+    "git-widget-placeholder": "main",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/Ameya/School/COSC_4P02/InventoryManagement/COSC4P02_inventory/src/inventory_track",
     "node.js.detected.package.eslint": "true",
@@ -109,6 +109,7 @@
       <workItem from="1744080054920" duration="21000" />
       <workItem from="1744783858272" duration="19000" />
       <workItem from="1744869357157" duration="10000" />
+      <workItem from="1745021956205" duration="35000" />
     </task>
     <servers />
   </component>
