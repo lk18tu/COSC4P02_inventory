@@ -88,7 +88,7 @@ def item_detail(request, table_name, item_id, tenant_url=None):
                 item_id=item_id,
                 tracking_id=remove_tid
             )
-            unit.status = "Removed"
+            unit.status   = "Removed"
             unit.location = ""
             unit.save()
         except StockUnit.DoesNotExist:
@@ -140,7 +140,7 @@ def item_detail(request, table_name, item_id, tenant_url=None):
     ]
 
     # — fetch status + location from StockUnit —
-    units = StockUnit.objects.filter(
+    units   = StockUnit.objects.filter(
         table_meta=meta,
         item_id=item_id,
         tracking_id__in=[inst["tracking_id"] for inst in instances]
@@ -180,7 +180,9 @@ def add_stock(request, table_name, item_id, tenant_url=None):
     item_title = row[0] if row else f"ID_{item_id}"
 
     if request.method == "POST":
-        amt = int(request.POST["amount"])
+        amt      = int(request.POST["amount"])
+        status   = request.POST.get("status",   "In Stock")
+        location = request.POST.get("location", "Warehouse")
 
         # 1) bump the master stock count
         with connection.cursor() as c:
@@ -215,13 +217,13 @@ def add_stock(request, table_name, item_id, tenant_url=None):
                 tracking_id    = tid,
                 transaction_id = batch_id,
             )
-            # b) create the unit
+            # b) create the unit with chosen status & location
             StockUnit.objects.create(
                 table_meta   = meta,
                 item_id      = item_id,
                 tracking_id  = tid,
-                status       = "In Stock",
-                location     = "Warehouse",
+                status       = status,
+                location     = location,
             )
 
         # 3) summary row
