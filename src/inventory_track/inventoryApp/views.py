@@ -1,5 +1,6 @@
 from django.shortcuts import render, HttpResponse, redirect, get_object_or_404
 from .models import InvItem, InvTable_Metadata
+from history.models import InventoryHistory
 from userauth.models import UserProfile
 from django.db import connection, DatabaseError
 from django.contrib import messages
@@ -148,9 +149,20 @@ def add_item(request, table_name, tenant_url=None):
                         ]
                     )
 
+                    #get the class id of the new item
+                    item_class_id = cursor.lastrowid
+
                     # log change
-                    log_inventory_action("ADD", "Added item: "+title, product_number, 0000)
+                    InventoryHistory.objects.create(
+                        location = table_name,
+                        user = request.user,
+                        action = "add",
+                        details = "Added item class: " + title + " " + str(product_number) ,
+                        item_class_number = item_class_id,
+                    )
                     
+
+
                     # Get tenant URL for redirect
                     tenant = getattr(request, 'tenant', None)
                     tenant_url = tenant.domain_url if tenant else tenant_url or ''
@@ -215,6 +227,8 @@ def add_inventory(request, tenant_url=None):
                     )
                 """)
 
+                
+
                 # Create the individual item tracking table
                 cursor.execute(f"""
                     CREATE TABLE `{new_table_name}_items` (
@@ -230,6 +244,7 @@ def add_inventory(request, tenant_url=None):
                     )
                 """)
 
+           
                 # Add entry in the table_metadata table for class table
                 InvTable_Metadata.objects.create(
                     table_name=new_table_name+"_classes",
@@ -243,6 +258,15 @@ def add_inventory(request, tenant_url=None):
                     table_type="inventory_individual_items",
                     table_friendly_name = Friendly_new_table_name,
                     company_name = company_name
+                )
+
+
+                # log change
+                InventoryHistory.objects.create(
+                    location = new_table_name,
+                    user = request.user,
+                    action = "add",
+                    details = "Added Location: " + new_table_name,
                 )
 
             tenant_url = tenant.domain_url if tenant else ''
@@ -266,7 +290,12 @@ def archive_table(request, table_name, tenant_url=None):
 
             print(f"Table '{table_name}' archived successfully.")
             # log change
-            log_inventory_action("ARCHIVED INV", "Archived: "+table_name, 0 , 0000 )
+            InventoryHistory.objects.create(
+                location = table_name,
+                user = request.user,
+                action = "archive",
+                details = "Archived Location: " + table_name,
+            )
             
             # Get tenant URL for redirect
             tenant = getattr(request, 'tenant', None)
@@ -289,6 +318,13 @@ def unarchive_table(request, table_name, tenant_url=None):
             table_metadata.save()
 
             print(f"Table '{table_name}' unarchived successfully.")
+
+            InventoryHistory.objects.create(
+                location = table_name,
+                user = request.user,
+                action = "unarchive",
+                details = "Unarchived Location: " + table_name,
+            )
             
             # Get tenant URL for redirect
             tenant = getattr(request, 'tenant', None)
@@ -305,33 +341,42 @@ def unarchive_table(request, table_name, tenant_url=None):
 def delete_item(request, table_name, item_id, tenant_url=None):
     try:
         with connection.cursor() as cursor:
-            # Ensure the table exists before attempting to delete something from it
-            cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
+            # Ensure the table exists
+            cursor.execute(f"SHOW TABLES LIKE %s", [table_name])
             result = cursor.fetchone()
 
             if result:
-                # Delete the item from the table
+                # Fetch title and product_number before deleting
+                cursor.execute(f"SELECT title, product_number FROM {table_name} WHERE id = %s", [item_id])
+                row = cursor.fetchone()
+                if not row:
+                    raise Http404(f"Item with ID {item_id} not found.")
+                title, product_number = row
+
+                # Delete the item
                 cursor.execute(f"DELETE FROM {table_name} WHERE id = %s", [item_id])
 
-                # get username for logging
-                user_profile = UserProfile.objects.get(user=request.user)
-                username = user_profile.user.username
+                # Log the deletion
+                InventoryHistory.objects.create(
+                    location=table_name,
+                    user=request.user,
+                    action="delete",
+                    details=f"Deleted item class: {title} {product_number}",
+                    item_class_number=item_id,
+                )
 
-                # log change
-                log_inventory_action("DELETE", "N/A", item_id, 0000 )
-
-                # Get tenant URL for redirect
+                # Redirect
                 tenant = getattr(request, 'tenant', None)
                 tenant_url = tenant.domain_url if tenant else tenant_url or ''
                 return redirect(f"/{tenant_url}/invManage/")
             else:
                 raise Http404(f"Table '{table_name}' does not exist.")
     except Exception as e:
-        # Handle database errors or invalid queries
         print(f"Error deleting item: {str(e)}")
         tenant = getattr(request, 'tenant', None)
         tenant_url = tenant.domain_url if tenant else tenant_url or ''
         return redirect(f"/{tenant_url}/invManage/")
+
 
 
 def edit_item(request, table_name, item_id, tenant_url=None):
@@ -395,9 +440,19 @@ def edit_item(request, table_name, item_id, tenant_url=None):
                         price = %s, purchase_price = %s, notes = %s, image = %s
                     WHERE id = %s
                 """, [title, description, reorder_level, price, purchase_price, notes, image_filename, item_id])
+                class_id = cursor.lastrowid
 
         except Exception as e:
             return HttpResponse(f"<h1>Error updating item:</h1><p>{str(e)}</p>", status=500)
+
+        #log history
+        InventoryHistory.objects.create(
+                location = table_name,
+                user = request.user,
+                action = "update",
+                details = "Updated Class: " + title,
+                item_class_number = class_id
+            )
 
         # Redirect after saving
         tenant = getattr(request, 'tenant', None)
@@ -407,24 +462,7 @@ def edit_item(request, table_name, item_id, tenant_url=None):
     return render(request, 'inventoryApp/edit_item.html', {'item': item_data, 'table_name': table_name})
 
 
-def log_inventory_action(action, details, item_id, user_id):
-    """
-    Logs inventory actions (DELETE, UPDATE, INSERT, etc.) to the history table.
-    
-    :param action: The type of action performed (DELETE, UPDATE, INSERT)
-    :param details: A string describing what was changed
-    :param item_id: The ID of the affected item
-    :param user_id: The ID of the user who performed the action
-    """
-    try:
-        timestamp = datetime.datetime.now()  # Ensure datetime is used properly
-        with connection.cursor() as cursor:
-            cursor.execute("""
-                INSERT INTO history_inventoryhistory (action, timestamp, details, item, user)
-                VALUES (%s, %s, %s, %s, %s)
-            """, [action, timestamp, details, item_id, user_id])
-    except Exception as e:
-        print(f"Error logging action: {str(e)}")
+
 
 
 
@@ -475,7 +513,13 @@ def upload_csv(request, table_name, tenant_url=None):
                 except Exception as e:
                     return HttpResponse(f"Error inserting data: {str(e)}", status=400)
 
-            log_inventory_action("BULK", f"Uploaded: {csv_file.name} To {table_name}. Mode = {mode}", 0, 0000)
+                #log history
+                InventoryHistory.objects.create(
+                        location = table_name,
+                        user = request.user,
+                        action = "add",
+                        details = "Bulk uploaded classes. File = " + csv_file.name,
+                    )
 
             tenant = getattr(request, 'tenant', None)
             tenant_url = tenant.domain_url if tenant else tenant_url or ''
