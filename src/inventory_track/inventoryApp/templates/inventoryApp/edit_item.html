@@ -9,7 +9,7 @@
         <div class="col-md-10 offset-md-1">
             <div class="card bg-gray-800 shadow">
                 <div class="card-header bg-blue-600 text-white">
-                    <h3 class="mb-0 font-bold">Edit Item: {{ item.title }}</h3>
+                    <h3 class="mb-0 font-bold">Edit Class: {{ friendly_name }}</h3>
                 </div>
                 <div class="card-body">
                     <form method="POST" enctype="multipart/form-data">
@@ -18,13 +18,13 @@
                         <!-- Title -->
                         <div class="mb-3">
                             <label for="title" class="form-label text-white">Title</label>
-                            <input type="text" class="form-control form-control-dark" id="title" name="title" value="{{ item.title }}" required>
+                            <input type="text" class="form-control form-control-dark" id="title" name="title" maxlength="255" value="{{ item.title }}" required>
                         </div>
 
                         <!-- Description -->
                         <div class="mb-3">
                             <label for="description" class="form-label text-white">Description</label>
-                            <textarea class="form-control form-control-dark" id="description" name="description" rows="3" required>{{ item.description }}</textarea>
+                            <textarea class="form-control form-control-dark" id="description" name="description" maxlength="255" rows="3" required>{{ item.description }}</textarea>
                         </div>
 
                         <div class="row">
@@ -32,7 +32,7 @@
                             <!-- Reorder Level -->
                             <div class="col-md-6 mb-3">
                                 <label for="reorder_level" class="form-label text-white">Reorder Level</label>
-                                <input type="number" class="form-control form-control-dark" id="reorder_level" name="reorder_level" value="{{ item.reorder_level }}" required>
+                                <input type="number" class="form-control form-control-dark" id="reorder_level" name="reorder_level" min="0" max="2147483647" value="{{ item.reorder_level }}" required>
                             </div>
                         </div>
 
@@ -40,26 +40,26 @@
                             <!-- Price -->
                             <div class="col-md-6 mb-3">
                                 <label for="price" class="form-label text-white">Price</label>
-                                <input type="number" class="form-control form-control-dark" id="price" name="price" value="{{ item.price }}" step="0.01" required>
+                                <input type="number" class="form-control form-control-dark" id="price" name="price" min="0" max="99999999.99" value="{{ item.price }}" step="0.01" required>
                             </div>
 
                             <!-- Purchase Price -->
                             <div class="col-md-6 mb-3">
                                 <label for="purchase_price" class="form-label text-white">Purchase Price</label>
-                                <input type="number" class="form-control form-control-dark" id="purchase_price" name="purchase_price" value="{{ item.purchase_price }}" step="0.01" required>
+                                <input type="number" class="form-control form-control-dark" id="purchase_price" name="purchase_price" min="0" max="99999999.99" value="{{ item.purchase_price }}" step="0.01" required>
                             </div>
                         </div>
 
                         <!-- Notes -->
                         <div class="mb-3">
                             <label for="notes" class="form-label text-white">Notes</label>
-                            <textarea class="form-control form-control-dark" id="notes" name="notes" rows="3">{{ item.notes }}</textarea>
+                            <textarea class="form-control form-control-dark" id="notes" name="notes" maxlength="255" rows="3">{{ item.notes }}</textarea>
                         </div>
 
                         <!-- Image -->
                         <div class="mb-3">
                             <label for="image" class="form-label text-white">Upload New Image (Optional)</label>
-                            <input type="file" class="form-control form-control-dark" id="image" name="image" accept="image/*">
+                            <input type="file" class="form-control form-control-dark" id="image" name="image" accept="image/*" onchange="validateImageName()">
                         </div>
 
                         
@@ -74,4 +74,29 @@
         </div>
     </div>
 </div>
+
+<script>
+    // Image name validation
+    function validateImageName() {
+        const fileInput = document.getElementById('image');
+        const fileName = fileInput.value.split('\\').pop(); // Get the file name
+        const errorMessage = document.getElementById('image-error');
+
+        if (fileName.length > 250) {
+            if (!errorMessage) {
+                const errorDiv = document.createElement('div');
+                errorDiv.id = 'image-error';
+                errorDiv.style.color = '#ef4444';
+                errorDiv.innerText = 'File name must be less than 250 characters.';
+                fileInput.parentElement.appendChild(errorDiv);
+            }
+            fileInput.setCustomValidity('File name must be less than 250 characters.');
+        } else {
+            fileInput.setCustomValidity(''); // Clear custom validity if the name is fine
+            if (errorMessage) {
+                errorMessage.remove(); // Remove the error message if the validation passes
+            }
+        }
+    }
+</script>
 {% endblock %}

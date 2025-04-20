@@ -4,10 +4,20 @@
 {% block title %}Add Item{% endblock %}
 
 {% block content %}
+
+
+{% if messages %}
+{% for message in messages %}
+    <div class="alert alert-danger mt-3" role="alert">
+        {{ message }}
+    </div>
+{% endfor %}
+{% endif %}
+
 <div class="container mt-4">
     <div class="card">
         <div class="card-header">
-            <h3 class="mb-0 text-white font-bold">Add Item to {{ table_name }} Table</h3>
+            <h3 class="mb-0 text-white font-bold">Add Item to {{ friendly_name }}</h3>
         </div>
         <div class="card-body">
             <form method="POST" enctype="multipart/form-data">
@@ -17,26 +27,26 @@
                     <!-- Product Number -->
                     <div class="col-md-6 mb-3">
                         <label for="product_number" class="form-label text-gray-300">Product Number</label>
-                        <input type="text" class="form-control" id="product_number" name="product_number" required>
+                        <input type="text" class="form-control" id="product_number" name="product_number" maxlength="100" value="{{ form_data.product_number|default:'' }}" required>
                     </div>
 
                     <!-- UPC -->
                     <div class="col-md-6 mb-3">
                         <label for="upc" class="form-label text-gray-300">UPC</label>
-                        <input type="text" class="form-control" id="upc" name="upc" required>
+                        <input type="text" class="form-control" id="upc" name="upc" maxlength="255" value="{{ form_data.upc|default:'' }}" required>
                     </div>
                 </div>
 
                 <!-- Title -->
                 <div class="mb-3">
                     <label for="title" class="form-label text-gray-300">Title</label>
-                    <input type="text" class="form-control" id="title" name="title" required>
+                    <input type="text" class="form-control" id="title" name="title" maxlength="255" value="{{ form_data.title|default:'' }}" required>
                 </div>
 
                 <!-- Description -->
                 <div class="mb-3">
                     <label for="description" class="form-label text-gray-300">Description</label>
-                    <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
+                    <textarea class="form-control" id="description" name="description" rows="3" maxlength="255" required>{{ form_data.description|default:'' }}</textarea>
                 </div>
 
                 <div class="row">
@@ -44,7 +54,7 @@
                     <!-- Reorder Level -->
                     <div class="col-md-6 mb-3">
                         <label for="reorder_level" class="form-label text-gray-300">Reorder Level</label>
-                        <input type="number" class="form-control" id="reorder_level" name="reorder_level" required>
+                        <input type="number" class="form-control" id="reorder_level" name="reorder_level" min="0" max="2147483647" value="{{ form_data.reorder_level|default:'' }}" required>
                     </div>
                 </div>
 
@@ -52,20 +62,20 @@
                     <!-- Price -->
                     <div class="col-md-6 mb-3">
                         <label for="price" class="form-label text-gray-300">Price</label>
-                        <input type="number" class="form-control" id="price" name="price" step="0.01" required>
+                        <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" max="99999999.99" value="{{ form_data.price|default:'' }}" required>
                     </div>
 
                     <!-- Purchase Price -->
                     <div class="col-md-6 mb-3">
                         <label for="purchase_price" class="form-label text-gray-300">Purchase Price</label>
-                        <input type="number" class="form-control" id="purchase_price" name="purchase_price" step="0.01" required>
+                        <input type="number" class="form-control" id="purchase_price" name="purchase_price" min="0" max="99999999.99" step="0.01" value="{{ form_data.purchase_price|default:'' }}" required>
                     </div>
                 </div>
 
                 <!-- Notes -->
                 <div class="mb-3">
                     <label for="notes" class="form-label text-gray-300">Notes</label>
-                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    <textarea class="form-control" id="notes" name="notes" rows="3" maxlength="255">{{ form_data.notes|default:'' }}</textarea>
                 </div>
 
                 <!-- Image -->
