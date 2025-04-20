@@ -3,6 +3,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db import connection, ProgrammingError as DBProgrammingError
 from django.contrib import messages
 from django.db.models import Q
+from django.core.paginator import Paginator
 
 from inventoryApp.models import InvTable_Metadata
 from .models          import StockTransaction, StockUnit
@@ -181,7 +182,7 @@ def item_detail(request, table_name, item_id, tenant_url=None):
     ]
 
     # — fetch status + location from StockUnit —
-    units   = StockUnit.objects.filter(
+    units     = StockUnit.objects.filter(
         table_meta=meta,
         item_id=item_id,
         tracking_id__in=[inst["tracking_id"] for inst in instances]
@@ -200,13 +201,24 @@ def item_detail(request, table_name, item_id, tenant_url=None):
         Q(change__gt=1) | Q(change__lt=0)
     ).order_by("-created_at")
 
+    # ←──── UNITS PAGINATION ──────────
+    units_paginator = Paginator(instances, 10)  # 10 units per page
+    units_page_number = request.GET.get("units_page")
+    instances_page = units_paginator.get_page(units_page_number)
+
+    # ←──── HISTORY PAGINATION ─────────
+    history_paginator = Paginator(history, 10)  # 10 tx per page
+    history_page_number = request.GET.get("page")
+    history_page = history_paginator.get_page(history_page_number)
+
     return render(request, "updateStock/item_detail.html", {
         "tenant_url": tenant_url,
         "table_name": table_name,
-        "item_id":    item_id,
+        "item_id": item_id,
         "item_title": item_title,
-        "instances":  instances,
-        "history":    history,
+        # pass the paginated pages, drop the old `instances` & `history` if you like
+        "instances_page": instances_page,
+        "history_page": history_page,
     })
 
 
@@ -284,7 +296,7 @@ def add_stock(request, table_name, item_id, tenant_url=None):
                             (class_id, tracking_number, status, location, destination_percentage)
                         VALUES (%s, %s, %s, %s, %s)
                         """,
-                        [item_id, tid, status, location, 0],   # ← destination_percentage = 0
+                        [item_id, tid, status, location, 0],
                     )
                 except DBProgrammingError:
                     pass
