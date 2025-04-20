@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container my-4">
-  <h2>Add Stock to “{{ item_title }}”</h2>
+<div class="container my-4" style="max-width: 600px;">
+
+  <!-- back / cancel button (white text) -->
+  <a href="{% url 'updateStock:item_detail' tenant_url=tenant_url table_name=table_name item_id=item_id %}"
+     class="btn btn-secondary btn-sm text-white mb-3">
+    <i class="bi bi-chevron-left"></i> Back to Item
+  </a>
+
+  <h3 class="mb-4">Add Stock to “{{ item_title }}”</h3>
+
   <form method="post"
         action="{% url 'updateStock:add_stock' tenant_url=tenant_url table_name=table_name item_id=item_id %}">
     {% csrf_token %}
 
     <div class="mb-3">
-      <label for="amount" class="form-label">Quantity to add</label>
-      <input
-        type="number"
-        id="amount"
-        name="amount"
-        min="1"
-        required
-        class="form-control"
-      >
+      <label for="amount" class="form-label fw-semibold">Quantity to add</label>
+      <input type="number" id="amount" name="amount" min="1" required class="form-control">
     </div>
 
-    <!-- STATUS & LOCATION FIELDS: BEGIN -->
     <div class="mb-3">
-      <label for="status" class="form-label">Status</label>
+      <label for="status" class="form-label fw-semibold">Status</label>
       <select id="status" name="status" class="form-select">
         <option value="In Stock">In Stock</option>
         <option value="In Transit">In Transit</option>
@@ -29,26 +29,16 @@
       </select>
     </div>
 
-    <div class="mb-3">
-      <label for="location" class="form-label">Location</label>
-      <input
-        type="text"
-        id="location"
-        name="location"
-        value="Warehouse"
-        class="form-control"
-      >
+    <div class="mb-4">
+      <label for="location" class="form-label fw-semibold">Location</label>
+      <input type="text" id="location" name="location" value="Warehouse" class="form-control">
     </div>
-    <!-- STATUS & LOCATION FIELDS: END -->
 
-        <button type="submit" class="btn btn-primary">Add</button>
-    <a
-      href="{% url 'updateStock:item_detail' tenant_url=tenant_url table_name=table_name item_id=item_id %}"
-      class="btn btn-secondary"
-    >
+    <button type="submit" class="btn btn-primary">Add</button>
+    <a href="{% url 'updateStock:item_detail' tenant_url=tenant_url table_name=table_name item_id=item_id %}"
+       class="btn btn-secondary ms-2 text-white">
       Cancel
     </a>
-
   </form>
 </div>
 {% endblock %}
