@@ -3,12 +3,509 @@
 <html lang="en">
 <head>
     <title>{% block title %}Inventory Track{% endblock %}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Early sidebar state initialization to prevent jarring transition -->
+    <script>
+        // Apply sidebar collapsed state immediately before rendering
+        (function() {
+            // First check URL parameters for sidebar state (useful when redirecting between pages)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlSidebarState = urlParams.get('sidebar_collapsed');
+            
+            // Use URL param if available, otherwise use localStorage
+            let sidebarCollapsed = false;
+            if (urlSidebarState !== null) {
+                sidebarCollapsed = urlSidebarState === 'true';
+                // Update localStorage with the new state
+                localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+            } else {
+                // Fall back to localStorage
+                sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            }
+            
+            // Create and inject a complete preload style block that prevents any visual transition
+            // This will be in effect before any DOM elements are rendered
+            let preloadStyle = '<style id="preload-styles">';
+            // Hide everything initially with an overlay approach instead of visibility:hidden
+            preloadStyle += `
+                body { overflow: hidden !important; }
+                #page-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: #111827;
+                    z-index: 9999;
+                    opacity: 1;
+                    transition: opacity 0.2s ease;
+                }
+            `;
+            preloadStyle += '.preload * { transition: none !important; animation: none !important; }';
+            
+            // Fixed positioning values for sidebar and its elements
+            preloadStyle += `
+                .sidebar {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    height: 100vh !important;
+                    overflow: hidden !important;
+                    display: block !important;
+                }
+                .sidebar-header {
+                    padding: 20px !important;
+                    height: 70px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                }
+                .sidebar-menu {
+                    padding: 0 !important;
+                    margin-top: 10px !important;
+                }
+                .sidebar-menu-item {
+                    margin: 2px 0 !important;
+                }
+                .content-wrapper {
+                    min-height: 100vh !important;
+                    transition: none !important;
+                }
+            `;
+            
+            if (sidebarCollapsed) {
+                // Collapsed sidebar styles
+                preloadStyle += `
+                    .sidebar { width: 70px !important; }
+                    .sidebar .logo-text { opacity: 0 !important; width: 0 !important; display: none !important; }
+                    .sidebar .link-text { opacity: 0 !important; width: 0 !important; display: none !important; }
+                    .content-wrapper { margin-left: 70px !important; }
+                    .sidebar-toggle { display: block !important; }
+                    .sidebar.collapsed .sidebar-toggle { display: block !important; }
+                    html.sidebar-collapsed .sidebar { width: 70px !important; }
+                `;
+                document.documentElement.classList.add('sidebar-collapsed');
+            } else {
+                // Expanded sidebar styles
+                preloadStyle += `
+                    .sidebar { width: 250px !important; }
+                    .sidebar .logo-text { opacity: 1 !important; width: auto !important; display: block !important; }
+                    .sidebar .link-text { opacity: 1 !important; width: auto !important; display: block !important; }
+                    .content-wrapper { margin-left: 250px !important; }
+                    html:not(.sidebar-collapsed) .sidebar { width: 250px !important; }
+                `;
+            }
+            
+            preloadStyle += '</style>';
+            document.write(preloadStyle);
+            
+            // Insert overlay div
+            document.write('<div id="page-overlay"></div>');
+            
+            // Clean URL by removing the sidebar_collapsed parameter if it exists
+            if (urlSidebarState !== null && history.replaceState) {
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('sidebar_collapsed');
+                history.replaceState(null, '', cleanUrl.toString());
+            }
+        })();
+    </script>
+    
     <!-- Bootstrap and Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
     <!-- Custom Styles -->
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    
+    <style>
+        /* Global Styles */
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #fff;
+            overflow-x: hidden;
+        }
+        
+        /* Custom colors to match original Tailwind scheme */
+        .bg-gray-900 { background-color: #111827; }
+        .bg-gray-800 { background-color: #1f2937; }
+        .bg-gray-700 { background-color: #374151; }
+        .text-gray-300 { color: #d1d5db; }
+        .text-gray-400 { color: #9ca3af; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-blue-700 { background-color: #1d4ed8; }
+        
+        /* Font customizations */
+        .font-extrabold { font-weight: 800; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        
+        /* Prevent transitions during page load */
+        .preload * {
+            transition: none !important;
+        }
+        
+        /* Feature card styling */
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        /* Main wrapper */
+        .wrapper {
+            display: flex;
+            width: 100%;
+            align-items: stretch;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 250px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            z-index: 999;
+            background: #1f2937;
+            color: white;
+            transition: all 0.3s;
+        }
+        
+        .sidebar.collapsed {
+            width: 70px;
+        }
+        
+        /* Sidebar header with logo */
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+        }
+        
+        .sidebar-header .logo-text {
+            font-size: 22px;
+            font-weight: bold;
+            background: linear-gradient(120deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+            white-space: nowrap;
+            transition: opacity 0.3s;
+        }
+        
+        .sidebar.collapsed .logo-text {
+            opacity: 0;
+            width: 0;
+            display: none;
+        }
+        
+        /* Sidebar toggle/hamburger button */
+        .sidebar-toggle {
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 24px;
+            padding: 5px;
+            transition: all 0.3s;
+            display: none; /* Hide by default in expanded state */
+            z-index: 1050; /* Ensure it's above other elements */
+            position: relative; /* Needed for z-index */
+            min-width: 30px;
+            min-height: 30px;
+        }
+        
+        .sidebar-toggle i {
+            pointer-events: none; /* Makes clicks pass through to the button */
+        }
+        
+        /* When sidebar is collapsed, show and style the toggle button */
+        .sidebar.collapsed .sidebar-toggle {
+            display: block;
+            background: linear-gradient(120deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            /* Always show toggle button in mobile view */
+            .sidebar-toggle {
+                display: block;
+                background: linear-gradient(120deg, #60a5fa, #c084fc);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+        }
+        
+        /* Nav menu */
+        .sidebar-menu {
+            padding: 0;
+            list-style: none;
+            margin-top: 10px;
+        }
+        
+        .sidebar-menu-item {
+            margin: 2px 0;
+        }
+        
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #d1d5db;
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 5px solid transparent;
+            position: relative;
+        }
+        
+        .sidebar-link:hover, .sidebar-link.active {
+            background-color: #374151;
+            color: white;
+            border-left-color: #60a5fa;
+        }
+        
+        .sidebar-link.account-management-link {
+            background-color: rgba(244, 63, 94, 0.7) !important;
+            color: white !important;
+            font-weight: 600;
+            border-left: 5px solid #fda4af !important;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            animation: pulse 2s infinite;
+        }
+        
+        .sidebar-link.account-management-link:hover {
+            background-color: rgba(225, 29, 72, 0.8) !important;
+            border-left: 5px solid #fecdd3 !important;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.3);
+            }
+            70% {
+                box-shadow: 0 0 0 8px rgba(244, 63, 94, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
+            }
+        }
+        
+        .sidebar-link i {
+            font-size: 18px;
+            margin-right: 10px;
+            min-width: 25px;
+            display: inline-block;
+            text-align: center;
+            transition: margin 0.3s;
+        }
+        
+        .sidebar-link .link-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: opacity 0.3s;
+        }
+        
+        .sidebar.collapsed .sidebar-link {
+            padding: 15px 20px;
+            text-align: center;
+            justify-content: center;
+        }
+        
+        .sidebar.collapsed .sidebar-link i {
+            margin-right: 0;
+            font-size: 18px;
+        }
+        
+        .sidebar.collapsed .link-text {
+            opacity: 0;
+            width: 0;
+            display: none;
+        }
+        
+        /* Badge for notifications */
+        .notification-badge {
+            position: absolute;
+            top: 8px;
+            right: 15px;
+            transition: all 0.3s;
+            font-size: 10px;
+        }
+        
+        .sidebar.collapsed .notification-badge {
+            top: 5px;
+            right: 5px;
+        }
+        
+        /* Content */
+        .content-wrapper {
+            width: 100%;
+            padding: 20px;
+            min-height: 100vh;
+            transition: all 0.3s;
+            margin-left: 250px;
+        }
+        
+        .content-expanded {
+            margin-left: 70px;
+        }
+        
+        /* Welcome Banner */
+        .welcome-section {
+            background: #1f2937;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .date-time {
+            font-size: 14px;
+            color: #d1d5db;
+        }
+        
+        /* Card styling */
+        .card {
+            background-color: #1f2937;
+            border: none;
+        }
+        
+        /* Modal customizations */
+        .modal-backdrop {
+            background-color: rgba(17, 24, 39, 0.8);
+        }
+        
+        .modal-content {
+            background-color: #1f2937;
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        /* Delete button styling */
+        .btn-delete, .btn[data-action="delete"] {
+            background-color: #ef4444 !important;
+            color: white !important;
+        }
+        
+        .btn-delete:hover, .btn[data-action="delete"]:hover {
+            background-color: #dc2626 !important;
+        }
+        
+        .bg-red-500 {
+            background-color: #ef4444 !important;
+        }
+        
+        /* Standard Bootstrap tooltip overrides */
+        .tooltip {
+            opacity: 1 !important;
+            transition: none !important;
+            animation: none !important;
+            z-index: 9999 !important;
+            pointer-events: none;
+        }
+        
+        .tooltip .tooltip-inner {
+            background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black */
+            color: white;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            max-width: 200px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .tooltip .tooltip-arrow {
+            display: none; /* Hide arrows */
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 70px;
+            }
+            
+            .sidebar .logo-text {
+                opacity: 0;
+                width: 0;
+                display: none;
+            }
+            
+            .sidebar .sidebar-link {
+                padding: 15px 20px;
+                text-align: center;
+                justify-content: center;
+            }
+            
+            .sidebar .sidebar-link i {
+                margin-right: 0;
+            }
+            
+            .sidebar .link-text {
+                opacity: 0;
+                width: 0;
+                display: none;
+            }
+            
+            .content-wrapper {
+                margin-left: 70px;
+            }
+            
+            .notification-badge {
+                top: 5px;
+                right: 5px;
+            }
+            
+            /* Always show toggle button in mobile view */
+            .sidebar-toggle {
+                display: block;
+                background: linear-gradient(120deg, #60a5fa, #c084fc);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+            }
+        }
+        
+        /* Apply gradient to active menu icons */
+        .sidebar-link.active i {
+            background: linear-gradient(120deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0px 1px 2px rgba(0,0,0,0.1);
+        }
+        
+        /* Also apply gradient on hover */
+        .sidebar-link:hover i {
+            background: linear-gradient(120deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            transition: all 0.3s ease;
+        }
+    </style>
+
+    <!-- Script for date/time -->
     <script>
         function updateTime() {
             const now = new Date();
@@ -21,223 +518,840 @@
             const timeString = now.toLocaleTimeString('en-CA', { timeStyle: 'short' });
             document.getElementById('date-time').innerHTML = `${dateString}, ${timeString}`;
         }
-        setInterval(updateTime, 1000);
     </script>
-    <style>
-        /* Custom colors to match original Tailwind scheme */
-        .bg-gray-900 { background-color: #111827; }
-        .bg-gray-800 { background-color: #1f2937; }
-        .bg-gray-700 { background-color: #374151; }
-        .text-gray-300 { color: #d1d5db; }
-        .text-gray-400 { color: #9ca3af; }
-        .bg-blue-600 { background-color: #2563eb; }
-        .bg-blue-700 { background-color: #1d4ed8; }
-        
-        /* Hover effects */
-        .feature-card {
-            /* No transitions by default */
-        }
-        .feature-card:hover {
-            /* No hover effects by default */
-            transform: none;
-            box-shadow: none !important;
-        }
-        
-        /* Global Styles */
-        body, html {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-            background-color: #111827;
-            color: #fff;
-        }
-        
-        /* Font customizations */
-        .font-extrabold { font-weight: 800; }
-        .font-bold { font-weight: 700; }
-        .font-semibold { font-weight: 600; }
-        
-        /* Sidebar */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 250px;
-            height: 100vh;
-            background: #1f2937;
-            color: white;
-            padding-top: 20px;
-            transition: width 0.3s ease;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
-        }
-        .sidebar a {
-            display: block;
-            padding: 12px 20px;
-            color: #d1d5db;
-            text-decoration: none;
-            font-size: 16px;
-            transition: 0.3s;
-        }
-        .sidebar a:hover {
-            background-color: #374151;
-            color: white;
-            padding-left: 25px;
-        }
-        .sidebar .logo {
-            text-align: center;
-            font-size: 22px;
-            font-weight: bold;
-            margin-bottom: 20px;
-            color: white;
-        }
-        /* Content Area */
-        .content {
-            margin-left: 250px;
-            padding: 20px;
-            transition: margin-left 0.3s ease;
-            min-height: 100vh;
-        }
-        /* Welcome Banner */
-        .welcome-section {
-            background: #1f2937;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .date-time {
-            font-size: 14px;
-            color: #d1d5db;
-        }
-        /* Card styling */
-        .card {
-            background-color: #1f2937;
-            border: none;
-            /* Removed transition */
-        }
-        /* Remove card hover transform and shadow */
-        .card:hover {
-            transform: none;
-            box-shadow: none !important;
-        }
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .sidebar {
-                width: 60px;
-                text-align: center;
-            }
-            .sidebar a {
-                font-size: 14px;
-                padding: 10px;
-            }
-            .content {
-                margin-left: 60px;
-            }
-        }
-        /* Delete button styling */
-        .btn-delete, .btn[data-action="delete"] {
-            background-color: #ef4444 !important; /* red-500 */
-            color: white !important;
-        }
-        
-        .btn-delete:hover, .btn[data-action="delete"]:hover {
-            background-color: #dc2626 !important; /* red-600 */
-        }
-        
-        /* Ensure bg-red-500 is properly defined */
-        .bg-red-500 {
-            background-color: #ef4444 !important;
-        }
-        
-        /* Keep hover effect only for feature cards */
-        .feature-card {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .feature-card:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3) !important;
-        }
-        
-        /* Modal customizations without blur */
-        .modal-backdrop {
-            background-color: rgba(17, 24, 39, 0.8);
-            /* Removed backdrop-filter: blur() */
-        }
-        
-        .modal-content {
-            background-color: #1f2937;
-            border: none;
-            border-radius: 0.5rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        }
-        .form-control::placeholder {
-            color: #d1d5db !important; /* Tailwind gray-300 */
-            opacity: 1;
-        }
-        /* Account Management Link Highlighting */
-        .account-management-link {
-            background-color: #f43f5e; /* Rose-500 */
-            color: white !important;
-            font-weight: 600;
-            border-left: 5px solid #fda4af; /* Rose-300 */
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            animation: pulse 2s infinite;
-        }
-        .account-management-link:hover {
-            background-color: #e11d48; /* Rose-600 */
-            border-left: 5px solid #fecdd3; /* Rose-200 */
-        }
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.4);
-            }
-            70% {
-                box-shadow: 0 0 0 8px rgba(244, 63, 94, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(244, 63, 94, 0);
-            }
-        }
-    </style>
 </head>
-<body class="bg-gray-900" onload="updateTime()">
 
-{% block sidebar %}
-    {% if user.is_authenticated %}
-    <div class="sidebar">
-        <div class="logo">Inventory Track</div>
-        {% with tenant_url=request.tenant.domain_url %}
-        <a href="/{{ tenant_url }}/userauth/dashboard/"><i class="bi bi-speedometer2"></i> Dashboard</a>
-        <a href="/{{ tenant_url }}/invManage/"><i class="bi bi-box"></i> Inventory</a>
-        <a href="/{{ tenant_url }}/updateStock/products/"><i class="bi bi-pencil-square"></i> Update Stock</a>
-        <a href="/{{ tenant_url }}/tracking"><i class="bi bi-geo-alt-fill"></i> Track Items</a>
-        <a href="/{{ tenant_url }}/messaging/inbox/"><i class="bi bi-chat-dots"></i> Messaging</a>
-        <a href="/{{ tenant_url }}/notifications/" class="notification-icon">
-            <i class="bi bi-bell"></i> Notifications
-            {% if unread_notifications > 0 %}
-                <span class="badge bg-blue-600">{{ unread_notifications }}</span>
-            {% endif %}
-        </a>
-        <a href="/{{ tenant_url }}/inventory_analysis/chart/"><i class="bi bi-bar-chart"></i> Analytics</a>
-        <a href="/{{ tenant_url }}/inventory_analysis/advisor/"><i class="bi bi-lightbulb"></i> AI Advisor</a>
-        <a href="/{{ tenant_url }}/inventory_analysis/search/"><i class="bi bi-search"></i> Search</a>
-        <a href="/{{ tenant_url }}/history/"><i class="bi bi-clock-history"></i> Inventory History</a>
-        <a href="/{{ tenant_url }}/userauth/logout/"><i class="bi bi-box-arrow-right"></i> Logout</a>
-        {% if user.profile.is_manager %}
-        <a href="/{{ tenant_url }}/userauth/account_management/" class="account-management-link"><i class="bi bi-people"></i> Account Management</a>
+<body class="bg-gray-900 preload" onload="updateTime(); setInterval(updateTime, 1000);">
+    <div class="wrapper">
+        {% if user.is_authenticated %}
+        <!-- Sidebar -->
+        <nav id="sidebar" class="sidebar">
+            <div class="sidebar-header" id="sidebar-header">
+                <span class="logo-text">Inventory Track</span>
+                <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle sidebar">
+                    <i class="bi bi-list"></i>
+                </button>
+            </div>
+            
+            {% with tenant_url=request.tenant.domain_url %}
+            <ul class="sidebar-menu">
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/userauth/dashboard/" 
+                       class="sidebar-link {% if '/dashboard/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Dashboard">
+                        <i class="bi bi-speedometer2"></i>
+                        <span class="link-text">Dashboard</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/invManage/" 
+                       class="sidebar-link {% if '/invManage/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Inventory">
+                        <i class="bi bi-box"></i>
+                        <span class="link-text">Inventory</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/updateStock/products/" 
+                       class="sidebar-link {% if '/updateStock/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Update Stock">
+                        <i class="bi bi-pencil-square"></i>
+                        <span class="link-text">Update Stock</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/tracking" 
+                       class="sidebar-link {% if '/tracking' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Track Items">
+                        <i class="bi bi-geo-alt-fill"></i>
+                        <span class="link-text">Track Items</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/messaging/inbox/" 
+                       class="sidebar-link {% if '/messaging/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Messaging">
+                        <i class="bi bi-chat-dots"></i>
+                        <span class="link-text">Messaging</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/notifications/" 
+                       class="sidebar-link {% if '/notifications/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Notifications">
+                        <i class="bi bi-bell"></i>
+                        <span class="link-text">Notifications</span>
+                        {% if unread_notifications > 0 %}
+                        <span class="badge bg-blue-600 notification-badge">{{ unread_notifications }}</span>
+                        {% endif %}
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/inventory_analysis/chart/" 
+                       class="sidebar-link {% if '/inventory_analysis/chart/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Analytics">
+                        <i class="bi bi-bar-chart"></i>
+                        <span class="link-text">Analytics</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/inventory_analysis/advisor/" 
+                       class="sidebar-link {% if '/inventory_analysis/advisor/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="AI Advisor">
+                        <i class="bi bi-lightbulb"></i>
+                        <span class="link-text">AI Advisor</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/inventory_analysis/search/" 
+                       class="sidebar-link {% if '/inventory_analysis/search/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Search">
+                        <i class="bi bi-search"></i>
+                        <span class="link-text">Search</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/history/" 
+                       class="sidebar-link {% if '/history/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Inventory History">
+                        <i class="bi bi-clock-history"></i>
+                        <span class="link-text">Inventory History</span>
+                    </a>
+                </li>
+                
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/userauth/logout/" 
+                       class="sidebar-link {% if '/logout/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Logout">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span class="link-text">Logout</span>
+                    </a>
+                </li>
+                
+                {% if user.profile.is_manager %}
+                <li class="sidebar-menu-item">
+                    <a href="/{{ tenant_url }}/userauth/account_management/" 
+                       class="sidebar-link account-management-link {% if '/account_management/' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip" 
+                       data-bs-placement="right" 
+                       title="Account Management">
+                        <i class="bi bi-people"></i>
+                        <span class="link-text">Account Management</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            {% endwith %}
+        </nav>
         {% endif %}
-        {% endwith %}
+        
+        <!-- Page Content -->
+        <div id="content" class="content-wrapper">
+            {% block content %}
+            {% endblock %}
+        </div>
     </div>
-    {% endif %}
-{% endblock %}
 
-<div class="content">
-    {% block content %}
-    {% endblock %}
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom Scripts -->
+    <script>
+        // Function to reveal page content once layout is calculated
+        function revealPage() {
+            // Remove the overlay instead of changing visibility
+            const overlay = document.getElementById('page-overlay');
+            if (overlay) {
+                // Fade out overlay
+                overlay.style.opacity = 0;
+                // Then remove it after transition
+                setTimeout(() => {
+                    overlay.remove();
+                    // Re-enable scrolling
+                    document.body.style.overflow = '';
+                }, 200);
+            }
+            
+            // Remove preload styles
+            const preloadStyles = document.getElementById('preload-styles');
+            if (preloadStyles) {
+                preloadStyles.remove();
+            }
+        }
+        
+        // Common function to clean up tooltips
+        function hideAllTooltips() {
+            // Find all tooltips in the DOM
+            const tooltipElements = document.querySelectorAll('.tooltip');
+            tooltipElements.forEach(tooltipEl => {
+                tooltipEl.remove(); // Forcibly remove from DOM
+            });
+            
+            // Clean up any tooltip instances
+            const tooltipTriggers = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltipTriggers.forEach(el => {
+                const tooltip = bootstrap.Tooltip.getInstance(el);
+                if (tooltip) {
+                    tooltip.dispose(); // Completely dispose tooltip instance
+                }
+            });
+        }
+        
+        // Standard tooltip options to ensure consistency
+        const STANDARD_TOOLTIP_OPTIONS = {
+            container: 'body',
+            trigger: 'hover',
+            placement: 'right',
+            animation: false,
+            delay: { show: 50, hide: 0 },
+            offset: [0, 10],
+            template: '<div class="tooltip" role="tooltip"><div class="tooltip-inner"></div></div>'
+        };
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Basic elements
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebarHeader = document.getElementById('sidebar-header');
+            
+            // Remove preload class to enable transitions
+            document.body.classList.remove('preload');
+            
+            // Check saved sidebar state and apply it to the actual sidebar element
+            const sidebarState = localStorage.getItem('sidebarCollapsed');
+            if (sidebarState === 'true') {
+                sidebar.classList.add('collapsed');
+                content.classList.add('content-expanded');
+            } else {
+                sidebar.classList.remove('collapsed');
+                content.classList.remove('content-expanded');
+            }
+            
+            // Initialize tooltips only if sidebar is collapsed or on mobile
+            initTooltips();
+            
+            // Reveal the page now that everything is properly set up
+            // Use a longer timeout to ensure the browser has fully rendered everything
+            setTimeout(revealPage, 300);
+            
+            // Toggle sidebar function
+            function toggleSidebar(event) {
+                // Prevent event from bubbling to parent elements
+                event.stopPropagation();
+                
+                // Hide any open tooltips
+                hideAllTooltips();
+                
+                // Toggle sidebar
+                sidebar.classList.toggle('collapsed');
+                content.classList.toggle('content-expanded');
+                
+                // Save state
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                localStorage.setItem('sidebarCollapsed', isCollapsed);
+                
+                // Initialize or destroy tooltips based on new state
+                setTimeout(() => {
+                    if (isCollapsed || window.innerWidth <= 768) {
+                        initTooltips();
+                    } else {
+                        // Ensure tooltips are completely removed in expanded state
+                        destroyAllTooltips();
+                    }
+                }, 100);
+            }
+            
+            // Add click event to both the toggle button and the header
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            sidebarHeader.addEventListener('click', toggleSidebar);
+            
+            // Initialize tooltips
+            function initTooltips() {
+                // Clean up existing tooltips
+                hideAllTooltips();
+                
+                // Only initialize tooltips if sidebar is collapsed or on mobile
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                const isMobile = window.innerWidth <= 768;
+                
+                if (isCollapsed || isMobile) {
+                    // Initialize tooltips on all menu items
+                    const tooltipTriggers = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                    tooltipTriggers.forEach(el => {
+                        const tooltip = new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
+                        
+                        // Hide tooltip on click
+                        el.addEventListener('click', function() {
+                            hideAllTooltips();
+                        });
+                    });
+                } else {
+                    // Ensure tooltips are completely removed in expanded state
+                    destroyAllTooltips();
+                }
+            }
+            
+            // Completely destroy all tooltips
+            function destroyAllTooltips() {
+                hideAllTooltips();
+                
+                // Remove all tooltip-related attributes
+                const tooltipTriggers = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltipTriggers.forEach(el => {
+                    // Remove the tooltip instance
+                    const tooltip = bootstrap.Tooltip.getInstance(el);
+                    if (tooltip) {
+                        tooltip.dispose();
+                    }
+                });
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                const isMobile = window.innerWidth <= 768;
+                
+                // Hide tooltips first
+                hideAllTooltips();
+                
+                // Initialize tooltips only if collapsed or mobile
+                if (isCollapsed || isMobile) {
+                    setTimeout(initTooltips, 100);
+                } else {
+                    destroyAllTooltips();
+                }
+            });
+            
+            // Handle document clicks to hide tooltips
+            document.addEventListener('click', function() {
+                hideAllTooltips();
+            });
+            
+            // AJAX Navigation
+            initAjaxNavigation();
+        });
+        
+        // AJAX Navigation for single page behavior
+        function initAjaxNavigation() {
+            const contentArea = document.getElementById('content');
+            const navLinks = document.querySelectorAll('.sidebar-link');
+            let currentUrl = window.location.href;
+            
+            // Function to load content via AJAX
+            async function loadPageContent(url, pushState = true) {
+                try {
+                    // Force hide all tooltips before navigation
+                    hideAllTooltips();
+                    
+                    // Show loading
+                    contentArea.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                    
+                    // Fetch page
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+                    
+                    const htmlText = await response.text();
+                    
+                    // Parse HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(htmlText, 'text/html');
+                    
+                    // Extract content
+                    let newContent;
+                    if (doc.querySelector('#content')) {
+                        newContent = doc.querySelector('#content').innerHTML;
+                    } else {
+                        // Fallback if content id not found
+                        const mainContent = doc.querySelector('main') || doc.querySelector('.content-wrapper');
+                        newContent = mainContent ? mainContent.innerHTML : doc.body.innerHTML;
+                    }
+                    
+                    // Update content
+                    contentArea.innerHTML = newContent;
+                    
+                    // Update URL if needed
+                    if (pushState) {
+                        window.history.pushState({url: url}, '', url);
+                        currentUrl = url;
+                    }
+                    
+                    // Update active state
+                    updateActiveLinks(url);
+                    
+                    // Initialize scripts in new content
+                    initializeContentScripts();
+                    
+                    // Special handling for account management page
+                    if (url.includes('/userauth/account_management/')) {
+                        initializeAccountManagementScripts();
+                    }
+                    
+                    // Scroll to top
+                    window.scrollTo(0, 0);
+                } catch (error) {
+                    console.error('Error loading content:', error);
+                    contentArea.innerHTML = '<div class="alert alert-danger m-5">Error loading content. Please try again or refresh the page.</div>';
+                }
+            }
+            
+            // Update active links
+            function updateActiveLinks(url) {
+                navLinks.forEach(link => {
+                    link.classList.remove('active');
+                    const href = link.getAttribute('href');
+                    if (href && url.includes(href) && href !== '/') {
+                        link.classList.add('active');
+                    }
+                });
+            }
+            
+            // Initialize scripts in new content
+            function initializeContentScripts() {
+                // Re-bind event handlers for interactive elements
+                const forms = contentArea.querySelectorAll('form');
+                forms.forEach(form => {
+                    // Don't intercept forms with file uploads or data-no-ajax attribute
+                    if (form.getAttribute('enctype') === 'multipart/form-data' || 
+                        form.hasAttribute('data-no-ajax')) {
+                        return; // Skip this form completely
+                    }
+                    
+                    if (!form.hasAttribute('data-ajax-bound')) {
+                        form.setAttribute('data-ajax-bound', 'true');
+                        form.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            form.submit();
+                        });
+                    }
+                });
+                
+                // Re-bind any links in the content
+                const contentLinks = contentArea.querySelectorAll('a');
+                contentLinks.forEach(link => {
+                    if (!link.hasAttribute('data-ajax-bound') && 
+                        !link.hasAttribute('download') && 
+                        !link.getAttribute('target') && 
+                        !link.hasAttribute('data-no-ajax')) {
+                        
+                        const href = link.getAttribute('href');
+                        // Only intercept internal links
+                        if (href && !href.startsWith('http') && !href.startsWith('//') && !href.startsWith('#')) {
+                            link.setAttribute('data-ajax-bound', 'true');
+                            link.addEventListener('click', function(e) {
+                                e.preventDefault();
+                                loadPageContent(href);
+                            });
+                        }
+                    }
+                });
+                
+                // Re-initialize any Bootstrap components
+                if (typeof bootstrap !== 'undefined') {
+                    // Initialize tooltips only if sidebar is collapsed or on mobile
+                    const sidebar = document.getElementById('sidebar');
+                    if (sidebar && (sidebar.classList.contains('collapsed') || window.innerWidth <= 768)) {
+                        // Initialize standard tooltips for content area
+                        const tooltipTriggers = contentArea.querySelectorAll('[data-bs-toggle="tooltip"]');
+                        tooltipTriggers.forEach(el => {
+                            new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
+                        });
+                        
+                        // Re-init sidebar tooltips
+                        const sidebarTooltips = document.querySelectorAll('.sidebar-link[data-bs-toggle="tooltip"]');
+                        sidebarTooltips.forEach(el => {
+                            // Dispose any existing tooltip
+                            const tooltipInstance = bootstrap.Tooltip.getInstance(el);
+                            if (tooltipInstance) {
+                                tooltipInstance.dispose();
+                            }
+                            // Create new tooltip with standard options
+                            new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
+                        });
+                    }
+                    
+                    // Initialize popovers
+                    const popoverTriggers = contentArea.querySelectorAll('[data-bs-toggle="popover"]');
+                    popoverTriggers.forEach(el => {
+                        new bootstrap.Popover(el);
+                    });
+                }
+            }
+            
+            // Add click handler to nav links
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Force hide tooltips first
+                    hideAllTooltips();
+                    
+                    const href = link.getAttribute('href');
+                    
+                    // Skip special links
+                    if (href.includes('/logout/') || 
+                        link.hasAttribute('download') || 
+                        link.getAttribute('target') || 
+                        link.hasAttribute('data-no-ajax')) {
+                        return true; // Let the browser handle it normally
+                    }
+                    
+                    e.preventDefault();
+                    loadPageContent(href);
+                });
+            });
+            
+            // Handle browser navigation
+            window.addEventListener('popstate', function(e) {
+                if (e.state && e.state.url) {
+                    loadPageContent(e.state.url, false);
+                } else if (window.location.href !== currentUrl) {
+                    loadPageContent(window.location.href, false);
+                }
+            });
+            
+            // Save initial state
+            window.history.replaceState({url: window.location.href}, '', window.location.href);
+        }
+        
+        // Function to initialize account management specific scripts
+        function initializeAccountManagementScripts() {
+            console.log('Initializing account management scripts');
+            
+            // Make sure global variables are defined
+            if (typeof window.activeSelect === 'undefined') {
+                window.activeSelect = null;
+            }
+            if (typeof window.originalValue === 'undefined') {
+                window.originalValue = null;
+            }
+            
+            // Get tenant URL from the current page URL
+            const currentPath = window.location.pathname;
+            const tenantMatch = currentPath.match(/^\/([^\/]+)\//);
+            const currentTenantUrl = tenantMatch ? tenantMatch[1] : '';
+            
+            // Set up event listeners for user type select dropdowns
+            const userTypeSelects = document.querySelectorAll('select[name="user_type"]');
+            userTypeSelects.forEach(select => {
+                // Ensure the onchange event is correctly bound
+                select.onchange = function() {
+                    return confirmUserTypeChange(this);
+                };
+            });
+            
+            // Define the confirmation functions in the global scope if not already defined
+            if (typeof window.confirmUserTypeChange !== 'function') {
+                window.confirmUserTypeChange = function(selectElement) {
+                    // Store reference to the select element
+                    window.activeSelect = selectElement;
+                    window.originalValue = selectElement.getAttribute('data-current-type');
+                    const userId = selectElement.getAttribute('data-user-id');
+                    const username = selectElement.getAttribute('data-username');
+                    const fromType = window.originalValue;
+                    const toType = selectElement.value;
+                    
+                    // If no change, do nothing
+                    if (fromType === toType) {
+                        return;
+                    }
+                    
+                    // Set confirmation modal content
+                    document.getElementById('change-username').textContent = username;
+                    document.getElementById('change-from-type').textContent = fromType.charAt(0).toUpperCase() + fromType.slice(1);
+                    document.getElementById('change-to-type').textContent = toType.charAt(0).toUpperCase() + toType.slice(1);
+                    
+                    // Show the modal
+                    const modal = new bootstrap.Modal(document.getElementById('userTypeChangeModal'));
+                    modal.show();
+                    
+                    // Prevent form submission
+                    return false;
+                };
+            }
+            
+            if (typeof window.cancelTypeChange !== 'function') {
+                window.cancelTypeChange = function() {
+                    // Reset the select to its original value
+                    if (window.activeSelect) {
+                        window.activeSelect.value = window.originalValue;
+                    }
+                    
+                    // Hide the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('userTypeChangeModal'));
+                    modal.hide();
+                };
+            }
+            
+            if (typeof window.confirmTypeChange !== 'function') {
+                window.confirmTypeChange = function() {
+                    if (window.activeSelect) {
+                        const userId = window.activeSelect.getAttribute('data-user-id');
+                        const newType = window.activeSelect.value;
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        
+                        // Show a loading spinner
+                        const contentArea = document.getElementById('content');
+                        const originalContent = contentArea.innerHTML;
+                        contentArea.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                        
+                        // Use fetch API to submit the form data
+                        fetch(`/${currentTenantUrl}/userauth/update_user_type/${userId}/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: `user_type=${newType}`
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                // Reload the account management page via AJAX to reflect changes
+                                return fetch(`/${currentTenantUrl}/userauth/account_management/`);
+                            } else {
+                                throw new Error('Failed to update user type');
+                            }
+                        })
+                        .then(response => response.text())
+                        .then(html => {
+                            // Parse the HTML
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            
+                            // Extract content
+                            let newContent;
+                            if (doc.querySelector('#content')) {
+                                newContent = doc.querySelector('#content').innerHTML;
+                            } else {
+                                const mainContent = doc.querySelector('main') || doc.querySelector('.content-wrapper');
+                                newContent = mainContent ? mainContent.innerHTML : doc.body.innerHTML;
+                            }
+                            
+                            // Update content
+                            contentArea.innerHTML = newContent;
+                            
+                            // Re-initialize account management scripts
+                            initializeAccountManagementScripts();
+                            
+                            // Show success message
+                            showNotification('User type updated successfully', 'success');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            contentArea.innerHTML = originalContent;
+                            showNotification('Failed to update user type', 'danger');
+                            
+                            // Re-initialize account management scripts
+                            initializeAccountManagementScripts();
+                        });
+                    }
+                    
+                    // Hide the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('userTypeChangeModal'));
+                    modal.hide();
+                };
+            }
+            
+            if (typeof window.updateUserType !== 'function') {
+                window.updateUserType = function(userId) {
+                    const userType = document.getElementById(`editUserType${userId}`).value;
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    
+                    // Show a loading spinner
+                    const contentArea = document.getElementById('content');
+                    const originalContent = contentArea.innerHTML;
+                    contentArea.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                    
+                    // Use fetch API to submit the form data
+                    fetch(`/${currentTenantUrl}/userauth/update_user_type/${userId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: `user_type=${userType}`
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // Reload the account management page via AJAX to reflect changes
+                            return fetch(`/${currentTenantUrl}/userauth/account_management/`);
+                        } else {
+                            throw new Error('Failed to update user type');
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        // Parse the HTML
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // Extract content
+                        let newContent;
+                        if (doc.querySelector('#content')) {
+                            newContent = doc.querySelector('#content').innerHTML;
+                        } else {
+                            const mainContent = doc.querySelector('main') || doc.querySelector('.content-wrapper');
+                            newContent = mainContent ? mainContent.innerHTML : doc.body.innerHTML;
+                        }
+                        
+                        // Update content
+                        contentArea.innerHTML = newContent;
+                        
+                        // Re-initialize account management scripts
+                        initializeAccountManagementScripts();
+                        
+                        // Show success message
+                        showNotification('User type updated successfully', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        contentArea.innerHTML = originalContent;
+                        showNotification('Failed to update user type', 'danger');
+                        
+                        // Re-initialize account management scripts
+                        initializeAccountManagementScripts();
+                    });
+                };
+            }
+            
+            // Add event listeners to all forms in account management to handle them via AJAX
+            const forms = document.querySelectorAll('form:not([data-ajax-bound])');
+            forms.forEach(form => {
+                // Skip forms that should be handled by direct submit
+                if (form.hasAttribute('data-no-ajax') || form.getAttribute('enctype') === 'multipart/form-data') {
+                    return;
+                }
+                
+                form.setAttribute('data-ajax-bound', 'true');
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(form);
+                    const formAction = form.getAttribute('action');
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    
+                    // Show a loading spinner
+                    const contentArea = document.getElementById('content');
+                    const originalContent = contentArea.innerHTML;
+                    contentArea.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                    
+                    // Convert FormData to URL-encoded string
+                    const formBody = new URLSearchParams(formData).toString();
+                    
+                    // Use fetch API to submit the form
+                    fetch(formAction, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: formBody
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // Reload the account management page via AJAX to reflect changes
+                            return fetch(`/${currentTenantUrl}/userauth/account_management/`);
+                        } else {
+                            throw new Error('Form submission failed');
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        // Parse the HTML
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // Extract content
+                        let newContent;
+                        if (doc.querySelector('#content')) {
+                            newContent = doc.querySelector('#content').innerHTML;
+                        } else {
+                            const mainContent = doc.querySelector('main') || doc.querySelector('.content-wrapper');
+                            newContent = mainContent ? mainContent.innerHTML : doc.body.innerHTML;
+                        }
+                        
+                        // Update content
+                        contentArea.innerHTML = newContent;
+                        
+                        // Re-initialize account management scripts
+                        initializeAccountManagementScripts();
+                        
+                        // Show success message
+                        showNotification('Operation completed successfully', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        contentArea.innerHTML = originalContent;
+                        showNotification('Operation failed', 'danger');
+                        
+                        // Re-initialize account management scripts
+                        initializeAccountManagementScripts();
+                    });
+                });
+            });
+        }
+        
+        // Helper function to show notifications
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show`;
+            notification.setAttribute('role', 'alert');
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            // Find a place to insert the notification
+            const contentArea = document.getElementById('content');
+            if (contentArea) {
+                // Try to find an existing container for messages
+                let messagesContainer = contentArea.querySelector('.container');
+                if (!messagesContainer) {
+                    messagesContainer = contentArea;
+                }
+                
+                // Insert at the beginning
+                messagesContainer.insertBefore(notification, messagesContainer.firstChild);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 150);
+                }, 5000);
+            }
+        }
+    </script>
 </body>
 </html>
+
+

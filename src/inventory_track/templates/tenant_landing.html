@@ -1,397 +1,404 @@
-{% extends 'base.html' %}
-{% load static %}
-
-{% block title %}{{ tenant.name }} - Inventory Management{% endblock %}
-
-{% block sidebar %}
-<!-- Overriding the sidebar block to render nothing -->
-{% endblock %}
-
-{% block content %}
-<style>
-    /* Override the content margin for the landing page */
-    .content {
-        margin-left: 0 !important;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>{{ tenant.name }} - Inventory Management</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    /* Custom colors to match original Tailwind scheme */
-    .bg-gray-900 { background-color: #111827; }
-    .bg-gray-800 { background-color: #1f2937; }
-    .bg-gray-700 { background-color: #374151; }
-    .text-gray-300 { color: #d1d5db; }
-    .text-gray-400 { color: #9ca3af; }
-    .bg-blue-600 { background-color: #2563eb; }
-    .bg-blue-700 { background-color: #1d4ed8; }
+    <!-- Bootstrap and Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
     
-    /* Hover effects */
-    .feature-card {
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-    .feature-card:hover {
-        transform: scale(1.05);
-        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3) !important;
-    }
-    
-    .btn-blue:hover {
-        background-color: #1d4ed8;
-    }
-    
-    .btn-gray:hover {
-        background-color: #4b5563;
-    }
-    
-    /* Special highlighting for company name */
-    .company-name {
-        font-weight: 800;
-        font-size: 3rem;
-        line-height: 1;
-        text-transform: uppercase;
-        background: linear-gradient(120deg, #60a5fa, #c084fc);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-shadow: 0px 2px 4px rgba(0,0,0,0.1);
-        letter-spacing: 1px;
-        margin-bottom: 0.5rem;
-    }
-    
-    body {
-        background-color: #111827;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    .font-extrabold { font-weight: 800; }
-    .font-bold { font-weight: 700; }
-    .font-semibold { font-weight: 600; }
-    
-    /* Modal customizations without blur */
-    .modal-backdrop {
-        background-color: rgba(17, 24, 39, 0.8);
-        /* Removed backdrop-filter: blur() */
-    }
-    
-    .modal-content {
-        background-color: #1f2937;
-        border: none;
-        border-radius: 0.5rem;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    }
-    
-    .modal-header {
-        border-bottom: 1px solid #374151;
-    }
-    
-    .modal-header .btn-close {
-        color: white;
-        filter: invert(1) grayscale(100%) brightness(200%);
-    }
-    
-    .modal-footer {
-        border-top: 1px solid #374151;
-    }
-    
-    /* Custom form controls */
-    .form-control-dark {
-        background-color: #374151;
-        border: none;
-        color: white;
-    }
-    
-    .form-control-dark:focus {
-        background-color: #4B5563;
-        color: white;
-        box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.25);
-    }
-</style>
-
-<!-- Hero Section -->
-<header class="pt-5 pb-5 px-3">
-    <div class="container text-center mt-5">
-        <h1 class="company-name">{{ tenant.name }}</h1>
-        <h2 class="text-white font-bold mb-3">Employee Portal</h2>
-        <p class="text-xl text-gray-300 mb-5">Inventory Management System</p>
+    <style>
+        /* Global Styles */
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #fff;
+            overflow-x: hidden;
+        }
         
-        <div class="d-flex justify-content-center gap-3">
-            <button class="btn bg-gray-700 text-gray-300 btn-lg px-4 btn-gray font-semibold" data-bs-toggle="modal" data-bs-target="#tenantLoginModal">Login</button>
-            <button class="btn bg-blue-600 text-white btn-lg px-4 btn-blue font-semibold" data-bs-toggle="modal" data-bs-target="#tenantRegisterModal">Register</button>
-        </div>
-    </div>
-</header>
+        /* Custom colors to match original Tailwind scheme */
+        .bg-gray-900 { background-color: #111827; }
+        .bg-gray-800 { background-color: #1f2937; }
+        .bg-gray-700 { background-color: #374151; }
+        .text-gray-300 { color: #d1d5db; }
+        .text-gray-400 { color: #9ca3af; }
+        .bg-blue-600 { background-color: #2563eb; }
+        .bg-blue-700 { background-color: #1d4ed8; }
+        
+        /* Font customizations */
+        .font-extrabold { font-weight: 800; }
+        .font-bold { font-weight: 700; }
+        .font-semibold { font-weight: 600; }
+        
+        /* Hover effects */
+        .feature-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        .btn-blue:hover {
+            background-color: #1d4ed8;
+        }
+        
+        .btn-gray:hover {
+            background-color: #4b5563;
+        }
+        
+        /* Special highlighting for company name */
+        .company-name {
+            font-weight: 800;
+            font-size: 3rem;
+            line-height: 1;
+            text-transform: uppercase;
+            background: linear-gradient(120deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0px 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 1px;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* Modal customizations without blur */
+        .modal-backdrop {
+            background-color: rgba(17, 24, 39, 0.8);
+        }
+        
+        .modal-content {
+            background-color: #1f2937;
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-header {
+            border-bottom: 1px solid #374151;
+        }
+        
+        .modal-header .btn-close {
+            color: white;
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+        
+        .modal-footer {
+            border-top: 1px solid #374151;
+        }
+        
+        /* Custom form controls */
+        .form-control-dark {
+            background-color: #374151;
+            border: none;
+            color: white;
+        }
+        
+        .form-control-dark:focus {
+            background-color: #4B5563;
+            color: white;
+            box-shadow: 0 0 0 0.25rem rgba(37, 99, 235, 0.25);
+        }
+    </style>
+</head>
 
-<!-- Getting Started Cards -->
-<section class="py-5 px-3">
-    <div class="container-xl">
-        <h2 class="text-center text-white font-bold mb-4">Getting Started</h2>
-        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
-            <div class="col">
-                <div class="card bg-gray-800 h-100 p-4 feature-card">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3">
-                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                        <polyline points="10 17 15 12 10 7"></polyline>
-                        <line x1="15" y1="12" x2="3" y2="12"></line>
-                    </svg>
-                    <h3 class="text-xl font-bold mb-3 text-white">Login</h3>
-                    <p class="text-gray-400">If you already have an account, please use the Login button above</p>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card bg-gray-800 h-100 p-4 feature-card">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="8.5" cy="7" r="4"></circle>
-                        <line x1="20" y1="8" x2="20" y2="14"></line>
-                        <line x1="23" y1="11" x2="17" y2="11"></line>
-                    </svg>
-                    <h3 class="text-xl font-bold mb-3 text-white">Register</h3>
-                    <p class="text-gray-400">First time here? Create an account to access the system</p>
-                </div>
-            </div>
-            <div class="col">
-                <div class="card bg-gray-800 h-100 p-4 feature-card">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                    </svg>
-                    <h3 class="text-xl font-bold mb-3 text-white">Need Help?</h3>
-                    <p class="text-gray-400">Contact your system administrator for assistance</p>
-                </div>
-            </div>
-            <a href="{% url 'support:supportHome' tenant_url=tenant_url %}" class="col" style="text-decoration: none;">
-                <div class="card bg-gray-800 h-100 p-4 feature-card">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                    </svg>
-                    <h3 class="text-xl font-bold mb-3 text-white">Contact Support</h3>
-                    <p class="text-gray-400">Get assistance from our dedicated support team</p>
-                </div>
-            </a>
+<body class="bg-gray-900">
+    <!-- Hero Section -->
+    <header class="pt-5 pb-5 px-3">
+        <div class="container text-center mt-5">
+            <h1 class="company-name">{{ tenant.name }}</h1>
+            <h2 class="text-white font-bold mb-3">Employee Portal</h2>
+            <p class="text-xl text-gray-300 mb-5">Inventory Management System</p>
             
-        </div>
-    </div>
-</section>
-
-<!-- Tenant Login Modal -->
-<div class="modal fade" id="tenantLoginModal" tabindex="-1" aria-labelledby="tenantLoginModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-blue-600 text-white">
-                <h5 class="modal-title font-bold" id="tenantLoginModalLabel">Login to {{ tenant.name }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="d-flex justify-content-center gap-3">
+                <button class="btn bg-gray-700 text-gray-300 btn-lg px-4 btn-gray font-semibold" data-bs-toggle="modal" data-bs-target="#tenantLoginModal">Login</button>
+                <button class="btn bg-blue-600 text-white btn-lg px-4 btn-blue font-semibold" data-bs-toggle="modal" data-bs-target="#tenantRegisterModal">Register</button>
             </div>
-            <div class="modal-body p-4">
-                <form method="post" action="/{{ tenant_url }}/userauth/login/" id="tenantLoginForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="tenant-username" class="form-label text-white">Username</label>
-                        <input type="text" class="form-control form-control-dark" id="tenant-username" name="username" required>
+        </div>
+    </header>
+
+    <!-- Getting Started Cards -->
+    <section class="py-5 px-3">
+        <div class="container-xl">
+            <h2 class="text-center text-white font-bold mb-4">Getting Started</h2>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+                <div class="col">
+                    <div class="card bg-gray-800 h-100 p-4 feature-card">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        <h3 class="text-xl font-bold mb-3 text-white">Login</h3>
+                        <p class="text-gray-400">If you already have an account, please use the Login button above</p>
                     </div>
-                    <div class="mb-3">
-                        <label for="tenant-password" class="form-label text-white">Password</label>
-                        <input type="password" class="form-control form-control-dark" id="tenant-password" name="password" required>
+                </div>
+                <div class="col">
+                    <div class="card bg-gray-800 h-100 p-4 feature-card">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="8.5" cy="7" r="4"></circle>
+                            <line x1="20" y1="8" x2="20" y2="14"></line>
+                            <line x1="23" y1="11" x2="17" y2="11"></line>
+                        </svg>
+                        <h3 class="text-xl font-bold mb-3 text-white">Register</h3>
+                        <p class="text-gray-400">First time here? Create an account to access the system</p>
                     </div>
-                    <div class="text-end">
-                        <button type="submit" class="btn bg-blue-600 text-white px-4">Login</button>
+                </div>
+                <div class="col">
+                    <div class="card bg-gray-800 h-100 p-4 feature-card">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c084fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <h3 class="text-xl font-bold mb-3 text-white">Need Help?</h3>
+                        <p class="text-gray-400">Contact your system administrator for assistance</p>
                     </div>
-                </form>
-                <div class="mt-3">
-                    <p class="text-gray-300 text-center">
-                        Don't have an account? 
-                        <a href="#" class="text-blue-600" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#tenantRegisterModal">Register here</a>
-                    </p>
+                </div>
+                <a href="{% url 'support:supportHome' tenant_url=tenant_url %}" class="col" style="text-decoration: none;">
+                    <div class="card bg-gray-800 h-100 p-4 feature-card">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-3">
+                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                        <h3 class="text-xl font-bold mb-3 text-white">Contact Support</h3>
+                        <p class="text-gray-400">Get assistance from our dedicated support team</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Tenant Login Modal -->
+    <div class="modal fade" id="tenantLoginModal" tabindex="-1" aria-labelledby="tenantLoginModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-blue-600 text-white">
+                    <h5 class="modal-title font-bold" id="tenantLoginModalLabel">Login to {{ tenant.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form method="post" action="/{{ tenant_url }}/userauth/login/" id="tenantLoginForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="tenant-username" class="form-label text-white">Username</label>
+                            <input type="text" class="form-control form-control-dark" id="tenant-username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenant-password" class="form-label text-white">Password</label>
+                            <input type="password" class="form-control form-control-dark" id="tenant-password" name="password" required>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn bg-blue-600 text-white px-4">Login</button>
+                        </div>
+                    </form>
+                    <div class="mt-3">
+                        <p class="text-gray-300 text-center">
+                            Don't have an account? 
+                            <a href="#" class="text-blue-600" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#tenantRegisterModal">Register here</a>
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Tenant Register Modal -->
-<div class="modal fade" id="tenantRegisterModal" tabindex="-1" aria-labelledby="tenantRegisterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-blue-600 text-white">
-                <h5 class="modal-title font-bold" id="tenantRegisterModalLabel">Register with {{ tenant.name }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div id="register-error-message" class="alert alert-danger d-none" role="alert">
-                    <!-- Error messages will be inserted here -->
+    <!-- Tenant Register Modal -->
+    <div class="modal fade" id="tenantRegisterModal" tabindex="-1" aria-labelledby="tenantRegisterModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-blue-600 text-white">
+                    <h5 class="modal-title font-bold" id="tenantRegisterModalLabel">Register with {{ tenant.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <form method="post" action="/{{ tenant_url }}/userauth/register/" id="tenantRegisterForm">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="tenant-reg-username" class="form-label text-white">Username</label>
-                        <input type="text" class="form-control form-control-dark" id="tenant-reg-username" name="username" required>
+                <div class="modal-body p-4">
+                    <div id="register-error-message" class="alert alert-danger d-none" role="alert">
+                        <!-- Error messages will be inserted here -->
                     </div>
-                    <div class="mb-3">
-                        <label for="tenant-reg-email" class="form-label text-white">Email</label>
-                        <input type="email" class="form-control form-control-dark" id="tenant-reg-email" name="email" required>
+                    <form method="post" action="/{{ tenant_url }}/userauth/register/" id="tenantRegisterForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="tenant-reg-username" class="form-label text-white">Username</label>
+                            <input type="text" class="form-control form-control-dark" id="tenant-reg-username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenant-reg-email" class="form-label text-white">Email</label>
+                            <input type="email" class="form-control form-control-dark" id="tenant-reg-email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenant-reg-password1" class="form-label text-white">Password</label>
+                            <input type="password" class="form-control form-control-dark" id="tenant-reg-password1" name="password1" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tenant-reg-password2" class="form-label text-white">Confirm Password</label>
+                            <input type="password" class="form-control form-control-dark" id="tenant-reg-password2" name="password2" required>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn bg-blue-600 text-white px-4">Register</button>
+                        </div>
+                    </form>
+                    <div class="mt-3">
+                        <p class="text-gray-300 text-center">
+                            Already have an account? 
+                            <a href="#" class="text-blue-600" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#tenantLoginModal">Login here</a>
+                        </p>
                     </div>
-                    <div class="mb-3">
-                        <label for="tenant-reg-password1" class="form-label text-white">Password</label>
-                        <input type="password" class="form-control form-control-dark" id="tenant-reg-password1" name="password1" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="tenant-reg-password2" class="form-label text-white">Confirm Password</label>
-                        <input type="password" class="form-control form-control-dark" id="tenant-reg-password2" name="password2" required>
-                    </div>
-                    <div class="text-end">
-                        <button type="submit" class="btn bg-blue-600 text-white px-4">Register</button>
-                    </div>
-                </form>
-                <div class="mt-3">
-                    <p class="text-gray-300 text-center">
-                        Already have an account? 
-                        <a href="#" class="text-blue-600" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#tenantLoginModal">Login here</a>
-                    </p>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Pending Registration Modal -->
-<div class="modal fade" id="pendingRegistrationModal" tabindex="-1" aria-labelledby="pendingRegistrationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title text-dark" id="pendingRegistrationModalLabel">Registration Pending</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <p>Your registration request for <strong id="pending-username"></strong> is still pending approval by a manager.</p>
-                <p>You will be able to log in once a company manager approves your registration.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Registration Success Modal -->
-<div class="modal fade" id="registrationSuccessModal" tabindex="-1" aria-labelledby="registrationSuccessModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title font-bold" id="registrationSuccessModalLabel">Registration Successful</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                <div class="text-center mb-3">
-                    <i class="bi bi-check-circle" style="font-size: 3rem; color: #4ade80;"></i>
+    <!-- Pending Registration Modal -->
+    <div class="modal fade" id="pendingRegistrationModal" tabindex="-1" aria-labelledby="pendingRegistrationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title text-dark" id="pendingRegistrationModalLabel">Registration Pending</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <p class="text-center">Your registration has been submitted successfully!</p>
-                <p class="text-center">A manager will review your registration request. You will be able to log in once your account is approved.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <div class="modal-body p-4">
+                    <p>Your registration request for <strong id="pending-username"></strong> is still pending approval by a manager.</p>
+                    <p>You will be able to log in once a company manager approves your registration.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const registerForm = document.getElementById('tenantRegisterForm');
-    
-    if (registerForm) {
-        registerForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Clear previous error messages
-            const errorDiv = document.getElementById('register-error-message');
-            errorDiv.classList.add('d-none');
-            errorDiv.textContent = '';
-            
-            // Create AJAX request
-            const formData = new FormData(registerForm);
-            
-            fetch(registerForm.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Check if the message contains "awaiting manager approval"
-                    if (data.message && data.message.includes('awaiting manager approval')) {
-                        // Hide the registration modal
-                        const registerModal = bootstrap.Modal.getInstance(document.getElementById('tenantRegisterModal'));
-                        registerModal.hide();
-                        
-                        // Show the success modal
-                        const successModal = new bootstrap.Modal(document.getElementById('registrationSuccessModal'));
-                        successModal.show();
-                        
-                        // Set a delay before redirecting
-                        setTimeout(function() {
-                            window.location.href = data.redirect_url;
-                        }, 5000); // 5 seconds delay
-                    } else {
-                        // Direct redirect for first manager or other successful cases
-                        window.location.href = data.redirect_url;
+    <!-- Registration Success Modal -->
+    <div class="modal fade" id="registrationSuccessModal" tabindex="-1" aria-labelledby="registrationSuccessModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title font-bold" id="registrationSuccessModalLabel">Registration Successful</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-3">
+                        <i class="bi bi-check-circle" style="font-size: 3rem; color: #4ade80;"></i>
+                    </div>
+                    <p class="text-center">Your registration has been submitted successfully!</p>
+                    <p class="text-center">A manager will review your registration request. You will be able to log in once your account is approved.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const registerForm = document.getElementById('tenantRegisterForm');
+        
+        if (registerForm) {
+            registerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Clear previous error messages
+                const errorDiv = document.getElementById('register-error-message');
+                errorDiv.classList.add('d-none');
+                errorDiv.textContent = '';
+                
+                // Create AJAX request
+                const formData = new FormData(registerForm);
+                
+                fetch(registerForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
-                } else {
-                    // Show error in the modal
-                    errorDiv.textContent = data.message;
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Check if the message contains "awaiting manager approval"
+                        if (data.message && data.message.includes('awaiting manager approval')) {
+                            // Hide the registration modal
+                            const registerModal = bootstrap.Modal.getInstance(document.getElementById('tenantRegisterModal'));
+                            registerModal.hide();
+                            
+                            // Show the success modal
+                            const successModal = new bootstrap.Modal(document.getElementById('registrationSuccessModal'));
+                            successModal.show();
+                            
+                            // Set a delay before redirecting
+                            setTimeout(function() {
+                                window.location.href = data.redirect_url;
+                            }, 5000); // 5 seconds delay
+                        } else {
+                            // Direct redirect for first manager or other successful cases
+                            window.location.href = data.redirect_url;
+                        }
+                    } else {
+                        // Show error in the modal
+                        errorDiv.textContent = data.message;
+                        errorDiv.classList.remove('d-none');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    errorDiv.textContent = 'An unexpected error occurred. Please try again.';
                     errorDiv.classList.remove('d-none');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                errorDiv.textContent = 'An unexpected error occurred. Please try again.';
-                errorDiv.classList.remove('d-none');
+                });
             });
-        });
-    }
+        }
 
-    // Handle login form submission
-    const loginForm = document.getElementById('tenantLoginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Create AJAX request
-            const formData = new FormData(loginForm);
-            
-            fetch(loginForm.action, {
-                method: 'POST',
-                body: formData,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Redirect to dashboard on success
-                    window.location.href = data.redirect_url;
-                } else if (data.status === 'pending') {
-                    // Show pending registration modal
-                    document.getElementById('pending-username').textContent = data.username;
-                    const pendingModal = new bootstrap.Modal(document.getElementById('pendingRegistrationModal'));
-                    
-                    // Hide the login modal first
-                    const loginModal = bootstrap.Modal.getInstance(document.getElementById('tenantLoginModal'));
-                    loginModal.hide();
-                    
-                    // Show the pending registration modal
-                    pendingModal.show();
-                } else {
-                    // Show error message
-                    alert(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('An unexpected error occurred. Please try again.');
+        // Handle login form submission
+        const loginForm = document.getElementById('tenantLoginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Create AJAX request
+                const formData = new FormData(loginForm);
+                
+                fetch(loginForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Redirect to dashboard on success
+                        window.location.href = data.redirect_url;
+                    } else if (data.status === 'pending') {
+                        // Show pending registration modal
+                        document.getElementById('pending-username').textContent = data.username;
+                        const pendingModal = new bootstrap.Modal(document.getElementById('pendingRegistrationModal'));
+                        
+                        // Hide the login modal first
+                        const loginModal = bootstrap.Modal.getInstance(document.getElementById('tenantLoginModal'));
+                        loginModal.hide();
+                        
+                        // Show the pending registration modal
+                        pendingModal.show();
+                    } else {
+                        // Show error message
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An unexpected error occurred. Please try again.');
+                });
             });
-        });
-    }
-});
-</script>
-{% endblock %}
+        }
+    });
+    </script>
+</body>
+</html>
