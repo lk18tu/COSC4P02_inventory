@@ -12,15 +12,15 @@ from .models          import StockTransaction, StockUnit
 def _ensure_items_table(base: str):
     ddl = f"""
     CREATE TABLE IF NOT EXISTS `{base}_items` (
-        id   INT AUTO_INCREMENT PRIMARY KEY,
-        class_id        INT          NOT NULL,
-        tracking_number VARCHAR(255) NOT NULL,
-        status   VARCHAR(50)  NOT NULL DEFAULT 'In Stock',
-        location VARCHAR(100) NOT NULL DEFAULT 'Warehouse',
-        destination_percentage INT NULL,
-        date_added   TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-        last_updated TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
-                                   ON UPDATE CURRENT_TIMESTAMP,
+        id                      INT AUTO_INCREMENT PRIMARY KEY,
+        class_id                INT          NOT NULL,
+        tracking_number         VARCHAR(255) NOT NULL,
+        status                  VARCHAR(50)  NOT NULL DEFAULT 'In Stock',
+        location                VARCHAR(100) NOT NULL DEFAULT 'Warehouse',
+        destination_percentage  DOUBLE(5,2)  NOT NULL DEFAULT 0.0,
+        date_added              TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP,
+        last_updated            TIMESTAMP    NULL DEFAULT CURRENT_TIMESTAMP
+                                              ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY uq_tracking (tracking_number)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
@@ -281,10 +281,10 @@ def add_stock(request, table_name, item_id, tenant_url=None):
                     c.execute(
                         f"""
                         INSERT IGNORE INTO `{target_tbl}`
-                            (class_id, tracking_number, status, location)
-                        VALUES (%s, %s, %s, %s)
+                            (class_id, tracking_number, status, location, destination_percentage)
+                        VALUES (%s, %s, %s, %s, %s)
                         """,
-                        [item_id, tid, status, location],
+                        [item_id, tid, status, location, 0],   # ← destination_percentage = 0
                     )
                 except DBProgrammingError:
                     pass
