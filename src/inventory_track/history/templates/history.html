@@ -3,6 +3,8 @@
 {% block title %}Inventory History{% endblock %}
 
 {% block content %}
+
+
 <div class="container mt-4">
     <div class="card shadow border-0">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -13,20 +15,23 @@
             <!-- Search form -->
             <form method="get" action="{% url 'history:history' tenant_url=tenant_url %}" class="mb-4">
                 <div class="input-group">
-                    <input type="text" name="search" class="form-control bg-gray-800 text-white border-gray-700" 
-                           placeholder="Search history..." value="{{ request.GET.search }}">
+                    <input type="text" name="search" class="form-control bg-gray-800 text-white border-gray-700 placeholder-light" 
+                        placeholder="Search history..." value="{{ request.GET.search }}">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-search"></i> Search
                     </button>
                 </div>
             </form>
+
             
             <!-- History table -->
             <div class="table-responsive">
                 <table class="table custom-table">
                     <thead>
                         <tr>
-                            <th scope="col">Item</th>
+                            <th scope="col">Location</th>
+                            <th scope="col">Class ID</th>
+                            <th scope="col">Item ID</th>
                             <th scope="col">Action</th>
                             <th scope="col">User</th>
                             <th scope="col">Timestamp</th>
@@ -36,21 +41,63 @@
                     <tbody>
                         {% for log in logs %}
                         <tr>
-                            <td class="text-white fw-bold">{{ log.item }}</td>
+                            <td class="text-white fw-bold">{{ log.location }}</td>
+                            <td class="text-white fw-bold">
+                                {% if log.item_class_number == -1 %}
+                                    N/A
+                                {% else %}
+                                    {{ log.item_class_number }}
+                                {% endif %}
+                            </td>
+                            <td class="text-white fw-bold">
+                                {% if log.individual_item_number == -1 %}
+                                    N/A
+                                {% else %}
+                                    {{ log.individual_item_number }}
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if log.action == 'add' %}
                                     <span class="badge bg-success">Added</span>
                                 {% elif log.action == 'update' %}
-                                    <span class="badge bg-warning text-dark">Updated</span>
+                                    <span class="badge bg-secondary">Updated</span>
                                 {% elif log.action == 'delete' %}
                                     <span class="badge bg-danger">Deleted</span>
+                                {% elif log.action == 'archive' %}
+                                    <span class="badge bg-secondary">Archived</span>
+                                {% elif log.action == 'unarchive' %}
+                                    <span class="badge bg-secondary">Unarchived</span>
                                 {% else %}
                                     <span class="badge bg-secondary">{{ log.action }}</span>
                                 {% endif %}
                             </td>
                             <td class="text-white">{{ log.user }}</td>
                             <td class="text-blue-300">{{ log.timestamp|date:"M d, Y H:i" }}</td>
-                            <td class="text-blue-300">{{ log.details }}</td>
+
+                            <!--DETAILS-->
+                            <td>
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#detailsModal{{ log.id }}">
+                                    View Details
+                                </button>
+                            
+                                <!-- Modal -->
+                                <div class="modal fade" id="detailsModal{{ log.id }}" tabindex="-1" aria-labelledby="detailsModalLabel{{ log.id }}" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content bg-gray-800 text-white">
+                                            <div class="modal-header border-bottom border-gray-700">
+                                                <h5 class="modal-title" id="detailsModalLabel{{ log.id }}">Details</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                {{ log.details }}
+                                            </div>
+                                            <div class="modal-footer border-top border-gray-700">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -64,6 +111,41 @@
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <!-- Pagination -->
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if logs.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link bg-dark text-light" href="?page={{ logs.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Previous">
+                                    &laquo;
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link bg-dark text-muted">&laquo;</span></li>
+                        {% endif %}
+
+                        {% for num in logs.paginator.page_range %}
+                            {% if logs.number == num %}
+                                <li class="page-item active"><span class="page-link bg-primary text-white">{{ num }}</span></li>
+                            {% elif num > logs.number|add:'-3' and num < logs.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link bg-dark text-light" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">{{ num }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if logs.has_next %}
+                            <li class="page-item">
+                                <a class="page-link bg-dark text-light" href="?page={{ logs.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" aria-label="Next">
+                                    &raquo;
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link bg-dark text-muted">&raquo;</span></li>
+                        {% endif %}
+                    </ul>
+                </nav>
             </div>
         </div>
         
