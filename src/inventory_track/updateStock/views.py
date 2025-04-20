@@ -1,14 +1,36 @@
 import uuid
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db import connection
-from django.db import ProgrammingError as DBProgrammingError
+from django.db import connection, ProgrammingError as DBProgrammingError
 from django.contrib import messages
 from django.db.models import Q
 
 from inventoryApp.models import InvTable_Metadata
-from .models import StockTransaction, StockUnit
+from .models          import StockTransaction, StockUnit
 
 
+# helper – make sure “<base>_items” exists
+def _ensure_items_table(base: str):
+    ddl = f"""
+    CREATE TABLE IF NOT EXISTS `{base}_items` (
+        id   INT AUTO_INCREMENT PRIMARY KEY,
+        class_id        INT          NOT NULL,
+        tracking_number VARCHAR(255) NOT NULL,
+        status   VARCHAR(50)  NOT NULL DEFAULT 'In Stock',
+        location VARCHAR(100) NOT NULL DEFAULT 'Warehouse',
+        destination_percentage INT NULL,
+        date_added   TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+        last_updated TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+                                   ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_tracking (tracking_number)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    with connection.cursor() as c:
+        c.execute(ddl)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PRODUCT LIST
+# ─────────────────────────────────────────────────────────────────────────────
 def product_list(request, tenant_url=None):
     tenant_url = (hasattr(request, "tenant") and request.tenant.domain_url) or tenant_url or ""
     table_name = request.GET.get("table")
@@ -25,7 +47,6 @@ def product_list(request, tenant_url=None):
             cols = [col[0] for col in c.description]
             rows = c.fetchall()
 
-        # most‑recent per‑item batch transaction_id
         txs = StockTransaction.objects.filter(
             table_meta=meta
         ).order_by("item_id", "-created_at")
@@ -54,9 +75,13 @@ def product_list(request, tenant_url=None):
     })
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ITEM DETAIL
+# ─────────────────────────────────────────────────────────────────────────────
 def item_detail(request, table_name, item_id, tenant_url=None):
     tenant_url = (hasattr(request, "tenant") and request.tenant.domain_url) or tenant_url or ""
     meta       = get_object_or_404(InvTable_Metadata, table_name=table_name)
+    base_name  = table_name.rsplit("_classes", 1)[0]   # ← for *_items table
 
     # — remove a specific unit? —
     if request.method == "POST" and request.POST.get("remove_unit"):
@@ -88,11 +113,27 @@ def item_detail(request, table_name, item_id, tenant_url=None):
                 item_id=item_id,
                 tracking_id=remove_tid
             )
-            unit.status   = "Removed"
-            unit.location = ""
+            unit.status, unit.location = "Removed", ""
             unit.save()
         except StockUnit.DoesNotExist:
             pass
+
+        # 4) mirror the change into <base>_items
+        with connection.cursor() as c:
+            try:
+                c.execute(
+                    f"""
+                    UPDATE `{base_name}_items`
+                       SET status='Removed',
+                           location='',
+                           last_updated = NOW()
+                     WHERE tracking_number = %s
+                       AND class_id        = %s
+                    """,
+                    [remove_tid, item_id],
+                )
+            except DBProgrammingError:
+                pass
 
         messages.success(request, f"Unit {remove_tid} removed.")
         return redirect("updateStock:item_detail",
@@ -169,6 +210,9 @@ def item_detail(request, table_name, item_id, tenant_url=None):
     })
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# ADD STOCK
+# ─────────────────────────────────────────────────────────────────────────────
 def add_stock(request, table_name, item_id, tenant_url=None):
     tenant_url = (hasattr(request, "tenant") and request.tenant.domain_url) or tenant_url or ""
     meta       = get_object_or_404(InvTable_Metadata, table_name=table_name)
@@ -179,12 +223,14 @@ def add_stock(request, table_name, item_id, tenant_url=None):
         row = c.fetchone()
     item_title = row[0] if row else f"ID_{item_id}"
 
+    base_name = table_name.rsplit("_classes", 1)[0]      # → for *_items table
+
     if request.method == "POST":
         amt      = int(request.POST["amount"])
         status   = request.POST.get("status",   "In Stock")
         location = request.POST.get("location", "Warehouse")
 
-        # 1) bump the master stock count
+        # 1) bump master stock count
         with connection.cursor() as c:
             c.execute(
                 f"UPDATE `{table_name}` "
@@ -193,7 +239,11 @@ def add_stock(request, table_name, item_id, tenant_url=None):
                 [amt, item_id],
             )
 
-        # 2) create StockTransaction rows + StockUnit rows
+        # make sure <base>_items exists
+        _ensure_items_table(base_name)
+        target_tbl = f"{base_name}_items"
+
+        # 2) create StockTransaction rows + StockUnit rows + raw‑SQL rows
         batch_id = uuid.uuid4().hex
         slug     = item_title.replace(" ", "_")
 
@@ -225,6 +275,19 @@ def add_stock(request, table_name, item_id, tenant_url=None):
                 status       = status,
                 location     = location,
             )
+            # c) mirror into <base>_items
+            with connection.cursor() as c:
+                try:
+                    c.execute(
+                        f"""
+                        INSERT IGNORE INTO `{target_tbl}`
+                            (class_id, tracking_number, status, location)
+                        VALUES (%s, %s, %s, %s)
+                        """,
+                        [item_id, tid, status, location],
+                    )
+                except DBProgrammingError:
+                    pass
 
         # 3) summary row
         StockTransaction.objects.create(
@@ -249,6 +312,9 @@ def add_stock(request, table_name, item_id, tenant_url=None):
     })
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# REMOVE STOCK (stub)
+# ─────────────────────────────────────────────────────────────────────────────
 def remove_stock(request, table_name, item_id, tenant_url=None):
     return redirect("updateStock:item_detail",
                     tenant_url=tenant_url,
