@@ -10,12 +10,17 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import UserProfile, PendingRegistration, Notification
 from notifications.models import Notification  # Import Notification from the notifications app
-from inventory_analysis.views import generate_inventory_pie_chart
+
 from django.urls import reverse_lazy
 from django.contrib.auth.views import PasswordResetView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import JsonResponse
 from django.contrib.auth.hashers import make_password
+
+from inventory_analysis.views import (
+    get_available_inventory_tables,
+    generate_inventory_level_chart
+)
 
 logger = logging.getLogger(__name__)
 
@@ -176,27 +181,53 @@ def user_logout(request, tenant_url=None):
     # Redirect to the tenant landing page instead of the login page
     return redirect(f'/{tenant_url}/')
 
-@login_required
 def dashboard(request, tenant_url=None):
-    tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-    
+    # — tenant lookup as before —
+    tenant_url = (hasattr(request, 'tenant') and request.tenant.domain_url) or tenant_url or ''
+
+    # 1) list of all inventory tables
+    inventory_tables = get_available_inventory_tables()
+
+    # 2) which one is selected? default to first
+    selected_table = request.GET.get('table') or (inventory_tables[0] if inventory_tables else None)
+
+    # 3) generate bar‑chart (base64) for that table
+    inventory_bar_chart = (
+        generate_inventory_level_chart(selected_table)
+        if selected_table else None
+    )
+
+    # — time, manager flag, profile ensure —
     eastern = pytz.timezone('US/Eastern')
-    current_time = datetime.datetime.now(eastern)
-    formatted_date_time = current_time.strftime("%B %d, %Y, %I:%M %p EST")
+    now = datetime.datetime.now(eastern)
+    formatted_date_time = now.strftime("%B %d, %Y, %I:%M %p EST")
 
-    # Ensure user profile exists
     UserProfile.objects.get_or_create(user=request.user)
-    unread_notifications = Notification.objects.filter(user=request.user, is_read=False).count() or 0
 
-    # Generate the pie chart (Base64-encoded image string)
-    inventory_pie_chart = generate_inventory_pie_chart()
+    # 4) fetch notifications
+    notifications = (
+        Notification.objects
+        .filter(user=request.user)
+        .order_by('-created_at')[:5]
+    )
+    unread = Notification.objects.filter(
+        user=request.user, is_read=False
+    ).count() or 0
 
     context = {
-        "unread_notifications": unread_notifications,
-        "current_time": formatted_date_time,
-        "is_manager": request.user.profile.is_manager(),
-        "inventory_pie_chart": inventory_pie_chart,
-        "tenant_url": tenant_url,
+        # tenant / header info
+        "tenant_url":           tenant_url,
+        "current_time":         formatted_date_time,
+        "is_manager":           request.user.profile.is_manager(),
+
+        # notifications panel
+        "notifications":        notifications,
+        "unread_notifications": unread,
+
+        # inventory dropdown + chart
+        "inventory_tables":     inventory_tables,
+        "selected_table":       selected_table,
+        "inventory_bar_chart":  inventory_bar_chart,
     }
     return render(request, "userauth/dashboard.html", context)
 

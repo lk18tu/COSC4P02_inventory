@@ -59,47 +59,72 @@
         </div>
     </div>
 
-    <!-- Inventory Overview -->
+     {# Inventory Overview + Notifications side‑by‑side #}
     <div class="row">
+        <!-- Inventory Overview -->
         <div class="col-md-6 mb-4">
             <div class="card shadow-sm h-100">
-                <div class="card-header bg-light">
+                <div class="card-header bg-light d-flex align-items-center">
                     <h5 class="mb-0">Inventory Overview</h5>
+                    <select
+                      class="form-select form-select-sm ms-auto"
+                      style="width:auto"
+                      onchange="window.location='?table='+this.value"
+                    >
+                      {% for tbl in inventory_tables %}
+                        <option value="{{ tbl }}" {% if tbl == selected_table %}selected{% endif %}>
+                          {{ tbl }}
+                        </option>
+                      {% endfor %}
+                    </select>
                 </div>
                 <div class="card-body text-center">
-                    {% if inventory_pie_chart %}
-                        <img src="data:image/png;base64,{{ inventory_pie_chart }}" alt="Inventory Chart" class="img-fluid">
+                    {% if inventory_bar_chart %}
+                        <img
+                          src="data:image/png;base64,{{ inventory_bar_chart }}"
+                          alt="Inventory Levels for {{ selected_table }}"
+                          class="img-fluid"
+                        />
                     {% else %}
-                        <p class="text-muted">No inventory data available.</p>
+                        <p class="text-muted">
+                            No data available for <strong>{{ selected_table }}</strong>.
+                        </p>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
-        <!-- Notifications -->
+
+                <!-- Notifications -->
         <div class="col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Notifications</h5>
-                    <a href="/{{ tenant_url }}/notifications/" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="card-body">
-                    {% if notifications %}
-                        <ul class="list-group list-group-flush">
-                            {% for notification in notifications %}
-                                <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    {{ notification.message }}
-                                    <span class="badge bg-primary rounded-pill">{{ notification.created_at|date:"M d" }}</span>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% else %}
-                        <p class="text-muted text-center">No notifications.</p>
-                    {% endif %}
-                </div>
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+              <h5 class="mb-0">
+                Notifications
+                {% if unread_notifications %}
+                  <span class="badge bg-primary ms-2">{{ unread_notifications }}</span>
+                {% endif %}
+              </h5>
+              <a href="{% url 'notifications:view_notifications' tenant_url=tenant_url %}"
+                 class="btn btn-sm btn-outline-primary">
+                View All
+              </a>
             </div>
+            <div class="card-body">
+              {% if notifications %}
+                <ul class="list-group list-group-flush">
+                  {% for notification in notifications %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                      <span>{{ notification.message }}</span>
+                      <small class="text-muted">{{ notification.created_at|date:"M d" }}</small>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="text-center text-muted">No notifications.</p>
+              {% endif %}
+            </div>
+          </div>
         </div>
-    </div>
-</div>
+
 {% endblock %}
 
