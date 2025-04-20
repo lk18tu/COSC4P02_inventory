@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container my-4">
 
-  <!-- back button (white text) -->
+  <!-- back button -->
   <a href="{% url 'updateStock:product_list' tenant_url=tenant_url %}?table={{ table_name }}"
      class="btn btn-secondary btn-sm text-white mb-3">
     <i class="bi bi-chevron-left"></i> Back
@@ -13,7 +13,7 @@
   <!-- title -->
   <h2 class="mb-3">{{ item_title }}</h2>
 
-  <!-- add‑stock button directly beneath the title -->
+  <!-- add‑stock button -->
   <div class="mb-4">
     <a href="{% url 'updateStock:add_stock' tenant_url=tenant_url table_name=table_name item_id=item_id %}"
        class="btn btn-primary btn-sm">
@@ -21,9 +21,9 @@
     </a>
   </div>
 
-  <!-- live units --------------------------------------------------------- -->
-  <h5 class="mb-2">Units ({{ instances|length }})</h5>
-  <div class="table-responsive mb-4">
+  <!-- UNITS TABLE -->
+  <h5 class="mb-2">Units ({{ instances_page.paginator.count }})</h5>
+  <div class="table-responsive mb-2">
     <table class="table table-bordered table-striped align-middle">
       <thead class="table-dark">
         <tr>
@@ -35,7 +35,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for inst in instances %}
+        {% for inst in instances_page %}
           <tr>
             <td>{{ inst.unit_number }}</td>
             <td>{{ inst.tracking_id }}</td>
@@ -60,7 +60,50 @@
     </table>
   </div>
 
-  <!-- transaction history (with pagination) ----------------------------- -->
+  <!-- UNITS PAGINATION -->
+  <nav aria-label="Units page navigation" class="mb-4">
+    <ul class="pagination justify-content-center">
+      {% if instances_page.has_previous %}
+        <li class="page-item">
+          <a class="page-link bg-dark text-white"
+             href="?units_page={{ instances_page.previous_page_number }}{% if history_page.number %}&page={{ history_page.number }}{% endif %}"
+             aria-label="Previous">&laquo;</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link bg-dark text-white">&laquo;</span>
+        </li>
+      {% endif %}
+
+      {% for num in instances_page.paginator.page_range %}
+        {% if instances_page.number == num %}
+          <li class="page-item active">
+            <span class="page-link bg-primary text-white">{{ num }}</span>
+          </li>
+        {% elif num > instances_page.number|add:'-3' and num < instances_page.number|add:'3' %}
+          <li class="page-item">
+            <a class="page-link bg-dark text-white"
+               href="?units_page={{ num }}{% if history_page.number %}&page={{ history_page.number }}{% endif %}">{{ num }}</a>
+          </li>
+        {% endif %}
+      {% endfor %}
+
+      {% if instances_page.has_next %}
+        <li class="page-item">
+          <a class="page-link bg-dark text-white"
+             href="?units_page={{ instances_page.next_page_number }}{% if history_page.number %}&page={{ history_page.number }}{% endif %}"
+             aria-label="Next">&raquo;</a>
+        </li>
+      {% else %}
+        <li class="page-item disabled">
+          <span class="page-link bg-dark text-white">&raquo;</span>
+        </li>
+      {% endif %}
+    </ul>
+  </nav>
+
+
+  <!-- TRANSACTION HISTORY TABLE -->
   <h5 class="mt-4 mb-2">Transaction History</h5>
   <div class="table-responsive">
     <table class="table table-bordered table-striped align-middle">
@@ -87,18 +130,18 @@
     </table>
   </div>
 
-  <!-- Pagination UI (copied from history.html) -------------------------- -->
+  <!-- HISTORY PAGINATION -->
   <nav aria-label="Page navigation" class="mt-4">
     <ul class="pagination justify-content-center">
       {% if history_page.has_previous %}
         <li class="page-item">
-          <a class="page-link bg-dark text-light"
-             href="?page={{ history_page.previous_page_number }}"
+          <a class="page-link bg-dark text-white"
+             href="?page={{ history_page.previous_page_number }}{% if instances_page.number %}&units_page={{ instances_page.number }}{% endif %}"
              aria-label="Previous">&laquo;</a>
         </li>
       {% else %}
         <li class="page-item disabled">
-          <span class="page-link bg-dark text-muted">&laquo;</span>
+          <span class="page-link bg-dark text-white">&laquo;</span>
         </li>
       {% endif %}
 
@@ -109,21 +152,21 @@
           </li>
         {% elif num > history_page.number|add:'-3' and num < history_page.number|add:'3' %}
           <li class="page-item">
-            <a class="page-link bg-dark text-light"
-               href="?page={{ num }}">{{ num }}</a>
+            <a class="page-link bg-dark text-white"
+               href="?page={{ num }}{% if instances_page.number %}&units_page={{ instances_page.number }}{% endif %}">{{ num }}</a>
           </li>
         {% endif %}
       {% endfor %}
 
       {% if history_page.has_next %}
         <li class="page-item">
-          <a class="page-link bg-dark text-light"
-             href="?page={{ history_page.next_page_number }}"
+          <a class="page-link bg-dark text-white"
+             href="?page={{ history_page.next_page_number }}{% if instances_page.number %}&units_page={{ instances_page.number }}{% endif %}"
              aria-label="Next">&raquo;</a>
         </li>
       {% else %}
         <li class="page-item disabled">
-          <span class="page-link bg-dark text-muted">&raquo;</span>
+          <span class="page-link bg-dark text-white">&raquo;</span>
         </li>
       {% endif %}
     </ul>
