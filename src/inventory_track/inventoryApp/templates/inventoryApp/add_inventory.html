@@ -4,6 +4,14 @@
 {% block title %}Add New Inventory Table{% endblock %}
 
 {% block content %}
+
+{% if messages %}
+{% for message in messages %}
+    <div class="alert alert-danger mt-3" role="alert">
+        {{ message }}
+    </div>
+{% endfor %}
+{% endif %}
 <div class="container mt-5">
     <div class="row">
         <div class="col-md-6 offset-md-3">
@@ -12,19 +20,12 @@
                     <h3 class="mb-0 font-bold">Add New Inventory Table</h3>
                 </div>
                 <div class="card-body">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }}">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
                     
                     <form method="POST">
                         {% csrf_token %}
                         <div class="mb-3">
                             <label for="table_name" class="form-label text-white">Table Name</label>
-                            <input type="text" id="table_name" name="table_name" class="form-control form-control-dark" required>
+                            <input type="text" id="table_name" name="table_name" maxlength="30" class="form-control form-control-dark" required>
                             <small class="text-gray-400">This name will be used to identify your inventory table.</small>
                         </div>
                         
