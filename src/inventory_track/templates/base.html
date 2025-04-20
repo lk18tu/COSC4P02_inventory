@@ -608,6 +608,17 @@
             });
         }
         
+        // Standard tooltip options to ensure consistency
+        const STANDARD_TOOLTIP_OPTIONS = {
+            container: 'body',
+            trigger: 'hover',
+            placement: 'right',
+            animation: false,
+            delay: { show: 50, hide: 0 },
+            offset: [0, 10],
+            template: '<div class="tooltip" role="tooltip"><div class="tooltip-inner"></div></div>'
+        };
+        
         document.addEventListener('DOMContentLoaded', function() {
             // Basic elements
             const sidebar = document.getElementById('sidebar');
@@ -662,20 +673,10 @@
                 const isMobile = window.innerWidth <= 768;
                 
                 if (isCollapsed || isMobile) {
-                    // Standard tooltip options
-                    const tooltipOptions = {
-                        container: 'body',
-                        trigger: 'hover',
-                        placement: 'right',
-                        animation: false,
-                        delay: { show: 50, hide: 0 },
-                        offset: [0, 10]
-                    };
-                    
                     // Initialize tooltips on all menu items
                     const tooltipTriggers = document.querySelectorAll('[data-bs-toggle="tooltip"]');
                     tooltipTriggers.forEach(el => {
-                        const tooltip = new bootstrap.Tooltip(el, tooltipOptions);
+                        const tooltip = new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
                         
                         // Hide tooltip on click
                         el.addEventListener('click', function() {
@@ -777,10 +778,10 @@
                 // Re-bind event handlers for interactive elements
                 const forms = contentArea.querySelectorAll('form');
                 forms.forEach(form => {
-                    // Don't intercept forms with file uploads
+                    // Don't intercept forms with file uploads or data-no-ajax attribute
                     if (form.getAttribute('enctype') === 'multipart/form-data' || 
                         form.hasAttribute('data-no-ajax')) {
-                        return;
+                        return; // Skip this form completely
                     }
                     
                     if (!form.hasAttribute('data-ajax-bound')) {
@@ -817,15 +818,29 @@
                     // Initialize standard tooltips for content area
                     const tooltipTriggers = contentArea.querySelectorAll('[data-bs-toggle="tooltip"]');
                     tooltipTriggers.forEach(el => {
-                        new bootstrap.Tooltip(el, {
-                            container: 'body'
-                        });
+                        new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
                     });
                     
                     // Initialize popovers
                     const popoverTriggers = contentArea.querySelectorAll('[data-bs-toggle="popover"]');
                     popoverTriggers.forEach(el => {
                         new bootstrap.Popover(el);
+                    });
+                }
+                
+                // Reinitialize sidebar tooltips to ensure consistency
+                const sidebar = document.getElementById('sidebar');
+                if (sidebar && (sidebar.classList.contains('collapsed') || window.innerWidth <= 768)) {
+                    // Re-init sidebar tooltips
+                    const sidebarTooltips = document.querySelectorAll('.sidebar-link[data-bs-toggle="tooltip"]');
+                    sidebarTooltips.forEach(el => {
+                        // Dispose any existing tooltip
+                        const tooltipInstance = bootstrap.Tooltip.getInstance(el);
+                        if (tooltipInstance) {
+                            tooltipInstance.dispose();
+                        }
+                        // Create new tooltip with standard options
+                        new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
                     });
                 }
             }

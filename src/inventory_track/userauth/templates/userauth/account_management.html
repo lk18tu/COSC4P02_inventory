@@ -49,13 +49,13 @@
                                     <td>{{ reg.email }}</td>
                                     <td>{{ reg.created_at|date:"M d, Y" }}</td>
                                     <td class="text-end">
-                                        <form method="post" action="/{{ tenant_url }}/userauth/approve_registration/{{ reg.id }}/" class="d-inline">
+                                        <form method="post" action="/{{ tenant_url }}/userauth/approve_registration/{{ reg.id }}/" class="d-inline" data-no-ajax="true">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-success">
                                                 <i class="bi bi-check-circle"></i> Approve
                                             </button>
                                         </form>
-                                        <form method="post" action="/{{ tenant_url }}/userauth/reject_registration/{{ reg.id }}/" class="d-inline">
+                                        <form method="post" action="/{{ tenant_url }}/userauth/reject_registration/{{ reg.id }}/" class="d-inline" data-no-ajax="true">
                                             {% csrf_token %}
                                             <button type="submit" class="btn btn-sm btn-danger">
                                                 <i class="bi bi-x-circle"></i> Reject
@@ -99,7 +99,7 @@
                                     <td>{{ user.username }}</td>
                                     <td>{{ user.email }}</td>
                                     <td>
-                                        <form method="post" action="/{{ tenant_url }}/userauth/update_user_type/{{ user.id }}/" class="d-inline user-type-form">
+                                        <form method="post" action="/{{ tenant_url }}/userauth/update_user_type/{{ user.id }}/" class="d-inline user-type-form" data-no-ajax="true">
                                             {% csrf_token %}
                                             <select name="user_type" class="form-select form-select-sm bg-gray-700 text-white" data-user-id="{{ user.id }}" data-username="{{ user.username }}" data-current-type="{{ user.profile.user_type }}" onchange="confirmUserTypeChange(this)">
                                                 <option value="employee" {% if user.profile.user_type == 'employee' %}selected{% endif %}>Employee</option>
@@ -131,7 +131,7 @@
                                             </div>
                                             <div class="modal-footer">
                                                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <form method="post" action="/{{ tenant_url }}/userauth/delete_user/{{ user.id }}/">
+                                                <form method="post" action="/{{ tenant_url }}/userauth/delete_user/{{ user.id }}/" data-no-ajax="true">
                                                     {% csrf_token %}
                                                     <button type="submit" class="btn btn-danger">Delete User</button>
                                                 </form>
@@ -195,7 +195,7 @@
                 <h5 class="modal-title" id="addUserModalLabel">Add New Employee</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" action="/{{ tenant_url }}/userauth/add_user/">
+            <form method="post" action="/{{ tenant_url }}/userauth/add_user/" data-no-ajax="true">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
@@ -250,6 +250,7 @@
 <script>
     let activeSelect = null;
     let originalValue = null;
+    let currentTenantUrl = '{{ tenant_url }}';
     
     function confirmUserTypeChange(selectElement) {
         // Store reference to the select element
@@ -297,8 +298,11 @@
             // Create and submit form
             const form = document.createElement('form');
             form.method = 'post';
-            form.action = `/{{ tenant_url }}/userauth/update_user_type/${userId}/`;
+            form.action = `/${currentTenantUrl}/userauth/update_user_type/${userId}/`;
             form.style.display = 'none';
+            
+            // Add data-no-ajax attribute to bypass AJAX navigation
+            form.setAttribute('data-no-ajax', 'true');
             
             const csrfInput = document.createElement('input');
             csrfInput.type = 'hidden';
@@ -313,6 +317,8 @@
             form.appendChild(userTypeInput);
             
             document.body.appendChild(form);
+            
+            // Submit the form directly without AJAX
             form.submit();
         }
         
@@ -325,8 +331,9 @@
         const userType = document.getElementById(`editUserType${userId}`).value;
         const form = document.createElement('form');
         form.method = 'post';
-        form.action = `/{{ tenant_url }}/userauth/update_user_type/${userId}/`;
+        form.action = `/${currentTenantUrl}/userauth/update_user_type/${userId}/`;
         form.style.display = 'none';
+        form.setAttribute('data-no-ajax', 'true');
         
         const csrfInput = document.createElement('input');
         csrfInput.type = 'hidden';
@@ -343,5 +350,14 @@
         document.body.appendChild(form);
         form.submit();
     }
+
+    // Add data-no-ajax attribute to all forms in the account management page
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mark all forms as no-ajax to bypass AJAX navigation
+        const forms = document.querySelectorAll('form');
+        forms.forEach(form => {
+            form.setAttribute('data-no-ajax', 'true');
+        });
+    });
 </script>
 {% endblock %}
