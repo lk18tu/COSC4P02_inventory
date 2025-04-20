@@ -4,20 +4,18 @@
 {% block content %}
 <div class="container my-4">
 
-  <!-- back button -->
-  <a href="{% url 'updateStock:product_list' tenant_url=tenant_url %}?table={{ table_name }}"
-     class="btn btn-secondary btn-sm text-white mb-3">
-    <i class="bi bi-chevron-left"></i> Back
-  </a>
-
   <!-- title -->
   <h2 class="mb-3">{{ item_title }}</h2>
 
-  <!-- add‑stock button -->
-  <div class="mb-4">
+  <!-- buttons row: Add on the left, Back on the right -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
     <a href="{% url 'updateStock:add_stock' tenant_url=tenant_url table_name=table_name item_id=item_id %}"
        class="btn btn-primary btn-sm">
       + Add Stock
+    </a>
+    <a href="{% url 'updateStock:product_list' tenant_url=tenant_url %}?table={{ table_name }}"
+       class="btn btn-secondary btn-sm text-white">
+      <i class="bi bi-chevron-left"></i> Back
     </a>
   </div>
 
