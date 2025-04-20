@@ -10,9 +10,105 @@
     <script>
         // Apply sidebar collapsed state immediately before rendering
         (function() {
-            const sidebarState = localStorage.getItem('sidebarCollapsed');
-            if (sidebarState === 'true') {
+            // First check URL parameters for sidebar state (useful when redirecting between pages)
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlSidebarState = urlParams.get('sidebar_collapsed');
+            
+            // Use URL param if available, otherwise use localStorage
+            let sidebarCollapsed = false;
+            if (urlSidebarState !== null) {
+                sidebarCollapsed = urlSidebarState === 'true';
+                // Update localStorage with the new state
+                localStorage.setItem('sidebarCollapsed', sidebarCollapsed);
+            } else {
+                // Fall back to localStorage
+                sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            }
+            
+            // Create and inject a complete preload style block that prevents any visual transition
+            // This will be in effect before any DOM elements are rendered
+            let preloadStyle = '<style id="preload-styles">';
+            // Hide everything initially with an overlay approach instead of visibility:hidden
+            preloadStyle += `
+                body { overflow: hidden !important; }
+                #page-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: #111827;
+                    z-index: 9999;
+                    opacity: 1;
+                    transition: opacity 0.2s ease;
+                }
+            `;
+            preloadStyle += '.preload * { transition: none !important; animation: none !important; }';
+            
+            // Fixed positioning values for sidebar and its elements
+            preloadStyle += `
+                .sidebar {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    height: 100vh !important;
+                    overflow: hidden !important;
+                    display: block !important;
+                }
+                .sidebar-header {
+                    padding: 20px !important;
+                    height: 70px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: space-between !important;
+                }
+                .sidebar-menu {
+                    padding: 0 !important;
+                    margin-top: 10px !important;
+                }
+                .sidebar-menu-item {
+                    margin: 2px 0 !important;
+                }
+                .content-wrapper {
+                    min-height: 100vh !important;
+                    transition: none !important;
+                }
+            `;
+            
+            if (sidebarCollapsed) {
+                // Collapsed sidebar styles
+                preloadStyle += `
+                    .sidebar { width: 70px !important; }
+                    .sidebar .logo-text { opacity: 0 !important; width: 0 !important; display: none !important; }
+                    .sidebar .link-text { opacity: 0 !important; width: 0 !important; display: none !important; }
+                    .content-wrapper { margin-left: 70px !important; }
+                    .sidebar-toggle { display: block !important; }
+                    .sidebar.collapsed .sidebar-toggle { display: block !important; }
+                    html.sidebar-collapsed .sidebar { width: 70px !important; }
+                `;
                 document.documentElement.classList.add('sidebar-collapsed');
+            } else {
+                // Expanded sidebar styles
+                preloadStyle += `
+                    .sidebar { width: 250px !important; }
+                    .sidebar .logo-text { opacity: 1 !important; width: auto !important; display: block !important; }
+                    .sidebar .link-text { opacity: 1 !important; width: auto !important; display: block !important; }
+                    .content-wrapper { margin-left: 250px !important; }
+                    html:not(.sidebar-collapsed) .sidebar { width: 250px !important; }
+                `;
+            }
+            
+            preloadStyle += '</style>';
+            document.write(preloadStyle);
+            
+            // Insert overlay div
+            document.write('<div id="page-overlay"></div>');
+            
+            // Clean URL by removing the sidebar_collapsed parameter if it exists
+            if (urlSidebarState !== null && history.replaceState) {
+                const cleanUrl = new URL(window.location.href);
+                cleanUrl.searchParams.delete('sidebar_collapsed');
+                history.replaceState(null, '', cleanUrl.toString());
             }
         })();
     </script>
@@ -592,6 +688,28 @@
     
     <!-- Custom Scripts -->
     <script>
+        // Function to reveal page content once layout is calculated
+        function revealPage() {
+            // Remove the overlay instead of changing visibility
+            const overlay = document.getElementById('page-overlay');
+            if (overlay) {
+                // Fade out overlay
+                overlay.style.opacity = 0;
+                // Then remove it after transition
+                setTimeout(() => {
+                    overlay.remove();
+                    // Re-enable scrolling
+                    document.body.style.overflow = '';
+                }, 200);
+            }
+            
+            // Remove preload styles
+            const preloadStyles = document.getElementById('preload-styles');
+            if (preloadStyles) {
+                preloadStyles.remove();
+            }
+        }
+        
         // Common function to clean up tooltips
         function hideAllTooltips() {
             // Find all tooltips in the DOM
@@ -631,15 +749,22 @@
             // Remove preload class to enable transitions
             document.body.classList.remove('preload');
             
-            // Check saved sidebar state
+            // Check saved sidebar state and apply it to the actual sidebar element
             const sidebarState = localStorage.getItem('sidebarCollapsed');
             if (sidebarState === 'true') {
                 sidebar.classList.add('collapsed');
                 content.classList.add('content-expanded');
+            } else {
+                sidebar.classList.remove('collapsed');
+                content.classList.remove('content-expanded');
             }
             
             // Initialize tooltips only if sidebar is collapsed or on mobile
             initTooltips();
+            
+            // Reveal the page now that everything is properly set up
+            // Use a longer timeout to ensure the browser has fully rendered everything
+            setTimeout(revealPage, 300);
             
             // Toggle sidebar function
             function toggleSidebar(event) {
@@ -747,13 +872,6 @@
             // Function to load content via AJAX
             async function loadPageContent(url, pushState = true) {
                 try {
-                    // Special case for account management - bypass AJAX for this page
-                    if (url.includes('/userauth/account_management/')) {
-                        // Redirect to the page directly without AJAX
-                        window.location.href = url;
-                        return;
-                    }
-                    
                     // Force hide all tooltips before navigation
                     hideAllTooltips();
                     
@@ -795,15 +913,13 @@
                     // Initialize scripts in new content
                     initializeContentScripts();
                     
-                    // Scroll to top
-                    window.scrollTo(0, 0);
-                    
-                    // Check if we navigated to account management page and if so, initialize the specific scripts
+                    // Special handling for account management page
                     if (url.includes('/userauth/account_management/')) {
-                        // Initialize account management specific scripts
                         initializeAccountManagementScripts();
                     }
                     
+                    // Scroll to top
+                    window.scrollTo(0, 0);
                 } catch (error) {
                     console.error('Error loading content:', error);
                     contentArea.innerHTML = '<div class="alert alert-danger m-5">Error loading content. Please try again or refresh the page.</div>';
@@ -901,9 +1017,8 @@
                     
                     const href = link.getAttribute('href');
                     
-                    // Skip special links or account management
+                    // Skip special links
                     if (href.includes('/logout/') || 
-                        href.includes('/userauth/account_management/') ||  // Bypass AJAX for account management
                         link.hasAttribute('download') || 
                         link.getAttribute('target') || 
                         link.hasAttribute('data-no-ajax')) {
@@ -930,6 +1045,8 @@
         
         // Function to initialize account management specific scripts
         function initializeAccountManagementScripts() {
+            console.log('Initializing account management scripts');
+            
             // Make sure global variables are defined
             if (typeof window.activeSelect === 'undefined') {
                 window.activeSelect = null;
@@ -1000,30 +1117,62 @@
                     if (window.activeSelect) {
                         const userId = window.activeSelect.getAttribute('data-user-id');
                         const newType = window.activeSelect.value;
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                         
-                        // Create and submit form that doesn't use AJAX
-                        const form = document.createElement('form');
-                        form.method = 'post';
-                        form.action = `/${currentTenantUrl}/userauth/update_user_type/${userId}/`;
-                        form.style.display = 'none';
+                        // Show a loading spinner
+                        const contentArea = document.getElementById('content');
+                        const originalContent = contentArea.innerHTML;
+                        contentArea.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>';
                         
-                        const csrfInput = document.createElement('input');
-                        csrfInput.type = 'hidden';
-                        csrfInput.name = 'csrfmiddlewaretoken';
-                        csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                        form.appendChild(csrfInput);
-                        
-                        const userTypeInput = document.createElement('input');
-                        userTypeInput.type = 'hidden';
-                        userTypeInput.name = 'user_type';
-                        userTypeInput.value = newType;
-                        form.appendChild(userTypeInput);
-                        
-                        document.body.appendChild(form);
-                        
-                        // Force a page reload by setting a flag in the form
-                        form.setAttribute('target', '_self');
-                        form.submit();
+                        // Use fetch API to submit the form data
+                        fetch(`/${currentTenantUrl}/userauth/update_user_type/${userId}/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: `user_type=${newType}`
+                        })
+                        .then(response => {
+                            if (response.ok) {
+                                // Reload the account management page via AJAX to reflect changes
+                                return fetch(`/${currentTenantUrl}/userauth/account_management/`);
+                            } else {
+                                throw new Error('Failed to update user type');
+                            }
+                        })
+                        .then(response => response.text())
+                        .then(html => {
+                            // Parse the HTML
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+                            
+                            // Extract content
+                            let newContent;
+                            if (doc.querySelector('#content')) {
+                                newContent = doc.querySelector('#content').innerHTML;
+                            } else {
+                                const mainContent = doc.querySelector('main') || doc.querySelector('.content-wrapper');
+                                newContent = mainContent ? mainContent.innerHTML : doc.body.innerHTML;
+                            }
+                            
+                            // Update content
+                            contentArea.innerHTML = newContent;
+                            
+                            // Re-initialize account management scripts
+                            initializeAccountManagementScripts();
+                            
+                            // Show success message
+                            showNotification('User type updated successfully', 'success');
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            contentArea.innerHTML = originalContent;
+                            showNotification('Failed to update user type', 'danger');
+                            
+                            // Re-initialize account management scripts
+                            initializeAccountManagementScripts();
+                        });
                     }
                     
                     // Hide the modal
@@ -1035,34 +1184,171 @@
             if (typeof window.updateUserType !== 'function') {
                 window.updateUserType = function(userId) {
                     const userType = document.getElementById(`editUserType${userId}`).value;
-                    const form = document.createElement('form');
-                    form.method = 'post';
-                    form.action = `/${currentTenantUrl}/userauth/update_user_type/${userId}/`;
-                    form.style.display = 'none';
-                    form.setAttribute('target', '_self');
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
                     
-                    const csrfInput = document.createElement('input');
-                    csrfInput.type = 'hidden';
-                    csrfInput.name = 'csrfmiddlewaretoken';
-                    csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                    form.appendChild(csrfInput);
+                    // Show a loading spinner
+                    const contentArea = document.getElementById('content');
+                    const originalContent = contentArea.innerHTML;
+                    contentArea.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>';
                     
-                    const userTypeInput = document.createElement('input');
-                    userTypeInput.type = 'hidden';
-                    userTypeInput.name = 'user_type';
-                    userTypeInput.value = userType;
-                    form.appendChild(userTypeInput);
-                    
-                    document.body.appendChild(form);
-                    form.submit();
+                    // Use fetch API to submit the form data
+                    fetch(`/${currentTenantUrl}/userauth/update_user_type/${userId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: `user_type=${userType}`
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // Reload the account management page via AJAX to reflect changes
+                            return fetch(`/${currentTenantUrl}/userauth/account_management/`);
+                        } else {
+                            throw new Error('Failed to update user type');
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        // Parse the HTML
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // Extract content
+                        let newContent;
+                        if (doc.querySelector('#content')) {
+                            newContent = doc.querySelector('#content').innerHTML;
+                        } else {
+                            const mainContent = doc.querySelector('main') || doc.querySelector('.content-wrapper');
+                            newContent = mainContent ? mainContent.innerHTML : doc.body.innerHTML;
+                        }
+                        
+                        // Update content
+                        contentArea.innerHTML = newContent;
+                        
+                        // Re-initialize account management scripts
+                        initializeAccountManagementScripts();
+                        
+                        // Show success message
+                        showNotification('User type updated successfully', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        contentArea.innerHTML = originalContent;
+                        showNotification('Failed to update user type', 'danger');
+                        
+                        // Re-initialize account management scripts
+                        initializeAccountManagementScripts();
+                    });
                 };
             }
             
-            // Mark all forms in account management as no-ajax
-            const forms = document.querySelectorAll('form');
+            // Add event listeners to all forms in account management to handle them via AJAX
+            const forms = document.querySelectorAll('form:not([data-ajax-bound])');
             forms.forEach(form => {
-                form.setAttribute('data-no-ajax', 'true');
+                // Skip forms that should be handled by direct submit
+                if (form.hasAttribute('data-no-ajax') || form.getAttribute('enctype') === 'multipart/form-data') {
+                    return;
+                }
+                
+                form.setAttribute('data-ajax-bound', 'true');
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    const formData = new FormData(form);
+                    const formAction = form.getAttribute('action');
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    
+                    // Show a loading spinner
+                    const contentArea = document.getElementById('content');
+                    const originalContent = contentArea.innerHTML;
+                    contentArea.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                    
+                    // Convert FormData to URL-encoded string
+                    const formBody = new URLSearchParams(formData).toString();
+                    
+                    // Use fetch API to submit the form
+                    fetch(formAction, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: formBody
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // Reload the account management page via AJAX to reflect changes
+                            return fetch(`/${currentTenantUrl}/userauth/account_management/`);
+                        } else {
+                            throw new Error('Form submission failed');
+                        }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        // Parse the HTML
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        
+                        // Extract content
+                        let newContent;
+                        if (doc.querySelector('#content')) {
+                            newContent = doc.querySelector('#content').innerHTML;
+                        } else {
+                            const mainContent = doc.querySelector('main') || doc.querySelector('.content-wrapper');
+                            newContent = mainContent ? mainContent.innerHTML : doc.body.innerHTML;
+                        }
+                        
+                        // Update content
+                        contentArea.innerHTML = newContent;
+                        
+                        // Re-initialize account management scripts
+                        initializeAccountManagementScripts();
+                        
+                        // Show success message
+                        showNotification('Operation completed successfully', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        contentArea.innerHTML = originalContent;
+                        showNotification('Operation failed', 'danger');
+                        
+                        // Re-initialize account management scripts
+                        initializeAccountManagementScripts();
+                    });
+                });
             });
+        }
+        
+        // Helper function to show notifications
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `alert alert-${type} alert-dismissible fade show`;
+            notification.setAttribute('role', 'alert');
+            notification.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            // Find a place to insert the notification
+            const contentArea = document.getElementById('content');
+            if (contentArea) {
+                // Try to find an existing container for messages
+                let messagesContainer = contentArea.querySelector('.container');
+                if (!messagesContainer) {
+                    messagesContainer = contentArea;
+                }
+                
+                // Insert at the beginning
+                messagesContainer.insertBefore(notification, messagesContainer.firstChild);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                    setTimeout(() => notification.remove(), 150);
+                }, 5000);
+            }
         }
     </script>
 </body>
