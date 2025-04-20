@@ -324,6 +324,8 @@
             opacity: 1 !important;
             transition: none !important;
             animation: none !important;
+            z-index: 9999 !important;
+            pointer-events: none;
         }
         
         .tooltip .tooltip-inner {
@@ -636,7 +638,7 @@
                 content.classList.add('content-expanded');
             }
             
-            // Initialize standard tooltips
+            // Initialize tooltips only if sidebar is collapsed or on mobile
             initTooltips();
             
             // Toggle sidebar function
@@ -655,8 +657,15 @@
                 const isCollapsed = sidebar.classList.contains('collapsed');
                 localStorage.setItem('sidebarCollapsed', isCollapsed);
                 
-                // Reinitialize tooltips after state change
-                setTimeout(initTooltips, 100);
+                // Initialize or destroy tooltips based on new state
+                setTimeout(() => {
+                    if (isCollapsed || window.innerWidth <= 768) {
+                        initTooltips();
+                    } else {
+                        // Ensure tooltips are completely removed in expanded state
+                        destroyAllTooltips();
+                    }
+                }, 100);
             }
             
             // Add click event to both the toggle button and the header
@@ -683,16 +692,41 @@
                             hideAllTooltips();
                         });
                     });
+                } else {
+                    // Ensure tooltips are completely removed in expanded state
+                    destroyAllTooltips();
                 }
+            }
+            
+            // Completely destroy all tooltips
+            function destroyAllTooltips() {
+                hideAllTooltips();
+                
+                // Remove all tooltip-related attributes
+                const tooltipTriggers = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltipTriggers.forEach(el => {
+                    // Remove the tooltip instance
+                    const tooltip = bootstrap.Tooltip.getInstance(el);
+                    if (tooltip) {
+                        tooltip.dispose();
+                    }
+                });
             }
             
             // Handle window resize
             window.addEventListener('resize', function() {
-                // Hide tooltips
+                const isCollapsed = sidebar.classList.contains('collapsed');
+                const isMobile = window.innerWidth <= 768;
+                
+                // Hide tooltips first
                 hideAllTooltips();
                 
-                // Reinitialize tooltips
-                setTimeout(initTooltips, 100);
+                // Initialize tooltips only if collapsed or mobile
+                if (isCollapsed || isMobile) {
+                    setTimeout(initTooltips, 100);
+                } else {
+                    destroyAllTooltips();
+                }
             });
             
             // Handle document clicks to hide tooltips
@@ -713,6 +747,13 @@
             // Function to load content via AJAX
             async function loadPageContent(url, pushState = true) {
                 try {
+                    // Special case for account management - bypass AJAX for this page
+                    if (url.includes('/userauth/account_management/')) {
+                        // Redirect to the page directly without AJAX
+                        window.location.href = url;
+                        return;
+                    }
+                    
                     // Force hide all tooltips before navigation
                     hideAllTooltips();
                     
@@ -756,6 +797,13 @@
                     
                     // Scroll to top
                     window.scrollTo(0, 0);
+                    
+                    // Check if we navigated to account management page and if so, initialize the specific scripts
+                    if (url.includes('/userauth/account_management/')) {
+                        // Initialize account management specific scripts
+                        initializeAccountManagementScripts();
+                    }
+                    
                 } catch (error) {
                     console.error('Error loading content:', error);
                     contentArea.innerHTML = '<div class="alert alert-danger m-5">Error loading content. Please try again or refresh the page.</div>';
@@ -815,32 +863,32 @@
                 
                 // Re-initialize any Bootstrap components
                 if (typeof bootstrap !== 'undefined') {
-                    // Initialize standard tooltips for content area
-                    const tooltipTriggers = contentArea.querySelectorAll('[data-bs-toggle="tooltip"]');
-                    tooltipTriggers.forEach(el => {
-                        new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
-                    });
+                    // Initialize tooltips only if sidebar is collapsed or on mobile
+                    const sidebar = document.getElementById('sidebar');
+                    if (sidebar && (sidebar.classList.contains('collapsed') || window.innerWidth <= 768)) {
+                        // Initialize standard tooltips for content area
+                        const tooltipTriggers = contentArea.querySelectorAll('[data-bs-toggle="tooltip"]');
+                        tooltipTriggers.forEach(el => {
+                            new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
+                        });
+                        
+                        // Re-init sidebar tooltips
+                        const sidebarTooltips = document.querySelectorAll('.sidebar-link[data-bs-toggle="tooltip"]');
+                        sidebarTooltips.forEach(el => {
+                            // Dispose any existing tooltip
+                            const tooltipInstance = bootstrap.Tooltip.getInstance(el);
+                            if (tooltipInstance) {
+                                tooltipInstance.dispose();
+                            }
+                            // Create new tooltip with standard options
+                            new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
+                        });
+                    }
                     
                     // Initialize popovers
                     const popoverTriggers = contentArea.querySelectorAll('[data-bs-toggle="popover"]');
                     popoverTriggers.forEach(el => {
                         new bootstrap.Popover(el);
-                    });
-                }
-                
-                // Reinitialize sidebar tooltips to ensure consistency
-                const sidebar = document.getElementById('sidebar');
-                if (sidebar && (sidebar.classList.contains('collapsed') || window.innerWidth <= 768)) {
-                    // Re-init sidebar tooltips
-                    const sidebarTooltips = document.querySelectorAll('.sidebar-link[data-bs-toggle="tooltip"]');
-                    sidebarTooltips.forEach(el => {
-                        // Dispose any existing tooltip
-                        const tooltipInstance = bootstrap.Tooltip.getInstance(el);
-                        if (tooltipInstance) {
-                            tooltipInstance.dispose();
-                        }
-                        // Create new tooltip with standard options
-                        new bootstrap.Tooltip(el, STANDARD_TOOLTIP_OPTIONS);
                     });
                 }
             }
@@ -853,12 +901,13 @@
                     
                     const href = link.getAttribute('href');
                     
-                    // Skip special links
+                    // Skip special links or account management
                     if (href.includes('/logout/') || 
+                        href.includes('/userauth/account_management/') ||  // Bypass AJAX for account management
                         link.hasAttribute('download') || 
                         link.getAttribute('target') || 
                         link.hasAttribute('data-no-ajax')) {
-                        return true;
+                        return true; // Let the browser handle it normally
                     }
                     
                     e.preventDefault();
@@ -877,6 +926,143 @@
             
             // Save initial state
             window.history.replaceState({url: window.location.href}, '', window.location.href);
+        }
+        
+        // Function to initialize account management specific scripts
+        function initializeAccountManagementScripts() {
+            // Make sure global variables are defined
+            if (typeof window.activeSelect === 'undefined') {
+                window.activeSelect = null;
+            }
+            if (typeof window.originalValue === 'undefined') {
+                window.originalValue = null;
+            }
+            
+            // Get tenant URL from the current page URL
+            const currentPath = window.location.pathname;
+            const tenantMatch = currentPath.match(/^\/([^\/]+)\//);
+            const currentTenantUrl = tenantMatch ? tenantMatch[1] : '';
+            
+            // Set up event listeners for user type select dropdowns
+            const userTypeSelects = document.querySelectorAll('select[name="user_type"]');
+            userTypeSelects.forEach(select => {
+                // Ensure the onchange event is correctly bound
+                select.onchange = function() {
+                    return confirmUserTypeChange(this);
+                };
+            });
+            
+            // Define the confirmation functions in the global scope if not already defined
+            if (typeof window.confirmUserTypeChange !== 'function') {
+                window.confirmUserTypeChange = function(selectElement) {
+                    // Store reference to the select element
+                    window.activeSelect = selectElement;
+                    window.originalValue = selectElement.getAttribute('data-current-type');
+                    const userId = selectElement.getAttribute('data-user-id');
+                    const username = selectElement.getAttribute('data-username');
+                    const fromType = window.originalValue;
+                    const toType = selectElement.value;
+                    
+                    // If no change, do nothing
+                    if (fromType === toType) {
+                        return;
+                    }
+                    
+                    // Set confirmation modal content
+                    document.getElementById('change-username').textContent = username;
+                    document.getElementById('change-from-type').textContent = fromType.charAt(0).toUpperCase() + fromType.slice(1);
+                    document.getElementById('change-to-type').textContent = toType.charAt(0).toUpperCase() + toType.slice(1);
+                    
+                    // Show the modal
+                    const modal = new bootstrap.Modal(document.getElementById('userTypeChangeModal'));
+                    modal.show();
+                    
+                    // Prevent form submission
+                    return false;
+                };
+            }
+            
+            if (typeof window.cancelTypeChange !== 'function') {
+                window.cancelTypeChange = function() {
+                    // Reset the select to its original value
+                    if (window.activeSelect) {
+                        window.activeSelect.value = window.originalValue;
+                    }
+                    
+                    // Hide the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('userTypeChangeModal'));
+                    modal.hide();
+                };
+            }
+            
+            if (typeof window.confirmTypeChange !== 'function') {
+                window.confirmTypeChange = function() {
+                    if (window.activeSelect) {
+                        const userId = window.activeSelect.getAttribute('data-user-id');
+                        const newType = window.activeSelect.value;
+                        
+                        // Create and submit form that doesn't use AJAX
+                        const form = document.createElement('form');
+                        form.method = 'post';
+                        form.action = `/${currentTenantUrl}/userauth/update_user_type/${userId}/`;
+                        form.style.display = 'none';
+                        
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                        form.appendChild(csrfInput);
+                        
+                        const userTypeInput = document.createElement('input');
+                        userTypeInput.type = 'hidden';
+                        userTypeInput.name = 'user_type';
+                        userTypeInput.value = newType;
+                        form.appendChild(userTypeInput);
+                        
+                        document.body.appendChild(form);
+                        
+                        // Force a page reload by setting a flag in the form
+                        form.setAttribute('target', '_self');
+                        form.submit();
+                    }
+                    
+                    // Hide the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('userTypeChangeModal'));
+                    modal.hide();
+                };
+            }
+            
+            if (typeof window.updateUserType !== 'function') {
+                window.updateUserType = function(userId) {
+                    const userType = document.getElementById(`editUserType${userId}`).value;
+                    const form = document.createElement('form');
+                    form.method = 'post';
+                    form.action = `/${currentTenantUrl}/userauth/update_user_type/${userId}/`;
+                    form.style.display = 'none';
+                    form.setAttribute('target', '_self');
+                    
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    form.appendChild(csrfInput);
+                    
+                    const userTypeInput = document.createElement('input');
+                    userTypeInput.type = 'hidden';
+                    userTypeInput.name = 'user_type';
+                    userTypeInput.value = userType;
+                    form.appendChild(userTypeInput);
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                };
+            }
+            
+            // Mark all forms in account management as no-ajax
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.setAttribute('data-no-ajax', 'true');
+            });
         }
     </script>
 </body>
