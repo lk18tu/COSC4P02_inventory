@@ -69,12 +69,17 @@ def tracked_item_detail(request, tracking_number, tenant_url=None):
     raise Http404("Item not found")
 
 
-def generate_qr(request, tenant_url):  # <- Add tenant_url here!
-    data = request.GET.get('data', 'default')
-    img = qrcode.make(data)
 
+
+def generate_qr(request, tenant_url=None):
+    data = request.GET.get("data", "")
+    if not data:
+        return HttpResponse("Missing data", status=400)
+
+    qr = qrcode.make(data)
     buffer = BytesIO()
-    img.save(buffer, format="PNG")
+    qr.save(buffer, format='PNG')
     buffer.seek(0)
 
-    return HttpResponse(buffer.read(), content_type="image/png")
+    return HttpResponse(buffer.getvalue(), content_type="image/png")
+

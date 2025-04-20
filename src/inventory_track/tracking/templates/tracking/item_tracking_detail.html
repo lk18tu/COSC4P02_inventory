@@ -83,7 +83,7 @@
 </div>
 
 
-{% if item.destination_percentage %}
+{% if item.destination_percentage is not None %}
 <div class="progress-container">
     {% if item.destination_percent_display < 100 %}
         <!-- Current Location Marker -->
@@ -112,7 +112,8 @@
 <div id="qr-print-section" class="text-center mt-4">
     <h2 class="text-white">{{ item_class.title }}</h2>
     <div id="qr-container" class="my-3">
-        <img id="qr-image" src="{% url 'tracking:generate_qr' tenant_url=tenant_url %}?data={{ item.tracking_number }}" alt="QR Code" width="200">
+        <img id="qr-image" src="{% url 'tracking:generate_qr' tenant_url=tenant_url %}?data={{ item.tracking_number|urlencode }}" alt="QR Code" width="200">
+
         <p class="text-white mt-2">Tracking Number: {{ item.tracking_number }}</p>
         <p class="text-white mt-2">Product Number: {{ item_class.product_number }}</p>
     </div>
