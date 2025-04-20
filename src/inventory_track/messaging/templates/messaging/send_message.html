@@ -10,7 +10,6 @@
             <h4>📩 Send a Message</h4>
         </div>
         <div class="card-body bg-gray-700">
-            <!-- Show messages (errors, success, warnings) -->
             {% if messages %}
                 <div class="alert-container mb-4">
                     {% for message in messages %}
@@ -24,34 +23,45 @@
                 </div>
             {% endif %}
 
-            <form method="POST">
+            <form method="POST" action="{% url 'messaging:send_message' tenant_url=tenant_url %}">
                 {% csrf_token %}
-                
-                <!-- Input for username or email -->
+
+                <!-- Recipient input -->
                 <div class="mb-3">
                     <label class="form-label text-white">Recipient:</label>
-                    <input type="text" name="recipient" id="recipientInput" class="form-control bg-gray-800 text-white border-gray-600" placeholder="Enter username or email" required>
+                    <input type="text" name="recipient" id="recipientInput"
+                           value="{{ form.recipient.value|default:'' }}"
+                           class="form-control bg-gray-800 text-white border-gray-600"
+                           placeholder="Enter username or email" required>
                 </div>
 
-                <!-- Contact selection dropdown -->
+                <!-- Dropdown for contact selection -->
                 <div class="mb-3">
                     <label class="form-label text-white">Or Select a Contact</label>
-                    <select id="contactSelect" class="form-select bg-gray-800 text-white border-gray-600" onchange="fillRecipient()">
+                    <select id="contactSelect" class="form-select bg-gray-800 text-white border-gray-600">
                         <option value="">-- Select a Contact --</option>
                         {% for c in contacts %}
-                            <option value="{{ c.contact.username }}">{{ c.contact.username }} ({{ c.contact.email }})</option>
+                            <option value="{{ c.contact.email }}">
+                                {{ c.contact.username }} ({{ c.contact.email }})
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
 
+            
+                <!-- Subject -->
                 <div class="mb-3">
                     <label class="form-label text-white">Subject:</label>
-                    <input type="text" name="subject" class="form-control bg-gray-800 text-white border-gray-600" placeholder="Enter subject (optional)">
+                    <input type="text" name="subject" value="{{ form.subject.value|default:'' }}"
+                           class="form-control bg-gray-800 text-white border-gray-600"
+                           placeholder="Enter subject (optional)">
                 </div>
 
+                <!-- Message -->
                 <div class="mb-3">
                     <label class="form-label text-white">Message:</label>
-                    <textarea name="content" class="form-control bg-gray-800 text-white border-gray-600" rows="6" placeholder="Type your message here" required></textarea>
+                    <textarea name="content" class="form-control bg-gray-800 text-white border-gray-600"
+                              rows="6" placeholder="Type your message here" required>{{ form.content.value|default:'' }}</textarea>
                 </div>
 
                 <div class="d-flex justify-content-end mt-4">
@@ -68,12 +78,10 @@
 </div>
 
 <style>
-/* Custom colors for readability */
 .bg-gray-700 { background-color: #374151; }
 .bg-gray-800 { background-color: #1f2937; }
 .border-gray-600 { border-color: #4B5563; }
 
-/* Form control focus styles */
 .form-control:focus, .form-select:focus {
     background-color: #2d3748;
     color: white;
@@ -81,15 +89,12 @@
     box-shadow: 0 0 0 0.25rem rgba(96, 165, 250, 0.25);
 }
 
-/* Placeholder text color */
 ::placeholder {
     color: #9ca3af !important;
     opacity: 1;
 }
 select.form-select {
     appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
     background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%23FFFFFF' viewBox='0 0 20 20'%3E%3Cpath d='M5.516 7.548A.625.625 0 0 1 6.4 7.5l3.6 3.6 3.6-3.6a.625.625 0 0 1 .883.884l-4.042 4.042a.625.625 0 0 1-.883 0L5.516 8.432a.625.625 0 0 1 0-.884Z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.75rem top 50%;
@@ -100,11 +105,21 @@ select.form-select {
 
 {% block scripts %}
 <script>
-    function fillRecipient() {
-        var selectedContact = document.getElementById("contactSelect").value;
-        if (selectedContact) {
-            document.getElementById("recipientInput").value = selectedContact;
-        }
+    function bindRecipientAutofill() {
+    console.log("📨 Binding autofill script...");
+    const select = document.getElementById("contactSelect");
+    const input = document.getElementById("recipientInput");
+
+    if (!select || !input) {
+        console.warn("⚠️ contactSelect or recipientInput not found");
+        return;
     }
+
+    select.addEventListener("change", function () {
+        input.value = this.value;
+        console.log("✅ Auto-filled recipient with:", this.value);
+    });
+}
+
 </script>
 {% endblock %}

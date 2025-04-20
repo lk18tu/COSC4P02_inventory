@@ -506,21 +506,17 @@
 
     <!-- Script for date/time -->
     <script>
-        function updateTime() {
-            const now = new Date();
-            const dateString = now.toLocaleDateString('en-CA', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            const timeString = now.toLocaleTimeString('en-CA', { timeStyle: 'short' });
-            document.getElementById('date-time').innerHTML = `${dateString}, ${timeString}`;
-        }
+        document.addEventListener("DOMContentLoaded", () => {
+            const el = document.getElementById("date-time");
+            if (el) {
+                const now = new Date();
+                el.innerHTML = now.toLocaleString();
+            }
+        });
     </script>
 </head>
 
-<body class="bg-gray-900 preload" onload="updateTime(); setInterval(updateTime, 1000);">
+<body class="bg-gray-900 preload">
     <div class="wrapper">
         {% if user.is_authenticated %}
         <!-- Sidebar -->
@@ -958,6 +954,12 @@
                         });
                     }
                 });
+
+                document.addEventListener("DOMContentLoaded", bindRecipientAutofill);
+                // Auto-fill recipient after AJAX-loaded forms
+                if (typeof bindRecipientAutofill === "function") {
+                    bindRecipientAutofill();
+                }
                 
                 // Re-bind any links in the content
                 const contentLinks = contentArea.querySelectorAll('a');
@@ -1351,6 +1353,20 @@
                     setTimeout(() => notification.remove(), 150);
                 }, 5000);
             }
+        }
+        function bindRecipientAutofill() {
+            const select = document.getElementById("contactSelect");
+            const input = document.getElementById("recipientInput");
+
+            if (!select || !input) {
+                console.warn("⚠️ contactSelect or recipientInput not found");
+                return;
+            }
+
+            select.addEventListener("change", function () {
+                input.value = this.value;
+                console.log("✅ Auto-filled recipient with:", this.value);
+            });
         }
     </script>
 </body>

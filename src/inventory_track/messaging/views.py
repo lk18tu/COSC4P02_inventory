@@ -6,12 +6,14 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Q
 from django.utils import timezone
+from .forms import MessageForm
 
 @login_required
 def send_message(request, tenant_url=None):
     """Allows users to send messages by username, email, or contact selection."""
     tenant_url = request.tenant.domain_url if hasattr(request, 'tenant') else tenant_url or ''
-    
+    contacts = Contact.objects.filter(user=request.user)
+
     if request.method == "POST":
         recipient_input = request.POST.get("recipient").strip()
         subject = request.POST.get("subject", "").strip()
@@ -22,7 +24,6 @@ def send_message(request, tenant_url=None):
             return redirect("messaging:send_message", tenant_url=tenant_url)
 
         try:
-            # Determine if the input is an email
             if "@" in recipient_input:
                 matched_users = User.objects.filter(email=recipient_input)
                 if matched_users.count() == 1:
@@ -36,7 +37,6 @@ def send_message(request, tenant_url=None):
             else:
                 recipient = User.objects.get(username=recipient_input)
 
-            # Create and send message
             Message.objects.create(sender=request.user, recipient=recipient, subject=subject, content=content)
             messages.success(request, f"Message sent to {recipient.username}.")
             return redirect("messaging:inbox", tenant_url=tenant_url)
@@ -45,8 +45,23 @@ def send_message(request, tenant_url=None):
             messages.error(request, "Recipient not found.")
             return redirect("messaging:send_message", tenant_url=tenant_url)
 
-    contacts = Contact.objects.filter(user=request.user)
-    return render(request, "messaging/send_message.html", {"contacts": contacts, "tenant_url": tenant_url})
+    # ✅ GET request: Pre-fill form with recipient if available
+    recipient_username = request.GET.get("recipient")
+    initial_data = {}
+
+    if recipient_username:
+        recipient_user = User.objects.filter(username=recipient_username).first()
+        if recipient_user:
+            initial_data["recipient"] = recipient_user
+
+    form = MessageForm(initial=initial_data)
+
+    return render(request, "messaging/send_message.html", {
+        "form": form,
+        "contacts": contacts,
+        "tenant_url": tenant_url
+    })
+
 
 # View Inbox
 @login_required

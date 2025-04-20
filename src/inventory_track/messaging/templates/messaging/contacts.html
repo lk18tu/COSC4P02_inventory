@@ -70,11 +70,11 @@
                                     <small class="text-gray-400 ms-2">({{ c.contact.email }})</small>
                                 </div>
                                 <div>
-                                    <a href="{% url 'messaging:send_message' tenant_url=tenant_url %}" class="btn btn-sm btn-outline-primary me-2" 
-                                       onclick="document.getElementById('recipientInput').value='{{ c.contact.username }}';">
+                                    <a href="{% url 'messaging:send_message' tenant_url=tenant_url %}?recipient={{ c.contact.username }}"
+                                       class="btn btn-sm btn-outline-primary me-2">
                                         <i class="bi bi-chat-dots"></i> Message
                                     </a>
-                                    <a href="{% url 'messaging:delete_contact' contact_id=c.id tenant_url=tenant_url %}" 
+                                    <a href="{% url 'messaging:delete_contact' contact_id=c.id tenant_url=tenant_url %}"
                                        class="btn btn-sm btn-outline-danger">
                                         <i class="bi bi-trash"></i> Remove
                                     </a>
