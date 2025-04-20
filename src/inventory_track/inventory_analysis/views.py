@@ -141,53 +141,73 @@ def search_inventory(request, tenant_url=None):
 
 def generate_inventory_level_chart(selected_table=None):
     """
-    Generate an inventory level bar chart with a reorder alert threshold using data from the
-    specified dynamic table (if provided) or the default InvItem model data.
+    Generate an inventory level bar chart where each item's color is based on its individual reorder level.
     """
     try:
         if selected_table:
             with connection.cursor() as cursor:
-                # Query using dynamic table; InvItem in your invApp uses 'title' and 'quantity_stock'
-                cursor.execute(f"SELECT title, quantity_stock FROM {selected_table} ORDER BY quantity_stock ASC")
+                # Get title, quantity_stock, and reorder_level for each item
+                cursor.execute(f"""
+                    SELECT title, quantity_stock, reorder_level 
+                    FROM `{selected_table}` 
+                    ORDER BY quantity_stock ASC
+                """)
                 data = cursor.fetchall()
+
             if not data:
                 return None
+
             names = [row[0] for row in data]
             quantities = np.array([row[1] for row in data])
+            reorder_levels = np.array([row[2] for row in data])
         else:
-            # Default: use the InvItem model from inventoryApp
             from inventoryApp.models import InvItem
             items = InvItem.objects.all()
             if not items:
                 return None
             names = [item.title for item in items]
-            quantities = np.array([item.quantity for item in items])
+            quantities = np.array([item.quantity_stock for item in items])
+            reorder_levels = np.array([item.reorder_level for item in items])
+
     except Exception as e:
         print("Error generating level chart:", e)
         return None
 
-    # Define colors for each stock level
-    colors = np.where(quantities < 5, 'red', np.where(quantities <= 15, 'yellow', 'green'))
+    # Dynamic color based on item-specific reorder level
+    colors = np.where(
+        quantities < reorder_levels, 'red',
+        np.where(quantities == reorder_levels, 'orange', 'green')
+    )
 
     plt.figure(figsize=(12, 6))
     bars = plt.bar(names, quantities, color=colors, edgecolor="black")
-    plt.axhline(y=5, color='black', linestyle='--', linewidth=1.5, label="Reorder Threshold (5 units)")
 
-    for bar, qty in zip(bars, quantities):
-        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5, str(qty),
+    for i, bar in enumerate(bars):
+        plt.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.5, str(quantities[i]),
                  ha='center', fontsize=10)
+        # Optional: show reorder level as a dashed line per item
+        plt.plot([bar.get_x(), bar.get_x() + bar.get_width()],
+                 [reorder_levels[i], reorder_levels[i]],
+                 linestyle='--', color='black', linewidth=1)
 
     plt.xticks(rotation=45)
-    plt.title("Inventory Levels & Reorder Alerts", fontsize=14, fontweight="bold")
+    plt.title("Inventory Levels (Dynamic Reorder Alerts)", fontsize=14, fontweight="bold")
     plt.xlabel("Product Name")
     plt.ylabel("Stock Quantity")
-    plt.legend()
+
+    legend_handles = [
+        plt.Rectangle((0, 0), 1, 1, color='green', label='Above Reorder'),
+        plt.Rectangle((0, 0), 1, 1, color='orange', label='At Reorder'),
+        plt.Rectangle((0, 0), 1, 1, color='red', label='Below Reorder')
+    ]
+    plt.legend(handles=legend_handles)
 
     buf = BytesIO()
     plt.savefig(buf, format="png")
     buf.seek(0)
-    plt.close()  # Free memory by closing the figure
+    plt.close()
     return base64.b64encode(buf.read()).decode()
+
 
 
 def generate_inventory_pie_chart(selected_table=None):
