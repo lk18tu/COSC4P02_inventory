@@ -546,6 +546,7 @@
                     </a>
                 </li>
                 
+                {% if user.profile.is_manager %}
                 <li class="sidebar-menu-item">
                     <a href="/{{ tenant_url }}/invManage/" 
                        class="sidebar-link {% if '/invManage/' in request.path %}active{% endif %}"
@@ -556,6 +557,7 @@
                         <span class="link-text">Inventory</span>
                     </a>
                 </li>
+                {% endif %}
                 
                 <li class="sidebar-menu-item">
                     <a href="/{{ tenant_url }}/updateStock/products/" 
@@ -636,7 +638,7 @@
                         <span class="link-text">Search</span>
                     </a>
                 </li>
-                
+                {% if user.profile.is_manager %}
                 <li class="sidebar-menu-item">
                     <a href="/{{ tenant_url }}/history/" 
                        class="sidebar-link {% if '/history/' in request.path %}active{% endif %}"
@@ -647,6 +649,7 @@
                         <span class="link-text">Inventory History</span>
                     </a>
                 </li>
+                {% endif %}
                 
                 <li class="sidebar-menu-item">
                     <a href="/{{ tenant_url }}/userauth/logout/" 

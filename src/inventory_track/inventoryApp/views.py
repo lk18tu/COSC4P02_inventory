@@ -9,6 +9,8 @@ from django.conf import settings
 import datetime
 import csv, os
 from tenant_manager.utils import tenant_context
+from django.db import IntegrityError
+from django.contrib import messages
 
 
 #table_name = f"testuser_invtable"  # Adjust based on the current user
@@ -98,30 +100,31 @@ from django.db import connection
 from django.http import Http404
 
 def add_item(request, table_name, tenant_url=None):
+    form_data = {}  # Store the entered values
+
     if request.method == "POST":
-        # Get all the data from the form
-        product_number = request.POST.get('product_number')
-        upc = request.POST.get('upc')
-        title = request.POST.get('title')
-        description = request.POST.get('description')
-        quantity_stock = request.POST.get('quantity_stock')
-        reorder_level = request.POST.get('reorder_level')
-        price = request.POST.get('price')
-        purchase_price = request.POST.get('purchase_price')
-        notes = request.POST.get('notes')
-        image = request.FILES.get('image')  # Get the uploaded image
+        # Get form data
+        form_data = {
+            'product_number': request.POST.get('product_number'),
+            'upc': request.POST.get('upc'),
+            'title': request.POST.get('title'),
+            'description': request.POST.get('description'),
+            'reorder_level': request.POST.get('reorder_level'),
+            'price': request.POST.get('price'),
+            'purchase_price': request.POST.get('purchase_price'),
+            'notes': request.POST.get('notes'),
+        }
+        image = request.FILES.get('image')
 
         try:
             with connection.cursor() as cursor:
-                # Check if the table exists
                 cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
                 result = cursor.fetchone()
 
                 if result:
-                    # Handle image upload
+                    # Save image
                     image_path = None
                     if image:
-                        # Save the image to the media directory
                         image_path = os.path.join('inventory_images', image.name)
                         full_path = os.path.join(settings.MEDIA_ROOT, image_path)
                         os.makedirs(os.path.dirname(full_path), exist_ok=True)
@@ -129,10 +132,8 @@ def add_item(request, table_name, tenant_url=None):
                             for chunk in image.chunks():
                                 destination.write(chunk)
                     else:
-                        # Use a default placeholder if no image is provided
                         image_path = 'images/default_placeholder.png'
 
-                    # Insert the item into the dynamic table
                     cursor.execute(
                         f"""
                         INSERT INTO {table_name} (
@@ -143,41 +144,42 @@ def add_item(request, table_name, tenant_url=None):
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
                         [
-                            product_number, upc, title, description, 
-                            0, reorder_level, price, 
-                            purchase_price, notes, image_path
+                            form_data['product_number'], form_data['upc'], form_data['title'], form_data['description'],
+                            0, form_data['reorder_level'], form_data['price'],
+                            form_data['purchase_price'], form_data['notes'], image_path
                         ]
                     )
 
-                    #get the class id of the new item
                     item_class_id = cursor.lastrowid
 
-                    # log change
                     InventoryHistory.objects.create(
-                        location = table_name,
-                        user = request.user,
-                        action = "add",
-                        details = "Added item class: " + title + " " + str(product_number) ,
-                        item_class_number = item_class_id,
+                        location=table_name,
+                        user=request.user,
+                        action="add",
+                        details="Added item class: " + form_data['title'] + " " + str(form_data['product_number']),
+                        item_class_number=item_class_id,
                     )
-                    
 
-
-                    # Get tenant URL for redirect
                     tenant = getattr(request, 'tenant', None)
                     tenant_url = tenant.domain_url if tenant else tenant_url or ''
                     return redirect(f"/{tenant_url}/invManage/")
                 else:
                     raise Http404(f"Table '{table_name}' does not exist.")
 
+        except IntegrityError as e:
+            if "Duplicate entry" in str(e):
+                messages.error(request, "That product number or UPC already exists.")
+            else:
+                messages.error(request, "A database error occurred.")
         except Exception as e:
             print(f"Error adding item to table {table_name}: {str(e)}")
-            tenant = getattr(request, 'tenant', None)
-            tenant_url = tenant.domain_url if tenant else tenant_url or ''
-            return redirect(f"/{tenant_url}/invManage/")
+            messages.error(request, "Unexpected error while adding the item.")
 
-    return render(request, "inventoryApp/add_item.html", {"table_name": table_name})
-
+    return render(request, "inventoryApp/add_item.html", {
+        "table_name": table_name,
+        "friendly_name": get_friendly_table_name(table_name),
+        "form_data": form_data
+    })
 
 from django.db import connection
 from django.http import HttpResponse
@@ -187,35 +189,31 @@ from .utils import log_inventory_action  # Assuming this is a custom function
 
 def add_inventory(request, tenant_url=None):
     tenant = getattr(request, 'tenant', None)
-
-    #get company name
     company_name = tenant.name if tenant else 'Unknown Company'
     
     if request.method == "POST":
-        Friendly_new_table_name = request.POST.get("table_name")  # Get the table name from the form
-        new_table_name = Friendly_new_table_name.replace(" ", "") #deletes spaces to allow for table name creation (SQL doest allow spaces)
-      
+        Friendly_new_table_name = request.POST.get("table_name")
+        new_table_name = Friendly_new_table_name.replace(" ", "")
 
-        # Basic validation to prevent SQL injection (simplified)
-        if not new_table_name.isalnum():  # Allow only alphanumeric characters
-            return HttpResponse("Error: Table name must be alphanumeric", status=400)
+        # Basic validation
+        if not new_table_name.isalnum():
+            messages.error(request, "Error: Table name must be alphanumeric.")
+            return render(request, "inventoryApp/add_inventory.html")
 
-        new_table_name = company_name.replace(" ", "") + "_" +  new_table_name
+        new_table_name = company_name.replace(" ", "") + "_" + new_table_name
 
         try:
-            # No need to switch contexts - just use the current connection
             with connection.cursor() as cursor:
-                # Debug the current database connection
                 cursor.execute("SELECT DATABASE()")
                 current_db = cursor.fetchone()[0]
                 print(f"Creating table {new_table_name} in database {current_db}")
-                
-                # Create the table with corrected spelling
+
+                # Create class table
                 cursor.execute(f"""
                     CREATE TABLE `{new_table_name}_classes` (
                         id INT AUTO_INCREMENT PRIMARY KEY,
-                        product_number VARCHAR(100),
-                        upc VARCHAR(255),
+                        product_number VARCHAR(100) UNIQUE,
+                        upc VARCHAR(255) UNIQUE,
                         title VARCHAR(255),
                         description VARCHAR(255),
                         quantity_stock INT,
@@ -227,9 +225,7 @@ def add_inventory(request, tenant_url=None):
                     )
                 """)
 
-                
-
-                # Create the individual item tracking table
+                # Create item tracking table
                 cursor.execute(f"""
                     CREATE TABLE `{new_table_name}_items` (
                         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -244,37 +240,36 @@ def add_inventory(request, tenant_url=None):
                     )
                 """)
 
-           
-                # Add entry in the table_metadata table for class table
+                # Metadata entries
                 InvTable_Metadata.objects.create(
-                    table_name=new_table_name+"_classes",
+                    table_name=f"{new_table_name}_classes",
                     table_type="inventory",
-                    table_friendly_name = Friendly_new_table_name,
-                    company_name = company_name
+                    table_friendly_name=Friendly_new_table_name,
+                    company_name=company_name
                 )
-                # Add entry in the table_metadata table for items table
                 InvTable_Metadata.objects.create(
-                    table_name=new_table_name+"_items",
+                    table_name=f"{new_table_name}_items",
                     table_type="inventory_individual_items",
-                    table_friendly_name = Friendly_new_table_name,
-                    company_name = company_name
+                    table_friendly_name=Friendly_new_table_name,
+                    company_name=company_name
                 )
 
-
-                # log change
+                # Log history
                 InventoryHistory.objects.create(
-                    location = new_table_name,
-                    user = request.user,
-                    action = "add",
-                    details = "Added Location: " + new_table_name,
+                    location=new_table_name,
+                    user=request.user,
+                    action="add",
+                    details="Added Location: " + new_table_name,
                 )
 
             tenant_url = tenant.domain_url if tenant else ''
             return redirect(f"/{tenant_url}/invManage/")
+
         except Exception as e:
             print(f"Error creating inventory table: {str(e)}")
-            return HttpResponse(f"Error: {str(e)}", status=500)
-    
+            messages.error(request, f"Failed to create inventory table: {str(e)}")
+            return render(request, "inventoryApp/add_inventory.html")
+
     return render(request, "inventoryApp/add_inventory.html")
 
 
@@ -453,13 +448,15 @@ def edit_item(request, table_name, item_id, tenant_url=None):
                 details = "Updated Class: " + title,
                 item_class_number = class_id
             )
+        
+
 
         # Redirect after saving
         tenant = getattr(request, 'tenant', None)
         tenant_url = tenant.domain_url if tenant else tenant_url or ''
         return redirect(f"/{tenant_url}/invManage/")
 
-    return render(request, 'inventoryApp/edit_item.html', {'item': item_data, 'table_name': table_name})
+    return render(request, 'inventoryApp/edit_item.html', {'item': item_data, 'table_name': table_name, 'friendly_name': get_friendly_table_name(table_name)})
 
 
 
@@ -469,63 +466,65 @@ def edit_item(request, table_name, item_id, tenant_url=None):
 def upload_csv(request, table_name, tenant_url=None):
     if request.method == 'POST':
         csv_file = request.FILES.get('csv_file')
-        mode = request.POST.get('upload_mode')  # Fetch append/replace mode
+        mode = request.POST.get('upload_mode')
 
         if not csv_file or not csv_file.name.endswith('.csv'):
-            return HttpResponse("Invalid file format. Please upload a CSV file.", status=400)
+            return render(request, 'inventoryApp/csv_upload.html', {
+                'table_name': table_name,
+                'error_message': "Invalid file format. Please upload a .csv file."
+            })
 
         decoded_file = csv_file.read().decode('utf-8').splitlines()
         reader = csv.reader(decoded_file)
-        headers = next(reader)  # Read CSV headers
+        headers = next(reader)
 
-        # Removed Quantity in Stock from expected headers
         expected_headers = ["Product Number", "UPC", "Title", "Description",
                             "Reorder Level", "Price", "Purchase Price", "Notes"]
 
         if headers != expected_headers:
-            return HttpResponse("Invalid CSV format. Ensure headers match the template.", status=400)
+            return render(request, 'inventoryApp/csv_upload.html', {
+                'table_name': table_name,
+                'error_message': "Invalid CSV format. Ensure headers match the template exactly."
+            })
 
         with connection.cursor() as cursor:
             if mode == 'replace':
                 cursor.execute(f"DELETE FROM {table_name}")
 
-            # Add quantity_stock (set to 0) in the insert
             query = f"""
                 INSERT INTO {table_name} 
                 (product_number, upc, title, description, quantity_stock,
-                 reorder_level, price, purchase_price, notes)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                 reorder_level, price, purchase_price, notes, image)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'images/default_placeholder.png')
             """
 
-            for row in reader:
-                try:
+            try:
+                for row in reader:
                     cursor.execute(query, (
-                        row[0],  # product_number
-                        row[1],  # upc
-                        row[2],  # title
-                        row[3],  # description
-                        0,       # quantity_stock hardcoded to 0
-                        int(row[4]),  # reorder_level
-                        float(row[5]),  # price
-                        float(row[6]),  # purchase_price
-                        row[7] if len(row) > 7 else ""  # notes
+                        row[0], row[1], row[2], row[3], 0,
+                        int(row[4]), float(row[5]), float(row[6]),
+                        row[7] if len(row) > 7 else ""
                     ))
-                except Exception as e:
-                    return HttpResponse(f"Error inserting data: {str(e)}", status=400)
 
-                #log history
                 InventoryHistory.objects.create(
-                        location = table_name,
-                        user = request.user,
-                        action = "add",
-                        details = "Bulk uploaded classes. File = " + csv_file.name,
-                    )
+                    location=table_name,
+                    user=request.user,
+                    action="add",
+                    details="Bulk uploaded classes. File = " + csv_file.name,
+                )
 
-            tenant = getattr(request, 'tenant', None)
-            tenant_url = tenant.domain_url if tenant else tenant_url or ''
-            return redirect(f"/{tenant_url}/invManage/")
+                tenant = getattr(request, 'tenant', None)
+                tenant_url = tenant.domain_url if tenant else tenant_url or ''
+                return redirect(f"/{tenant_url}/invManage/")
+
+            except Exception as e:
+                return render(request, 'inventoryApp/csv_upload.html', {
+                    'table_name': table_name,
+                    'error_message': f"Error inserting data: {str(e)}"
+                })
 
     return render(request, 'inventoryApp/csv_upload.html', {'table_name': table_name})
+
 
 
 
@@ -571,3 +570,12 @@ def item_detail(request, table_name, item_id, tenant_url=None):
         "table_name": table_name,
         "tenant_url": tenant_url
     })
+
+
+def get_friendly_table_name(table_name):
+    """Returns the friendly name of a table given its internal table_name."""
+    try:
+        entry = InvTable_Metadata.objects.get(table_name=table_name)
+        return entry.table_friendly_name
+    except InvTable_Metadata.DoesNotExist:
+        return "Unknown Table"
