@@ -80,7 +80,7 @@ def order_create(request, tenant_url):
 
         if order_form.is_valid() and formset.is_valid():
             
-            order = order_form.save(commit=False)
+            order = order_form.save()
             order.location_name          = request.tenant.name
             order.destination_percentage = 0
             order.save()
