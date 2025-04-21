@@ -2,6 +2,8 @@
 import pytz
 import datetime
 import logging
+from django.utils import timezone
+from datetime import timedelta
 import re
 
 from django.db import connection
@@ -210,9 +212,8 @@ def dashboard(request, tenant_url=None):
     # build a friendly label for each table, e.g. "Table1" → "Table 1"
     table_options = []
     for tbl in inventory_tables:
-        # drop the suffix (_classes) and tenant prefix
-        base = tbl.rsplit("_", 1)[0]  # e.g. "Test_company_1_Table1"
-        raw = base.split("_")[-1]     # e.g. "Table1"
+        base = tbl.rsplit("_", 1)[0]       # drop the “_classes” suffix
+        raw = base.split("_")[-1]          # grab “Table1”
         label = re.sub(r"([A-Za-z]+)(\d+)", r"\1 \2", raw)
         table_options.append({"name": tbl, "label": label})
 
@@ -237,7 +238,7 @@ def dashboard(request, tenant_url=None):
             )
             items_below = cursor.fetchone()[0] or 0
 
-            # average daily sell‑through over last 7 days
+            # avg daily sell‑through over last 7 days
             cursor.execute(
                 """
                 SELECT ABS(SUM(`change`))
@@ -246,6 +247,7 @@ def dashboard(request, tenant_url=None):
                          SELECT id
                            FROM inventoryapp_invtable_metadata
                           WHERE table_name = %s
+                          LIMIT 1
                        )
                    AND item_id IN (SELECT id FROM `{tbl}`)
                    AND `change` < 0
@@ -262,7 +264,7 @@ def dashboard(request, tenant_url=None):
         if selected_table else None
     )
 
-    # 3.5) build reorder‐progress list
+    # 3.5) build reorder‑progress list
     progress_items = []
     if selected_table:
         with connection.cursor() as cursor:
@@ -282,7 +284,6 @@ def dashboard(request, tenant_url=None):
 
     UserProfile.objects.get_or_create(user=request.user)
 
-    # fetch last 5 notifications
     notifications = (
         Notification.objects
                     .filter(user=request.user)
@@ -293,6 +294,54 @@ def dashboard(request, tenant_url=None):
                     .filter(user=request.user, is_read=False)
                     .count() or 0
     )
+
+    # ─── 5) Order Totals over last 7 days ───
+    order_total = 0
+    if selected_table:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT COALESCE(SUM(`change`),0)
+                  FROM updatestock_stocktransaction
+                 WHERE table_meta_id = (
+                         SELECT id
+                           FROM inventoryapp_invtable_metadata
+                          WHERE table_name=%s
+                          LIMIT 1
+                       )
+                   AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                   AND `change` > 0
+                """,
+                [selected_table],
+            )
+            order_total = cursor.fetchone()[0] or 0
+
+    # ─── 6) Fast‑Moving Stock (top 5 by positive volume) ───
+    one_week_ago = timezone.now() - timedelta(days=7)
+    fast_qs = (
+        StockTransaction.objects
+        .filter(
+            table_meta__table_name=selected_table,
+            created_at__gte=one_week_ago,
+            change__gt=0,
+        )
+        .values('item_id')
+        .annotate(volume=Sum('change'))
+        .order_by('-volume')[:5]
+    )
+    fast_moving = []
+    if selected_table:
+        with connection.cursor() as cursor:
+            for entry in fast_qs:
+                cursor.execute(
+                    f"SELECT title FROM `{selected_table}` WHERE id=%s",
+                    [entry['item_id']]
+                )
+                row = cursor.fetchone()
+                fast_moving.append({
+                    'title': row[0] if row else f"ID {entry['item_id']}",
+                    'volume': entry['volume'] or 0
+                })
 
     return render(request, "userauth/dashboard.html", {
         "tenant_url":           tenant_url,
@@ -309,7 +358,7 @@ def dashboard(request, tenant_url=None):
         "total_skus":           total_skus,
         "total_units":          total_units,
         "items_below":          items_below,
-        "percent_below":        (round(items_below / total_skus * 100, 1)
+        "percent_below":        (round(items_below / total_skus * 100,1)
                                    if total_skus else 0),
         "avg_daily_sell":       avg_daily_sell,
 
@@ -318,8 +367,11 @@ def dashboard(request, tenant_url=None):
 
         # Notifications
         "notifications":        notifications,
-    })
 
+        # Order totals & fast‑moving
+        "order_total":          order_total,
+        "fast_moving":          fast_moving,
+    })
 
 
 class ResetPasswordView(SuccessMessageMixin, PasswordResetView):

@@ -194,6 +194,42 @@
   </div>
 </div>
 
+{# — ORDER TOTALS & FAST‑MOVING STOCK — #}
+<div class="row mb-4">
+  <!-- Order Totals -->
+  <div class="col-md-6 mb-3">
+    <div class="card text-center shadow-sm border-primary kpi-card h-100">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Order Totals (Last 7 days)</h5>
+      </div>
+      <div class="card-body">
+        <p class="display-6">{{ order_total }}</p>
+      </div>
+    </div>
+  </div>
+  <!-- Fast‑Moving (example) -->
+  <div class="col-md-6 mb-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Fast‑Moving Stock</h5>
+      </div>
+      <div class="card-body">
+        {% if fast_moving %}
+          <ul class="list-group list-group-flush">
+            {% for item in fast_moving %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ item.title }}
+                <span class="badge bg-primary rounded-pill">{{ item.volume }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">No recent activity.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
 
   <!-- Inventory Overview + Notifications side-by-side -->
   <div class="row">
