@@ -1,22 +1,27 @@
 from django.shortcuts import render
 
-# Create your views here.
+
 from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.http import require_POST
 from django.urls import reverse
 from django.contrib import messages
-from datetime import date
+from django.forms import modelformset_factory
 
 from .models import Supplier, SupplyOrder, SupplyOrderItem
-from inventoryApp.models import InvItem
+from .forms import SupplyOrderForm, SupplyOrderItemForm
+
 
 # ----------------------------------
 # SUPPLIER VIEWS
 # ----------------------------------
-def supplier_list(request):
+def supplier_list(request, tenant_url):
     suppliers = Supplier.objects.all().order_by('name')
-    return render(request, 'suppliers/supplier_list.html', {'suppliers': suppliers})
+    return render(request, 'suppliers/supplier_list.html', {
+         'suppliers':   suppliers,
+         'tenant_url':  tenant_url,    
+    })
 
-def supplier_create(request):
+def supplier_create(request, tenant_url):
     if request.method == 'POST':
         name = request.POST.get('name')
         contact_person = request.POST.get('contact_person')
@@ -34,11 +39,13 @@ def supplier_create(request):
         )
         supplier.save()
         messages.success(request, f"Supplier '{supplier.name}' created successfully!")
-        return redirect('suppliers:supplier_list')
+        return redirect('suppliers:supplier_list', tenant_url=tenant_url)
 
-    return render(request, 'suppliers/supplier_create.html')
+    return render(request, 'suppliers/supplier_create.html', {
+         'tenant_url':  tenant_url,    
+    })
 
-def supplier_edit(request, pk):
+def supplier_edit(request, tenant_url, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     if request.method == 'POST':
         supplier.name = request.POST.get('name')
@@ -48,50 +55,83 @@ def supplier_edit(request, pk):
         supplier.address = request.POST.get('address')
         supplier.save()
         messages.success(request, f"Supplier '{supplier.name}' updated!")
-        return redirect('suppliers:supplier_list')
+        return redirect('suppliers:supplier_list', tenant_url=tenant_url)
 
-    return render(request, 'suppliers/supplier_edit.html', {'supplier': supplier})
+    return render(request, 'suppliers/supplier_edit.html', {
+         'supplier':   supplier,
+         'tenant_url':  tenant_url,    
+    })
 
 
 # ----------------------------------
 # SUPPLY ORDER VIEWS
 # ----------------------------------
-def order_list(request):
-    orders = SupplyOrder.objects.select_related('supplier').order_by('-order_date')
-    return render(request, 'suppliers/order_list.html', {'orders': orders})
+def order_list(request, tenant_url):
+    orders = SupplyOrder.objects.select_related('supplier').order_by('-created_at')
+    return render(request, 'suppliers/order_list.html', {
+         'orders':   orders,
+         'tenant_url':  tenant_url,    
+    })
 
-def order_create(request):
+
+def order_create(request, tenant_url):
+    ItemFormSet = modelformset_factory(SupplyOrderItem, form=SupplyOrderItemForm, extra=1)
+
     if request.method == 'POST':
-        supplier_id = request.POST.get('supplier')
-        order_date = request.POST.get('order_date', str(date.today()))
-        status = request.POST.get('status', 'PENDING')
-        notes = request.POST.get('notes')
+        order_form = SupplyOrderForm(request.POST)
+        formset    = ItemFormSet(request.POST, queryset=SupplyOrderItem.objects.none())
 
-        supplier = get_object_or_404(Supplier, pk=supplier_id)
+        if order_form.is_valid() and formset.is_valid():
+            
+            order = order_form.save(commit=False)
+            order.location_name          = request.tenant.name
+            order.destination_percentage = 0
+            order.save()
 
-        supply_order = SupplyOrder(
-            supplier=supplier,
-            order_date=order_date,
-            status=status,
-            notes=notes
-        )
-        supply_order.save()
+            for item_form in formset:
+                line = item_form.save(commit=False)
+                line.supply_order = order
+                line.save()
 
-        # Optionally handle items in the same form or a separate view
-        # ...
+            messages.success(
+                request,
+                f"Supply‑order {order.tracking_number} created successfully!"
+            )
+            return redirect(
+                reverse('suppliers:order_detail',
+                        kwargs={'tenant_url': tenant_url, 'pk': order.pk})
+            )
+    else:
+        order_form = SupplyOrderForm(initial={
+            'location_name': request.tenant.name,
+            'destination_percentage': 0
+        })
+        formset    = ItemFormSet(queryset=SupplyOrderItem.objects.none())
 
-        messages.success(request, f"Supply order created for supplier '{supplier.name}'!")
-        return redirect('suppliers:order_list')
-
-    suppliers = Supplier.objects.all()
     return render(request, 'suppliers/order_create.html', {
-        'suppliers': suppliers,
+        'order_form': order_form,
+        'formset':    formset,
+        'tenant_url':  tenant_url, 
     })
 
-def order_detail(request, pk):
-    supply_order = get_object_or_404(SupplyOrder, pk=pk)
-    order_items = supply_order.order_items.select_related('inventory_item')
+
+def order_detail(request, tenant_url, pk):
+    order = get_object_or_404(SupplyOrder, pk=pk)
     return render(request, 'suppliers/order_detail.html', {
-        'supply_order': supply_order,
-        'order_items': order_items
+        'order': order,
+        'tenant_url':  tenant_url, 
     })
+
+@require_POST
+def order_receive(request, tenant_url, pk):
+    order = get_object_or_404(SupplyOrder, pk=pk)
+    order.receive() 
+    messages.success(
+      request,
+      f"Order {order.tracking_number} marked RECEIVED and inventory rows created."
+    )
+    return redirect(
+      'suppliers:order_detail',
+      tenant_url=tenant_url,
+      pk=pk
+    )

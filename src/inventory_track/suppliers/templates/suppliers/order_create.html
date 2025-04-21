@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}New Supply Order{% endblock %}
+
+{% block content %}
+<style>
+  .supply-form-container {
+    max-width: 700px;
+    margin: 40px auto;
+    background-color: #1f2937;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+  }
+  .supply-form-container h1 {
+    color: #c084fc;
+    text-align: center;
+    margin-bottom: 25px;
+    font-weight: 800;
+  }
+  .supply-form-container label {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 5px;
+    color: #9ca3af;
+    font-weight: 600;
+  }
+  .supply-form-container select,
+  .supply-form-container input[type="text"],
+  .supply-form-container input[type="number"] {
+    width: 100%;
+    padding: 10px;
+    background-color: #374151;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 1rem;
+    transition: background-color 0.2s ease;
+  }
+  .supply-form-container select:focus,
+  .supply-form-container input:focus {
+    background-color: #4b5563;
+    outline: none;
+  }
+  .items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 25px;
+  }
+  .items-table th,
+  .items-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #374151;
+    color: #d1d5db;
+  }
+  .items-table th {
+    text-align: left;
+    color: #60a5fa;
+  }
+  .add-row-btn {
+    margin-top: 10px;
+    background: none;
+    border: 1px solid #60a5fa;
+    color: #60a5fa;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+  .add-row-btn:hover {
+    background-color: #4b5563;
+  }
+  .submit-btn {
+    display: block;
+    width: 100%;
+    margin-top: 30px;
+    padding: 12px;
+    background-color: #6366f1;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  .submit-btn:hover {
+    background-color: #4f46e5;
+  }
+  .alert {
+    margin-bottom: 20px;
+  }
+</style>
+
+<div class="supply-form-container">
+
+  <h1>New Supply Order</h1>
+
+  
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+
+  
+  {% if order_form.errors %}
+    <div class="alert alert-danger">
+      {{ order_form.errors }}
+    </div>
+  {% endif %}
+  {% if formset.errors %}
+    <div class="alert alert-danger">
+      {{ formset.errors }}
+    </div>
+  {% endif %}
+
+  <form method="post" data-no-ajax>
+    {% csrf_token %}
+
+    <label for="{{ order_form.supplier.id_for_label }}">Supplier</label>
+    {{ order_form.supplier }}
+
+    
+    {{ order_form.location_name.as_hidden }}
+    {{ order_form.destination_percentage.as_hidden }}
+
+    <h2 style="color:#60a5fa; margin-top:30px;">Order Items</h2>
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th>Quantity</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for form in formset.forms %}
+          <tr>
+            <td>
+              {{ form.inventory_item.errors }}
+              {{ form.inventory_item }}
+            </td>
+            <td>
+              {{ form.quantity.errors }}
+              {{ form.quantity }}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% if formset.can_add_extra %}
+      <button type="button" class="add-row-btn" onclick="
+        var total = parseInt(document.getElementById('id_form-TOTAL_FORMS').value);
+        document.getElementById('id_form-TOTAL_FORMS').value = total + 1;
+        location.reload();
+      ">+ Add another item</button>
+    {% endif %}
+
+    {{ formset.management_form }}
+
+    <button type="submit" class="submit-btn">Create Order</button>
+  </form>
+</div>
+{% endblock %}

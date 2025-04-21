@@ -575,6 +575,18 @@
                         <span class="link-text">Track Items</span>
                     </a>
                 </li>
+
+                <li class="sidebar-menu-item">
+                    <a href="{% url 'suppliers:order_create' tenant_url=tenant_url %}"
+                       class="sidebar-link {% if '/suppliers' in request.path %}active{% endif %}"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="right"
+                       title="New Supply Order">
+                      <i class="bi bi-cart-plus"></i>
+                      <span class="link-text">New Supply Order</span>
+                    </a>
+                  </li>
+                  
                 
                 <li class="sidebar-menu-item">
                     <a href="/{{ tenant_url }}/messaging/inbox/" 

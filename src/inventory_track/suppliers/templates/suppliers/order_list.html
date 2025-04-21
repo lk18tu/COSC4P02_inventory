@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}All Supply Orders{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2>All Orders</h2>
+
+  
+  <p>
+    <a
+      href="{% url 'suppliers:order_create' tenant_url=tenant_url %}"
+      class="btn btn-primary mb-3"
+    >
+      New Order
+    </a>
+  </p>
+
+  <ul class="list-group">
+    {% for o in orders %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        <div>
+          <a
+            href="{% url 'suppliers:order_detail' tenant_url=tenant_url pk=o.pk %}"
+          >
+            {{ o.tracking_number }}
+          </a>
+          &mdash; {{ o.supplier.name }} | {{ o.get_status_display }}
+        </div>
+        <small>{{ o.created_at|date:"Y-m-d H:i" }}</small>
+      </li>
+    {% empty %}
+      <li class="list-group-item">
+        No orders yet.
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

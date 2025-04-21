@@ -19,8 +19,8 @@ class InvItem(models.Model):
             # Update only the tracking_id field without triggering the full save again
             self.__class__.objects.filter(pk=self.pk).update(tracking_id=self.tracking_id)
 
-def __str__(self):
-    return self.title
+    def __str__(self):
+        return self.title
 
 class InvTable_Metadata(models.Model):
     table_name = models.CharField(max_length=255, unique=True)
