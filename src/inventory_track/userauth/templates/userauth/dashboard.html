@@ -4,127 +4,307 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
+<!-- styles -->
+<style>
+  .kpi-card {
+    border-width: 1px !important;
+    transition: box-shadow 0.3s ease-in-out, text-shadow 0.3s ease-in-out;
+  }
+  .kpi-card:hover {
+    box-shadow: 0 0 1rem rgba(13,110,253,0.6) !important;
+  }
+  .kpi-card .card-title,
+  .kpi-card .display-6 {
+    color: #fff !important;
+    text-shadow: 0 0 0.75rem rgba(255,255,255,0.6);
+  }
+  .kpi-card:hover .card-title,
+  .kpi-card:hover .display-6 {
+    text-shadow: 0 0 1.25rem rgba(13,110,253,0.8);
+  }
+
+   .reorder-progress-card .card-body strong {
+    color: #fff !important;
+    text-shadow: 0 0 0.75rem rgba(255,255,255,0.6);
+    transition: text-shadow 0.3s ease-in-out;
+  }
+  .reorder-progress-card .card-body strong:hover {
+    text-shadow: 0 0 1.25rem rgba(13,110,253,0.8);
+  }
+</style>
+
 <div class="container mt-4">
-    <!-- Welcome Section -->
-    <div class="welcome-section mb-4">
-        <div>
-            <h2>Welcome, {{ user.username }}!</h2>
-            <p id="date-time" class="date-time">{{ current_time }}</p>
-        </div>
-        <div>
-            {% if is_manager %}
-                <span class="badge bg-primary">Manager</span>
-            {% else %}
-                <span class="badge bg-secondary">Employee</span>
-            {% endif %}
-        </div>
+  <!-- Welcome Section -->
+  <div class="welcome-section mb-4 d-flex justify-content-between align-items-center">
+    <div>
+      <h2>Welcome, {{ user.username }}!</h2>
+      <p id="date-time" class="date-time">{{ current_time }}</p>
     </div>
-
-    <!-- Quick Links -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">Quick Links</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <a href="/{{ tenant_url }}/invManage/" class="btn btn-outline-primary w-100 py-3">
-                                <i class="bi bi-box fs-4 d-block mb-2"></i>
-                                Inventory
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <a href="/{{ tenant_url }}/updateStock/products/" class="btn btn-outline-success w-100 py-3">
-                                <i class="bi bi-pencil-square fs-4 d-block mb-2"></i>
-                                Update Stock
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <a href="/{{ tenant_url }}/messaging/inbox/" class="btn btn-outline-info w-100 py-3">
-                                <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
-                                Messages
-                            </a>
-                        </div>
-                        <div class="col-md-3 col-sm-6 mb-3">
-                            <a href="/{{ tenant_url }}/inventory_analysis/chart/" class="btn btn-outline-warning w-100 py-3">
-                                <i class="bi bi-bar-chart fs-4 d-block mb-2"></i>
-                                Analytics
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div>
+      {% if is_manager %}
+        <span class="badge bg-primary">Manager</span>
+      {% else %}
+        <span class="badge bg-secondary">Employee</span>
+      {% endif %}
     </div>
+  </div>
 
-     {# Inventory Overview + Notifications side‑by‑side #}
-    <div class="row">
-        <!-- Inventory Overview -->
-        <div class="col-md-6 mb-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-header bg-light d-flex align-items-center">
-                    <h5 class="mb-0">Inventory Overview</h5>
-                    <select
-                      class="form-select form-select-sm ms-auto"
-                      style="width:auto"
-                      onchange="window.location='?table='+this.value"
-                    >
-                      {% for tbl in inventory_tables %}
-                        <option value="{{ tbl }}" {% if tbl == selected_table %}selected{% endif %}>
-                          {{ tbl }}
-                        </option>
-                      {% endfor %}
-                    </select>
-                </div>
-                <div class="card-body text-center">
-                    {% if inventory_bar_chart %}
-                        <img
-                          src="data:image/png;base64,{{ inventory_bar_chart }}"
-                          alt="Inventory Levels for {{ selected_table }}"
-                          class="img-fluid"
-                        />
-                    {% else %}
-                        <p class="text-muted">
-                            No data available for <strong>{{ selected_table }}</strong>.
-                        </p>
-                    {% endif %}
-                </div>
-            </div>
+  <!-- Quick Links -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-light">
+          <h5 class="mb-0">Quick Links</h5>
         </div>
-
-                <!-- Notifications -->
-        <div class="col-md-6 mb-4">
-          <div class="card shadow-sm h-100">
-            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">
-                Notifications
-                {% if unread_notifications %}
-                  <span class="badge bg-primary ms-2">{{ unread_notifications }}</span>
-                {% endif %}
-              </h5>
-              <a href="{% url 'notifications:view_notifications' tenant_url=tenant_url %}"
-                 class="btn btn-sm btn-outline-primary">
-                View All
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 col-sm-6 mb-3">
+              <a href="/{{ tenant_url }}/invManage/" class="btn btn-outline-primary w-100 py-3">
+                <i class="bi bi-box fs-4 d-block mb-2"></i>
+                Inventory
               </a>
             </div>
-            <div class="card-body">
-              {% if notifications %}
-                <ul class="list-group list-group-flush">
-                  {% for notification in notifications %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                      <span>{{ notification.message }}</span>
-                      <small class="text-muted">{{ notification.created_at|date:"M d" }}</small>
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <p class="text-center text-muted">No notifications.</p>
-              {% endif %}
+            <div class="col-md-3 col-sm-6 mb-3">
+              <a href="/{{ tenant_url }}/updateStock/products/" class="btn btn-outline-success w-100 py-3">
+                <i class="bi bi-pencil-square fs-4 d-block mb-2"></i>
+                Update Stock
+              </a>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+              <a href="/{{ tenant_url }}/messaging/inbox/" class="btn btn-outline-info w-100 py-3">
+                <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
+                Messages
+              </a>
+            </div>
+            <div class="col-md-3 col-sm-6 mb-3">
+              <a href="/{{ tenant_url }}/inventory_analysis/chart/" class="btn btn-outline-warning w-100 py-3">
+                <i class="bi bi-bar-chart fs-4 d-block mb-2"></i>
+                Analytics
+              </a>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
 
+  {# KPI METRICS CARD #}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">KPIs</h5>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary kpi-card">
+              <div class="card-body">
+                <h6 class="card-title">Total SKUs</h6>
+                <p class="display-6">{{ total_skus }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary kpi-card">
+              <div class="card-body">
+                <h6 class="card-title">Total Units</h6>
+                <p class="display-6">{{ total_units }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary kpi-card">
+              <div class="card-body">
+                <h6 class="card-title">Below Reorder</h6>
+                <p class="display-6">{{ items_below }} ({{ percent_below }}%)</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary kpi-card">
+              <div class="card-body">
+                <h6 class="card-title">Avg Daily Sold</h6>
+                <p class="display-6">{{ avg_daily_sell }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+{# — REORDER PROGRESS CARD — #}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm reorder-progress-card">
+      <div class="card-header bg-light d-flex align-items-center">
+        <h5 class="mb-0">
+          Reorder Progress:
+          {% for opt in table_options %}
+            {% if opt.name == selected_table %}
+              {{ opt.label }}
+            {% endif %}
+          {% endfor %}
+        </h5>
+        <div class="ms-auto">
+          <label for="reorder-table-select" class="visually-hidden">
+            Select inventory table
+          </label>
+          <select
+            id="reorder-table-select"
+            class="form-select form-select-lg border-primary"
+            style="width:auto"
+            onchange="window.location='?table='+this.value"
+          >
+            {% for opt in table_options %}
+              <option value="{{ opt.name }}"{% if opt.name == selected_table %} selected{% endif %}>
+                {{ opt.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if progress_items %}
+          {% for item in progress_items %}
+            <div class="mb-3">
+              <strong>{{ item.title }}</strong>
+              <div class="progress">
+                <div
+                  class="progress-bar"
+                  role="progressbar"
+                  style="width: {{ item.pct }}%"
+                  aria-valuenow="{{ item.pct }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  {{ item.pct }}%
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted mb-0">No items to show.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# — ORDER TOTALS & FAST‑MOVING STOCK — #}
+<div class="row mb-4">
+  <!-- Order Totals -->
+  <div class="col-md-6 mb-3">
+    <div class="card text-center shadow-sm border-primary kpi-card h-100">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Order Totals (Last 7 days)</h5>
+      </div>
+      <div class="card-body">
+        <p class="display-6">{{ order_total }}</p>
+      </div>
+    </div>
+  </div>
+  <!-- Fast‑Moving (example) -->
+  <div class="col-md-6 mb-3">
+    <div class="card shadow-sm h-100">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Fast‑Moving Stock</h5>
+      </div>
+      <div class="card-body">
+        {% if fast_moving %}
+          <ul class="list-group list-group-flush">
+            {% for item in fast_moving %}
+              <li class="list-group-item d-flex justify-content-between align-items-center">
+                {{ item.title }}
+                <span class="badge bg-primary rounded-pill">{{ item.volume }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="text-muted mb-0">No recent activity.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Inventory Overview + Notifications side-by-side -->
+  <div class="row">
+    <!-- Inventory Overview -->
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light d-flex align-items-center">
+          <h5 class="mb-0">Inventory Overview</h5>
+          <!-- ◀ this is the only block we’ve changed: -->
+          <div class="ms-auto d-flex align-items-center">
+            <label for="table-select" class="visually-hidden">Select inventory table</label>
+            <select
+              id="table-select"
+              aria-label="Select inventory table"
+              class="form-select form-select-sm"
+              style="width:auto"
+              onchange="window.location='?table='+this.value"
+            >
+              {% for opt in table_options %}
+                <option value="{{ opt.name }}"{% if opt.name == selected_table %} selected{% endif %}>
+                  {{ opt.label }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="card-body text-center">
+          {% if inventory_bar_chart %}
+            <img
+              src="data:image/png;base64,{{ inventory_bar_chart }}"
+              alt="Inventory Levels for {{ selected_table }}"
+              class="img-fluid"
+            />
+          {% else %}
+            <p class="text-muted">
+              No data available for <strong>{{ selected_table }}</strong>.
+            </p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="col-md-6 mb-4">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+          <h5 class="mb-0">
+            Notifications
+            {% if unread_notifications %}
+              <span class="badge bg-primary ms-2">{{ unread_notifications }}</span>
+            {% endif %}
+          </h5>
+          <a
+            href="{% url 'notifications:view_notifications' tenant_url=tenant_url %}"
+            class="btn btn-sm btn-outline-primary"
+          >
+            View All
+          </a>
+        </div>
+        <div class="card-body">
+          {% if notifications %}
+            <ul class="list-group list-group-flush">
+              {% for notification in notifications %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                  <span>{{ notification.message }}</span>
+                  <small class="text-muted">{{ notification.created_at|date:"M d" }}</small>
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-center text-muted">No notifications.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
-
