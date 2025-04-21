@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+  <h1>Order {{ order.tracking_number }}</h1>
+  <p><strong>Status:</strong> {{ order.get_status_display }}</p>
+
+  {% if order.status != 'RECEIVED' %}
+    <form method="post" action="{% url 'suppliers:order_receive' tenant_url=tenant_url pk=order.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-primary">
+        Mark as Received
+      </button>
+    </form>
+  {% endif %}
+
+  <h2>Items</h2>
+  <ul>
+    {% for li in order.order_items.all %}
+      <li>{{ li.quantity }}× {{ li.inventory_item.title }}</li>
+    {% endfor %}
+  </ul>
+
+  <p>
+    <a href="{% url 'suppliers:order_list' tenant_url=tenant_url %}">← Back to all orders</a>
+  </p>
+{% endblock %}
