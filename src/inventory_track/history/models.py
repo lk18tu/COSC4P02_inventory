@@ -8,7 +8,7 @@ class InventoryHistory(models.Model):
         ('update', 'Updated'),
         ('delete', 'Deleted'),
         ('archive', 'Archive'),
-        ('unarchive', 'Unarchive')
+        ('unarchive', 'Unarchive'),
     ]
 
     location = models.CharField(max_length=255)

@@ -42,7 +42,8 @@
             <td class="text-center">
               <form method="post"
                     action="{% url 'updateStock:item_detail' tenant_url=tenant_url table_name=table_name item_id=item_id %}"
-                    style="display:inline">
+                    style="display:inline"
+                    onsubmit="return confirm('Are you sure you want to remove this unit?');">
                 {% csrf_token %}
                 <input type="hidden" name="remove_unit" value="{{ inst.tracking_id }}">
                 <button type="submit" class="btn btn-danger btn-sm">
