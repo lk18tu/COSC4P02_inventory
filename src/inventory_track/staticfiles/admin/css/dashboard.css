@@ -87,3 +87,11 @@
 .card-footer .bi-chevron-up {
     transform: rotate(180deg); /* Flips the chevron to indicate collapse */
 }
+
+.kpi-card {
+  border-width: 1px !important;
+  transition: box-shadow 0.3s ease-in-out;
+}
+.kpi-card:hover {
+  box-shadow: 0 0 1rem rgba(13, 110, 253, 0.6) !important;
+}

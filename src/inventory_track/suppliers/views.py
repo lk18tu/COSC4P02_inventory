@@ -24,7 +24,6 @@ def supplier_list(request, tenant_url):
 def supplier_create(request, tenant_url):
     if request.method == 'POST':
         name = request.POST.get('name')
-        contact_person = request.POST.get('contact_person')
         email = request.POST.get('email')
         phone = request.POST.get('phone_number')
         address = request.POST.get('address')
@@ -32,7 +31,6 @@ def supplier_create(request, tenant_url):
         # Create supplier
         supplier = Supplier(
             name=name,
-            contact_person=contact_person,
             email=email,
             phone_number=phone,
             address=address
@@ -49,7 +47,6 @@ def supplier_edit(request, tenant_url, pk):
     supplier = get_object_or_404(Supplier, pk=pk)
     if request.method == 'POST':
         supplier.name = request.POST.get('name')
-        supplier.contact_person = request.POST.get('contact_person')
         supplier.email = request.POST.get('email')
         supplier.phone_number = request.POST.get('phone_number')
         supplier.address = request.POST.get('address')
@@ -83,7 +80,7 @@ def order_create(request, tenant_url):
 
         if order_form.is_valid() and formset.is_valid():
             
-            order = order_form.save(commit=False)
+            order = order_form.save()
             order.location_name          = request.tenant.name
             order.destination_percentage = 0
             order.save()

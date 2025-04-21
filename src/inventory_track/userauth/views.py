@@ -2,12 +2,21 @@
 import pytz
 import datetime
 import logging
+from django.utils import timezone
+from datetime import timedelta
+import re
+
+from django.db import connection
+from django.db.models import Sum, Count
+
 from django.conf import settings
 from django.shortcuts import render, redirect
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.contrib.auth.models import User
+
 from .models import UserProfile, PendingRegistration, Notification
 from notifications.models import Notification  # Import Notification from the notifications app
 
@@ -21,6 +30,10 @@ from inventory_analysis.views import (
     get_available_inventory_tables,
     generate_inventory_level_chart
 )
+from inventoryApp.models import InvTable_Metadata
+from updateStock.models import StockTransaction
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -181,56 +194,177 @@ def user_logout(request, tenant_url=None):
     # Redirect to the tenant landing page instead of the login page
     return redirect(f'/{tenant_url}/')
 
+@login_required
 def dashboard(request, tenant_url=None):
-    # — tenant lookup as before —
-    tenant_url = (hasattr(request, 'tenant') and request.tenant.domain_url) or tenant_url or ''
+    # resolve tenant_url
+    tenant_url = (
+        request.tenant.domain_url
+        if hasattr(request, "tenant")
+        else (tenant_url or "")
+    )
 
-    # 1) list of all inventory tables
+    # 1) list of all inventory tables & which one’s selected
     inventory_tables = get_available_inventory_tables()
+    selected_table = request.GET.get("table") or (
+        inventory_tables[0] if inventory_tables else None
+    )
 
-    # 2) which one is selected? default to first
-    selected_table = request.GET.get('table') or (inventory_tables[0] if inventory_tables else None)
+    # build friendly labels: "Test_company_1_Table1_classes" → "Table 1"
+    table_options = []
+    for tbl in inventory_tables:
+        base = tbl.rsplit("_", 1)[0]       # drop the "_classes"
+        raw = base.split("_")[-1]          # e.g. "Table1"
+        label = re.sub(r"([A-Za-z]+)(\d+)", r"\1 \2", raw)
+        table_options.append({"name": tbl, "label": label})
 
-    # 3) generate bar‑chart (base64) for that table
+    # 2) KPI metrics
+    total_skus = total_units = items_below = 0
+    avg_daily_sell = 0.0
+
+    if selected_table:
+        # look up the metadata row once
+        meta = InvTable_Metadata.objects.get(table_name=selected_table)
+
+        with connection.cursor() as cursor:
+            # total distinct SKUs
+            cursor.execute(f"SELECT COUNT(*) FROM `{selected_table}`")
+            total_skus = cursor.fetchone()[0] or 0
+
+            # total units in stock
+            cursor.execute(f"SELECT SUM(quantity_stock) FROM `{selected_table}`")
+            total_units = cursor.fetchone()[0] or 0
+
+            # items below reorder level
+            cursor.execute(
+                f"SELECT COUNT(*) FROM `{selected_table}` "
+                "WHERE quantity_stock < reorder_level"
+            )
+            items_below = cursor.fetchone()[0] or 0
+
+        # average daily sell‑through = avg of negative 'change' over last 7 days
+        one_week_ago = timezone.now() - timedelta(days=7)
+        removed_total = (
+            StockTransaction.objects
+            .filter(
+                table_meta=meta,
+                change__lt=0,
+                created_at__gte=one_week_ago
+            )
+            .aggregate(total=Sum('change'))['total'] or 0
+        )
+        # Sum is negative, so take abs then avg
+        avg_daily_sell = round(abs(removed_total) / 7, 1)
+
+    # 3) bar chart for selected table
     inventory_bar_chart = (
         generate_inventory_level_chart(selected_table)
         if selected_table else None
     )
 
-    # — time, manager flag, profile ensure —
+    # 3.5) reorder‑progress list
+    progress_items = []
+    if selected_table:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT title, quantity_stock, reorder_level "
+                f"FROM `{selected_table}`"
+            )
+            for title, qty, rl in cursor.fetchall():
+                pct = int((qty / rl * 100) if rl and rl > 0 else 0)
+                pct = min(pct, 100)
+                progress_items.append({"title": title, "pct": pct})
+
+    # 4) time, notifications & user type
     eastern = pytz.timezone('US/Eastern')
     now = datetime.datetime.now(eastern)
     formatted_date_time = now.strftime("%B %d, %Y, %I:%M %p EST")
 
     UserProfile.objects.get_or_create(user=request.user)
 
-    # 4) fetch notifications
     notifications = (
         Notification.objects
         .filter(user=request.user)
         .order_by('-created_at')[:5]
     )
-    unread = Notification.objects.filter(
-        user=request.user, is_read=False
-    ).count() or 0
+    unread = (
+        Notification.objects
+        .filter(user=request.user, is_read=False)
+        .count() or 0
+    )
 
-    context = {
-        # tenant / header info
+    # ─── 5) Order Totals over last 7 days (only positive adds) ───
+    order_total = 0
+    if selected_table:
+        one_week_ago = timezone.now() - timedelta(days=7)
+        order_total = (
+            StockTransaction.objects
+            .filter(
+                table_meta=meta,
+                change__gt=0,
+                created_at__gte=one_week_ago
+            )
+            .aggregate(total=Sum('change'))['total'] or 0
+        )
+
+    # ─── 6) Fast‑Moving Stock (top 5 by positive volume) ───
+    fast_moving = []
+    if selected_table:
+        one_week_ago = timezone.now() - timedelta(days=7)
+        fast_qs = (
+            StockTransaction.objects
+            .filter(
+                table_meta=meta,
+                change__gt=0,
+                created_at__gte=one_week_ago
+            )
+            .values('item_id')
+            .annotate(volume=Sum('change'))
+            .order_by('-volume')[:5]
+        )
+        # resolve titles
+        with connection.cursor() as cursor:
+            for entry in fast_qs:
+                cursor.execute(
+                    f"SELECT title FROM `{selected_table}` WHERE id = %s",
+                    [entry['item_id']]
+                )
+                row = cursor.fetchone()
+                fast_moving.append({
+                    'title': row[0] if row else f"ID {entry['item_id']}",
+                    'volume': entry['volume'] or 0
+                })
+
+    return render(request, "userauth/dashboard.html", {
+        # Tenant + user info
         "tenant_url":           tenant_url,
         "current_time":         formatted_date_time,
         "is_manager":           request.user.profile.is_manager(),
-
-        # notifications panel
-        "notifications":        notifications,
         "unread_notifications": unread,
 
-        # inventory dropdown + chart
+        # Inventory tables
         "inventory_tables":     inventory_tables,
+        "table_options":        table_options,
         "selected_table":       selected_table,
         "inventory_bar_chart":  inventory_bar_chart,
-    }
-    return render(request, "userauth/dashboard.html", context)
 
+        # KPIs
+        "total_skus":           total_skus,
+        "total_units":          total_units,
+        "items_below":          items_below,
+        "percent_below":        (round(items_below/total_skus*100,1)
+                                   if total_skus else 0),
+        "avg_daily_sell":       avg_daily_sell,
+
+        # Reorder progress
+        "progress_items":       progress_items,
+
+        # Notifications
+        "notifications":        notifications,
+
+        # Order Totals & Fast‑Moving
+        "order_total":          order_total,
+        "fast_moving":          fast_moving,
+    })
 
 class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
     template_name = 'userauth/password_reset.html'

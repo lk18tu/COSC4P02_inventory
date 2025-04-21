@@ -1,7 +1,9 @@
 import uuid
 from django.db import models, connection
+from django.db.models import F
 from django.utils import timezone
 from inventoryApp.models import InvTable_Metadata
+from inventoryApp.models import InvItem
 
 
 class Supplier(models.Model):
@@ -98,9 +100,13 @@ class SupplyOrder(models.Model):
         return items_table, classes_table
     
     def save(self, *args, **kwargs):
+        is_new = self._state.adding
         if not self.tracking_number:
-            self.tracking_number = uuid.uuid4().hex.upper()
+             self.tracking_number = uuid.uuid4().hex.upper()
         super().save(*args, **kwargs)
+ 
+        if is_new:
+             self._ensure_inventory_tables()
 
 
     def receive(self):
@@ -117,7 +123,7 @@ class SupplyOrder(models.Model):
         items_table, _ = self._ensure_inventory_tables()
 
         with connection.cursor() as cursor:
-            for line in self.order_items.select_related('inventory_item').all():
+            for line in self.order_items.select_related('inventory_item'):
                 for _ in range(line.quantity):
                   unit_tracking = uuid.uuid4().hex.upper()
                   cursor.execute(f"""
@@ -130,7 +136,12 @@ class SupplyOrder(models.Model):
                 self.destination_percentage
             ])
 
-
+        # Increment the overall InvItem.quantity by the number ordered
+        # so the main inventory stays in sync.
+        for line in self.order_items.all():
+            InvItem.objects.filter(pk=line.inventory_item_id).update(
+                quantity=F('quantity') + line.quantity
+            )
 
 class SupplyOrderItem(models.Model):
     supply_order = models.ForeignKey(
