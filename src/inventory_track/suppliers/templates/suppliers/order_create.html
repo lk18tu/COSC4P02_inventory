@@ -88,20 +88,29 @@
   .alert {
     margin-bottom: 20px;
   }
+  .new-supplier-btn {
+    display: inline-block;
+    margin-top: 10px;
+    margin-left: 8px;
+    font-size: 0.9rem;
+    color: #60a5fa;
+    text-decoration: none;
+  }
+  .new-supplier-btn:hover {
+    text-decoration: underline;
+  }
 </style>
 
 <div class="supply-form-container">
 
   <h1>New Supply Order</h1>
 
-  
   {% if messages %}
     {% for msg in messages %}
       <div class="alert alert-{{ msg.tags }}">{{ msg }}</div>
     {% endfor %}
   {% endif %}
 
-  
   {% if order_form.errors %}
     <div class="alert alert-danger">
       {{ order_form.errors }}
@@ -118,8 +127,10 @@
 
     <label for="{{ order_form.supplier.id_for_label }}">Supplier</label>
     {{ order_form.supplier }}
+    <!-- New supplier button inserted right after the dropdown -->
+    <a href="{% url 'suppliers:supplier_create' tenant_url=tenant_url %}"
+       class="new-supplier-btn">+ New Supplier</a>
 
-    
     {{ order_form.location_name.as_hidden }}
     {{ order_form.destination_percentage.as_hidden }}
 
