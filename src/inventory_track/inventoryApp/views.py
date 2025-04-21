@@ -116,6 +116,18 @@ def add_item(request, table_name, tenant_url=None):
         }
         image = request.FILES.get('image')
 
+        # Validate required fields
+        required_fields = ['product_number', 'title', 'reorder_level']
+        missing_fields = [field for field in required_fields if not form_data[field]]
+        
+        if missing_fields:
+            messages.error(request, f"Please fill in all required fields: {', '.join(missing_fields)}")
+            return render(request, "inventoryApp/add_item.html", {
+                "table_name": table_name,
+                "friendly_name": get_friendly_table_name(table_name),
+                "form_data": form_data
+            })
+
         try:
             with connection.cursor() as cursor:
                 cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
@@ -334,38 +346,37 @@ def unarchive_table(request, table_name, tenant_url=None):
 
 
 def delete_item(request, table_name, item_id, tenant_url=None):
+    # First check if the table exists
+    with connection.cursor() as cursor:
+        cursor.execute(f"SHOW TABLES LIKE %s", [table_name])
+        if not cursor.fetchone():
+            raise Http404(f"Table '{table_name}' does not exist.")
+
+        # Check if the item exists
+        cursor.execute(f"SELECT title, product_number FROM {table_name} WHERE id = %s", [item_id])
+        row = cursor.fetchone()
+        if not row:
+            raise Http404(f"Item with ID {item_id} not found.")
+        title, product_number = row
+
     try:
+        # Delete the item
         with connection.cursor() as cursor:
-            # Ensure the table exists
-            cursor.execute(f"SHOW TABLES LIKE %s", [table_name])
-            result = cursor.fetchone()
+            cursor.execute(f"DELETE FROM {table_name} WHERE id = %s", [item_id])
 
-            if result:
-                # Fetch title and product_number before deleting
-                cursor.execute(f"SELECT title, product_number FROM {table_name} WHERE id = %s", [item_id])
-                row = cursor.fetchone()
-                if not row:
-                    raise Http404(f"Item with ID {item_id} not found.")
-                title, product_number = row
+        # Log the deletion
+        InventoryHistory.objects.create(
+            location=table_name,
+            user=request.user,
+            action="delete",
+            details=f"Deleted item class: {title} {product_number}",
+            item_class_number=item_id,
+        )
 
-                # Delete the item
-                cursor.execute(f"DELETE FROM {table_name} WHERE id = %s", [item_id])
-
-                # Log the deletion
-                InventoryHistory.objects.create(
-                    location=table_name,
-                    user=request.user,
-                    action="delete",
-                    details=f"Deleted item class: {title} {product_number}",
-                    item_class_number=item_id,
-                )
-
-                # Redirect
-                tenant = getattr(request, 'tenant', None)
-                tenant_url = tenant.domain_url if tenant else tenant_url or ''
-                return redirect(f"/{tenant_url}/invManage/")
-            else:
-                raise Http404(f"Table '{table_name}' does not exist.")
+        # Redirect
+        tenant = getattr(request, 'tenant', None)
+        tenant_url = tenant.domain_url if tenant else tenant_url or ''
+        return redirect(f"/{tenant_url}/invManage/")
     except Exception as e:
         print(f"Error deleting item: {str(e)}")
         tenant = getattr(request, 'tenant', None)
@@ -406,7 +417,6 @@ def edit_item(request, table_name, item_id, tenant_url=None):
         purchase_price = request.POST['purchase_price']
         notes = request.POST['notes']
 
-
         # Handle file upload (only update if a new file is provided)
         image = request.FILES.get('image', None)
         image_filename = item_data.get('image')  # Keep the existing image by default
@@ -435,26 +445,23 @@ def edit_item(request, table_name, item_id, tenant_url=None):
                         price = %s, purchase_price = %s, notes = %s, image = %s
                     WHERE id = %s
                 """, [title, description, reorder_level, price, purchase_price, notes, image_filename, item_id])
-                class_id = cursor.lastrowid
+
+            #log history
+            InventoryHistory.objects.create(
+                location=table_name,
+                user=request.user,
+                action="update",
+                details="Updated Class: " + title,
+                item_class_number=item_id
+            )
+
+            # Redirect after saving
+            tenant = getattr(request, 'tenant', None)
+            tenant_url = tenant.domain_url if tenant else tenant_url or ''
+            return redirect(f"/{tenant_url}/invManage/")
 
         except Exception as e:
             return HttpResponse(f"<h1>Error updating item:</h1><p>{str(e)}</p>", status=500)
-
-        #log history
-        InventoryHistory.objects.create(
-                location = table_name,
-                user = request.user,
-                action = "update",
-                details = "Updated Class: " + title,
-                item_class_number = class_id
-            )
-        
-
-
-        # Redirect after saving
-        tenant = getattr(request, 'tenant', None)
-        tenant_url = tenant.domain_url if tenant else tenant_url or ''
-        return redirect(f"/{tenant_url}/invManage/")
 
     return render(request, 'inventoryApp/edit_item.html', {'item': item_data, 'table_name': table_name, 'friendly_name': get_friendly_table_name(table_name)})
 
