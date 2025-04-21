@@ -4,7 +4,9 @@ from django.db import connection, ProgrammingError as DBProgrammingError
 from django.contrib import messages
 from django.db.models import Q
 from django.core.paginator import Paginator
-
+from history.models import InventoryHistory
+from notifications.models import Notification
+from django.contrib.auth.models import User
 from inventoryApp.models import InvTable_Metadata
 from .models          import StockTransaction, StockUnit
 
@@ -136,7 +138,46 @@ def item_detail(request, table_name, item_id, tenant_url=None):
             except DBProgrammingError:
                 pass
 
+        
+
         messages.success(request, f"Unit {remove_tid} removed.")
+
+
+        print("removin stock")
+        # grab the item title
+        with connection.cursor() as c:
+            c.execute(f"SELECT title FROM `{table_name}` WHERE id = %s", [item_id])
+            row = c.fetchone()
+        item_title = row[0] if row else f"ID_{item_id}"
+
+        print(item_title)
+
+        #CHECK IF STOCK NOTIFICATIONS NEED TO BE SENT
+        with connection.cursor() as cursor:
+            cursor.execute(f"""
+                SELECT quantity_stock, reorder_level 
+                FROM `{table_name}` 
+                WHERE id = %s
+            """, [item_id])
+            row = cursor.fetchone()
+
+            if row:
+                quantity_stock, reorder_level = row
+                user = User.objects.get(username=request.user.username)
+                if quantity_stock < reorder_level:
+                    Notification.objects.create(
+                        user=user,
+                        message="⚠️ You just updated stock for " + item_title + ". It is below stock level!"
+                    )
+                        
+                else:
+                    Notification.objects.create(
+                        user=user,
+                        message="You just updated stock for " + item_title + ". Item is above stock level."
+                    )
+            else:
+                print("❌ Item not found.")
+
         return redirect("updateStock:item_detail",
                         tenant_url=tenant_url,
                         table_name=table_name,
@@ -311,6 +352,33 @@ def add_stock(request, table_name, item_id, tenant_url=None):
         )
 
         messages.success(request, f"Added {amt} unit(s).")
+
+        #CHECK IF STOCK NOTIFICATIONS NEED TO BE SENT
+        with connection.cursor() as cursor:
+            cursor.execute(f"""
+                SELECT quantity_stock, reorder_level 
+                FROM `{table_name}` 
+                WHERE id = %s
+            """, [item_id])
+            row = cursor.fetchone()
+
+            if row:
+                quantity_stock, reorder_level = row
+                user = User.objects.get(username=request.user.username)
+                if quantity_stock < reorder_level:
+                    
+                    Notification.objects.create(
+                        user=user,
+                        message="⚠️ You just updated stock for " + item_title + ". It is below stock level!"
+                    )
+                else:
+                    Notification.objects.create(
+                        user=user,
+                        message="You just updated stock for " + item_title + ". Item is above stock level."
+                    )
+            else:
+                print("❌ Item not found.")
+
         return redirect("updateStock:item_detail",
                         tenant_url=tenant_url,
                         table_name=table_name,
@@ -328,6 +396,8 @@ def add_stock(request, table_name, item_id, tenant_url=None):
 # REMOVE STOCK (stub)
 # ─────────────────────────────────────────────────────────────────────────────
 def remove_stock(request, table_name, item_id, tenant_url=None):
+
+    
     return redirect("updateStock:item_detail",
                     tenant_url=tenant_url,
                     table_name=table_name,
