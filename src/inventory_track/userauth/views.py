@@ -2,12 +2,18 @@
 import pytz
 import datetime
 import logging
+
+from django.db import connection
+from django.db.models import Sum, Count
+
 from django.conf import settings
 from django.shortcuts import render, redirect
+
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.contrib.auth.models import User
+
 from .models import UserProfile, PendingRegistration, Notification
 from notifications.models import Notification  # Import Notification from the notifications app
 
@@ -21,6 +27,10 @@ from inventory_analysis.views import (
     get_available_inventory_tables,
     generate_inventory_level_chart
 )
+from inventoryApp.models import InvTable_Metadata
+from updateStock.models import StockTransaction
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -182,54 +192,91 @@ def user_logout(request, tenant_url=None):
     return redirect(f'/{tenant_url}/')
 
 def dashboard(request, tenant_url=None):
-    # — tenant lookup as before —
-    tenant_url = (hasattr(request, 'tenant') and request.tenant.domain_url) or tenant_url or ''
+    # resolve tenant_url
+    tenant_url = (
+        request.tenant.domain_url
+        if hasattr(request, 'tenant')
+        else (tenant_url or '')
+    )
 
-    # 1) list of all inventory tables
+    # 1) list of all inventory tables & which one’s selected
     inventory_tables = get_available_inventory_tables()
+    selected_table   = request.GET.get('table') or (
+        inventory_tables[0] if inventory_tables else None
+    )
 
-    # 2) which one is selected? default to first
-    selected_table = request.GET.get('table') or (inventory_tables[0] if inventory_tables else None)
+    # 2) KPI metrics
+    total_skus = total_units = items_below = 0
+    avg_daily_sell = 0.0
 
-    # 3) generate bar‑chart (base64) for that table
+    if selected_table:
+        with connection.cursor() as cursor:
+            # total distinct SKUs
+            cursor.execute(f"SELECT COUNT(*) FROM `{selected_table}`")
+            total_skus = cursor.fetchone()[0] or 0
+
+            # total units in stock
+            cursor.execute(f"SELECT SUM(quantity_stock) FROM `{selected_table}`")
+            total_units = cursor.fetchone()[0] or 0
+
+            # items below reorder level
+            cursor.execute(
+                f"SELECT COUNT(*) FROM `{selected_table}` "
+                "WHERE quantity_stock < reorder_level"
+            )
+            items_below = cursor.fetchone()[0] or 0
+
+            # average daily sell‑through over last 7 days
+            cursor.execute("""
+                SELECT ABS(SUM(`change`))
+                FROM updatestock_stocktransaction
+                WHERE table_meta_id = (
+                    SELECT id FROM inventoryapp_invtable_metadata
+                    WHERE table_name = %s
+                )
+                  AND item_id IN (SELECT id FROM `{tbl}`)
+                  AND `change` < 0
+                  AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+            """.replace("{tbl}", selected_table), [selected_table])
+            removed_last_week = cursor.fetchone()[0] or 0
+            avg_daily_sell = round(removed_last_week / 7, 1)
+
+    # 3) bar chart for selected table
     inventory_bar_chart = (
         generate_inventory_level_chart(selected_table)
         if selected_table else None
     )
 
-    # — time, manager flag, profile ensure —
+    # 4) time + notifications + user type
     eastern = pytz.timezone('US/Eastern')
     now = datetime.datetime.now(eastern)
     formatted_date_time = now.strftime("%B %d, %Y, %I:%M %p EST")
 
     UserProfile.objects.get_or_create(user=request.user)
-
-    # 4) fetch notifications
-    notifications = (
+    unread = (
         Notification.objects
-        .filter(user=request.user)
-        .order_by('-created_at')[:5]
+        .filter(user=request.user, is_read=False)
+        .count() or 0
     )
-    unread = Notification.objects.filter(
-        user=request.user, is_read=False
-    ).count() or 0
 
-    context = {
-        # tenant / header info
+    return render(request, "userauth/dashboard.html", {
         "tenant_url":           tenant_url,
         "current_time":         formatted_date_time,
         "is_manager":           request.user.profile.is_manager(),
-
-        # notifications panel
-        "notifications":        notifications,
         "unread_notifications": unread,
 
-        # inventory dropdown + chart
         "inventory_tables":     inventory_tables,
         "selected_table":       selected_table,
         "inventory_bar_chart":  inventory_bar_chart,
-    }
-    return render(request, "userauth/dashboard.html", context)
+
+        # KPI context
+        "total_skus":           total_skus,
+        "total_units":          total_units,
+        "items_below":          items_below,
+        "percent_below":        (round(items_below / total_skus * 100, 1)
+                                  if total_skus else 0),
+        "avg_daily_sell":       avg_daily_sell,
+    })
 
 
 class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
