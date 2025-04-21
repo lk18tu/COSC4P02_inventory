@@ -209,11 +209,11 @@ def dashboard(request, tenant_url=None):
         inventory_tables[0] if inventory_tables else None
     )
 
-    # build a friendly label for each table, e.g. "Table1" → "Table 1"
+    # build friendly labels: "Test_company_1_Table1_classes" → "Table 1"
     table_options = []
     for tbl in inventory_tables:
-        base = tbl.rsplit("_", 1)[0]       # drop the “_classes” suffix
-        raw = base.split("_")[-1]          # grab “Table1”
+        base = tbl.rsplit("_", 1)[0]       # drop the "_classes"
+        raw = base.split("_")[-1]          # e.g. "Table1"
         label = re.sub(r"([A-Za-z]+)(\d+)", r"\1 \2", raw)
         table_options.append({"name": tbl, "label": label})
 
@@ -222,6 +222,9 @@ def dashboard(request, tenant_url=None):
     avg_daily_sell = 0.0
 
     if selected_table:
+        # look up the metadata row once
+        meta = InvTable_Metadata.objects.get(table_name=selected_table)
+
         with connection.cursor() as cursor:
             # total distinct SKUs
             cursor.execute(f"SELECT COUNT(*) FROM `{selected_table}`")
@@ -238,25 +241,19 @@ def dashboard(request, tenant_url=None):
             )
             items_below = cursor.fetchone()[0] or 0
 
-            # avg daily sell‑through over last 7 days
-            cursor.execute(
-                """
-                SELECT ABS(SUM(`change`))
-                  FROM updatestock_stocktransaction
-                 WHERE table_meta_id = (
-                         SELECT id
-                           FROM inventoryapp_invtable_metadata
-                          WHERE table_name = %s
-                          LIMIT 1
-                       )
-                   AND item_id IN (SELECT id FROM `{tbl}`)
-                   AND `change` < 0
-                   AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                """.replace("{tbl}", selected_table),
-                [selected_table],
+        # average daily sell‑through = avg of negative 'change' over last 7 days
+        one_week_ago = timezone.now() - timedelta(days=7)
+        removed_total = (
+            StockTransaction.objects
+            .filter(
+                table_meta=meta,
+                change__lt=0,
+                created_at__gte=one_week_ago
             )
-            removed_last_week = cursor.fetchone()[0] or 0
-            avg_daily_sell = round(removed_last_week / 7, 1)
+            .aggregate(total=Sum('change'))['total'] or 0
+        )
+        # Sum is negative, so take abs then avg
+        avg_daily_sell = round(abs(removed_total) / 7, 1)
 
     # 3) bar chart for selected table
     inventory_bar_chart = (
@@ -264,7 +261,7 @@ def dashboard(request, tenant_url=None):
         if selected_table else None
     )
 
-    # 3.5) build reorder‑progress list
+    # 3.5) reorder‑progress list
     progress_items = []
     if selected_table:
         with connection.cursor() as cursor:
@@ -278,7 +275,7 @@ def dashboard(request, tenant_url=None):
                 progress_items.append({"title": title, "pct": pct})
 
     # 4) time, notifications & user type
-    eastern = pytz.timezone("US/Eastern")
+    eastern = pytz.timezone('US/Eastern')
     now = datetime.datetime.now(eastern)
     formatted_date_time = now.strftime("%B %d, %Y, %I:%M %p EST")
 
@@ -286,55 +283,49 @@ def dashboard(request, tenant_url=None):
 
     notifications = (
         Notification.objects
-                    .filter(user=request.user)
-                    .order_by("-created_at")[:5]
+        .filter(user=request.user)
+        .order_by('-created_at')[:5]
     )
     unread = (
         Notification.objects
-                    .filter(user=request.user, is_read=False)
-                    .count() or 0
+        .filter(user=request.user, is_read=False)
+        .count() or 0
     )
 
-    # ─── 5) Order Totals over last 7 days ───
+    # ─── 5) Order Totals over last 7 days (only positive adds) ───
     order_total = 0
     if selected_table:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                """
-                SELECT COALESCE(SUM(`change`),0)
-                  FROM updatestock_stocktransaction
-                 WHERE table_meta_id = (
-                         SELECT id
-                           FROM inventoryapp_invtable_metadata
-                          WHERE table_name=%s
-                          LIMIT 1
-                       )
-                   AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-                   AND `change` > 0
-                """,
-                [selected_table],
+        one_week_ago = timezone.now() - timedelta(days=7)
+        order_total = (
+            StockTransaction.objects
+            .filter(
+                table_meta=meta,
+                change__gt=0,
+                created_at__gte=one_week_ago
             )
-            order_total = cursor.fetchone()[0] or 0
+            .aggregate(total=Sum('change'))['total'] or 0
+        )
 
     # ─── 6) Fast‑Moving Stock (top 5 by positive volume) ───
-    one_week_ago = timezone.now() - timedelta(days=7)
-    fast_qs = (
-        StockTransaction.objects
-        .filter(
-            table_meta__table_name=selected_table,
-            created_at__gte=one_week_ago,
-            change__gt=0,
-        )
-        .values('item_id')
-        .annotate(volume=Sum('change'))
-        .order_by('-volume')[:5]
-    )
     fast_moving = []
     if selected_table:
+        one_week_ago = timezone.now() - timedelta(days=7)
+        fast_qs = (
+            StockTransaction.objects
+            .filter(
+                table_meta=meta,
+                change__gt=0,
+                created_at__gte=one_week_ago
+            )
+            .values('item_id')
+            .annotate(volume=Sum('change'))
+            .order_by('-volume')[:5]
+        )
+        # resolve titles
         with connection.cursor() as cursor:
             for entry in fast_qs:
                 cursor.execute(
-                    f"SELECT title FROM `{selected_table}` WHERE id=%s",
+                    f"SELECT title FROM `{selected_table}` WHERE id = %s",
                     [entry['item_id']]
                 )
                 row = cursor.fetchone()
@@ -344,21 +335,23 @@ def dashboard(request, tenant_url=None):
                 })
 
     return render(request, "userauth/dashboard.html", {
+        # Tenant + user info
         "tenant_url":           tenant_url,
         "current_time":         formatted_date_time,
         "is_manager":           request.user.profile.is_manager(),
         "unread_notifications": unread,
 
+        # Inventory tables
         "inventory_tables":     inventory_tables,
         "table_options":        table_options,
         "selected_table":       selected_table,
         "inventory_bar_chart":  inventory_bar_chart,
 
-        # KPI context
+        # KPIs
         "total_skus":           total_skus,
         "total_units":          total_units,
         "items_below":          items_below,
-        "percent_below":        (round(items_below / total_skus * 100,1)
+        "percent_below":        (round(items_below/total_skus*100,1)
                                    if total_skus else 0),
         "avg_daily_sell":       avg_daily_sell,
 
@@ -368,11 +361,10 @@ def dashboard(request, tenant_url=None):
         # Notifications
         "notifications":        notifications,
 
-        # Order totals & fast‑moving
+        # Order Totals & Fast‑Moving
         "order_total":          order_total,
         "fast_moving":          fast_moving,
     })
-
 
 class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
     template_name = 'userauth/password_reset.html'
