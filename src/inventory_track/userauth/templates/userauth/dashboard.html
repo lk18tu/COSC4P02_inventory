@@ -4,7 +4,7 @@
 {% block title %}Dashboard{% endblock %}
 
 {% block content %}
-<!-- Glowy KPI styles -->
+<!-- styles -->
 <style>
   .kpi-card {
     border-width: 1px !important;
@@ -20,6 +20,15 @@
   }
   .kpi-card:hover .card-title,
   .kpi-card:hover .display-6 {
+    text-shadow: 0 0 1.25rem rgba(13,110,253,0.8);
+  }
+
+   .reorder-progress-card .card-body strong {
+    color: #fff !important;
+    text-shadow: 0 0 0.75rem rgba(255,255,255,0.6);
+    transition: text-shadow 0.3s ease-in-out;
+  }
+  .reorder-progress-card .card-body strong:hover {
     text-shadow: 0 0 1.25rem rgba(13,110,253,0.8);
   }
 </style>
@@ -79,41 +88,112 @@
     </div>
   </div>
 
-  <!-- KPI METRICS ROW -->
-  <div class="row mb-4">
-    <div class="col-md-3">
-      <div class="card text-center shadow-sm border-primary kpi-card">
-        <div class="card-body">
-          <h6 class="card-title">Total SKUs</h6>
-          <p class="display-6">{{ total_skus }}</p>
-        </div>
+  {# KPI METRICS CARD #}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">KPIs</h5>
       </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center shadow-sm border-primary kpi-card">
-        <div class="card-body">
-          <h6 class="card-title">Total Units</h6>
-          <p class="display-6">{{ total_units }}</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center shadow-sm border-primary kpi-card">
-        <div class="card-body">
-          <h6 class="card-title">Below Reorder</h6>
-          <p class="display-6">{{ items_below }} ({{ percent_below }}%)</p>
-        </div>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card text-center shadow-sm border-primary kpi-card">
-        <div class="card-body">
-          <h6 class="card-title">Avg Daily Sold</h6>
-          <p class="display-6">{{ avg_daily_sell }}</p>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary kpi-card">
+              <div class="card-body">
+                <h6 class="card-title">Total SKUs</h6>
+                <p class="display-6">{{ total_skus }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary kpi-card">
+              <div class="card-body">
+                <h6 class="card-title">Total Units</h6>
+                <p class="display-6">{{ total_units }}</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary kpi-card">
+              <div class="card-body">
+                <h6 class="card-title">Below Reorder</h6>
+                <p class="display-6">{{ items_below }} ({{ percent_below }}%)</p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center shadow-sm border-primary kpi-card">
+              <div class="card-body">
+                <h6 class="card-title">Avg Daily Sold</h6>
+                <p class="display-6">{{ avg_daily_sell }}</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </div>
+</div>
+
+
+{# — REORDER PROGRESS CARD — #}
+<div class="row mb-4">
+  <div class="col-12">
+    <div class="card shadow-sm reorder-progress-card">
+      <div class="card-header bg-light d-flex align-items-center">
+        <h5 class="mb-0">
+          Reorder Progress:
+          {% for opt in table_options %}
+            {% if opt.name == selected_table %}
+              {{ opt.label }}
+            {% endif %}
+          {% endfor %}
+        </h5>
+        <div class="ms-auto">
+          <label for="reorder-table-select" class="visually-hidden">
+            Select inventory table
+          </label>
+          <select
+            id="reorder-table-select"
+            class="form-select form-select-lg border-primary"
+            style="width:auto"
+            onchange="window.location='?table='+this.value"
+          >
+            {% for opt in table_options %}
+              <option value="{{ opt.name }}"{% if opt.name == selected_table %} selected{% endif %}>
+                {{ opt.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="card-body">
+        {% if progress_items %}
+          {% for item in progress_items %}
+            <div class="mb-3">
+              <strong>{{ item.title }}</strong>
+              <div class="progress">
+                <div
+                  class="progress-bar"
+                  role="progressbar"
+                  style="width: {{ item.pct }}%"
+                  aria-valuenow="{{ item.pct }}"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
+                  {{ item.pct }}%
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <p class="text-muted mb-0">No items to show.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
 
   <!-- Inventory Overview + Notifications side-by-side -->
   <div class="row">

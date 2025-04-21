@@ -192,6 +192,7 @@ def user_logout(request, tenant_url=None):
     # Redirect to the tenant landing page instead of the login page
     return redirect(f'/{tenant_url}/')
 
+@login_required
 def dashboard(request, tenant_url=None):
     # resolve tenant_url
     tenant_url = (
@@ -211,7 +212,7 @@ def dashboard(request, tenant_url=None):
     for tbl in inventory_tables:
         # drop the suffix (_classes) and tenant prefix
         base = tbl.rsplit("_", 1)[0]  # e.g. "Test_company_1_Table1"
-        raw = base.split("_")[-1]  # e.g. "Table1"
+        raw = base.split("_")[-1]     # e.g. "Table1"
         label = re.sub(r"([A-Za-z]+)(\d+)", r"\1 \2", raw)
         table_options.append({"name": tbl, "label": label})
 
@@ -253,13 +254,26 @@ def dashboard(request, tenant_url=None):
                 [selected_table],
             )
             removed_last_week = cursor.fetchone()[0] or 0
-            avg_daily_sell   = round(removed_last_week / 7, 1)
+            avg_daily_sell = round(removed_last_week / 7, 1)
 
     # 3) bar chart for selected table
     inventory_bar_chart = (
         generate_inventory_level_chart(selected_table)
         if selected_table else None
     )
+
+    # 3.5) build reorder‐progress list
+    progress_items = []
+    if selected_table:
+        with connection.cursor() as cursor:
+            cursor.execute(
+                f"SELECT title, quantity_stock, reorder_level "
+                f"FROM `{selected_table}`"
+            )
+            for title, qty, rl in cursor.fetchall():
+                pct = int((qty / rl * 100) if rl and rl > 0 else 0)
+                pct = min(pct, 100)
+                progress_items.append({"title": title, "pct": pct})
 
     # 4) time, notifications & user type
     eastern = pytz.timezone("US/Eastern")
@@ -268,7 +282,7 @@ def dashboard(request, tenant_url=None):
 
     UserProfile.objects.get_or_create(user=request.user)
 
-    # ** NEW **: fetch last 5 notifications
+    # fetch last 5 notifications
     notifications = (
         Notification.objects
                     .filter(user=request.user)
@@ -287,7 +301,7 @@ def dashboard(request, tenant_url=None):
         "unread_notifications": unread,
 
         "inventory_tables":     inventory_tables,
-        "table_options": table_options,
+        "table_options":        table_options,
         "selected_table":       selected_table,
         "inventory_bar_chart":  inventory_bar_chart,
 
@@ -295,11 +309,14 @@ def dashboard(request, tenant_url=None):
         "total_skus":           total_skus,
         "total_units":          total_units,
         "items_below":          items_below,
-        "percent_below":         (round(items_below / total_skus * 100, 1)
-                                  if total_skus else 0),
+        "percent_below":        (round(items_below / total_skus * 100, 1)
+                                   if total_skus else 0),
         "avg_daily_sell":       avg_daily_sell,
 
-        # ** NEW **: pass the list into the template
+        # Reorder progress
+        "progress_items":       progress_items,
+
+        # Notifications
         "notifications":        notifications,
     })
 
