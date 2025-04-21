@@ -122,6 +122,7 @@
       <div class="card shadow-sm h-100">
         <div class="card-header bg-light d-flex align-items-center">
           <h5 class="mb-0">Inventory Overview</h5>
+          <!-- ◀ this is the only block we’ve changed: -->
           <div class="ms-auto d-flex align-items-center">
             <label for="table-select" class="visually-hidden">Select inventory table</label>
             <select
@@ -131,9 +132,9 @@
               style="width:auto"
               onchange="window.location='?table='+this.value"
             >
-              {% for tbl in inventory_tables %}
-                <option value="{{ tbl }}"{% if tbl == selected_table %} selected{% endif %}>
-                  {{ tbl }}
+              {% for opt in table_options %}
+                <option value="{{ opt.name }}"{% if opt.name == selected_table %} selected{% endif %}>
+                  {{ opt.label }}
                 </option>
               {% endfor %}
             </select>

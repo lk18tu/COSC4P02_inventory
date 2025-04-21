@@ -2,6 +2,7 @@
 import pytz
 import datetime
 import logging
+import re
 
 from django.db import connection
 from django.db.models import Sum, Count
@@ -195,15 +196,24 @@ def dashboard(request, tenant_url=None):
     # resolve tenant_url
     tenant_url = (
         request.tenant.domain_url
-        if hasattr(request, 'tenant')
-        else (tenant_url or '')
+        if hasattr(request, "tenant")
+        else (tenant_url or "")
     )
 
     # 1) list of all inventory tables & which one’s selected
     inventory_tables = get_available_inventory_tables()
-    selected_table   = request.GET.get('table') or (
+    selected_table = request.GET.get("table") or (
         inventory_tables[0] if inventory_tables else None
     )
+
+    # build a friendly label for each table, e.g. "Table1" → "Table 1"
+    table_options = []
+    for tbl in inventory_tables:
+        # drop the suffix (_classes) and tenant prefix
+        base = tbl.rsplit("_", 1)[0]  # e.g. "Test_company_1_Table1"
+        raw = base.split("_")[-1]  # e.g. "Table1"
+        label = re.sub(r"([A-Za-z]+)(\d+)", r"\1 \2", raw)
+        table_options.append({"name": tbl, "label": label})
 
     # 2) KPI metrics
     total_skus = total_units = items_below = 0
@@ -227,19 +237,23 @@ def dashboard(request, tenant_url=None):
             items_below = cursor.fetchone()[0] or 0
 
             # average daily sell‑through over last 7 days
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT ABS(SUM(`change`))
-                FROM updatestock_stocktransaction
-                WHERE table_meta_id = (
-                    SELECT id FROM inventoryapp_invtable_metadata
-                    WHERE table_name = %s
-                )
-                  AND item_id IN (SELECT id FROM `{tbl}`)
-                  AND `change` < 0
-                  AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-            """.replace("{tbl}", selected_table), [selected_table])
+                  FROM updatestock_stocktransaction
+                 WHERE table_meta_id = (
+                         SELECT id
+                           FROM inventoryapp_invtable_metadata
+                          WHERE table_name = %s
+                       )
+                   AND item_id IN (SELECT id FROM `{tbl}`)
+                   AND `change` < 0
+                   AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                """.replace("{tbl}", selected_table),
+                [selected_table],
+            )
             removed_last_week = cursor.fetchone()[0] or 0
-            avg_daily_sell = round(removed_last_week / 7, 1)
+            avg_daily_sell   = round(removed_last_week / 7, 1)
 
     # 3) bar chart for selected table
     inventory_bar_chart = (
@@ -247,16 +261,23 @@ def dashboard(request, tenant_url=None):
         if selected_table else None
     )
 
-    # 4) time + notifications + user type
-    eastern = pytz.timezone('US/Eastern')
+    # 4) time, notifications & user type
+    eastern = pytz.timezone("US/Eastern")
     now = datetime.datetime.now(eastern)
     formatted_date_time = now.strftime("%B %d, %Y, %I:%M %p EST")
 
     UserProfile.objects.get_or_create(user=request.user)
+
+    # ** NEW **: fetch last 5 notifications
+    notifications = (
+        Notification.objects
+                    .filter(user=request.user)
+                    .order_by("-created_at")[:5]
+    )
     unread = (
         Notification.objects
-        .filter(user=request.user, is_read=False)
-        .count() or 0
+                    .filter(user=request.user, is_read=False)
+                    .count() or 0
     )
 
     return render(request, "userauth/dashboard.html", {
@@ -266,6 +287,7 @@ def dashboard(request, tenant_url=None):
         "unread_notifications": unread,
 
         "inventory_tables":     inventory_tables,
+        "table_options": table_options,
         "selected_table":       selected_table,
         "inventory_bar_chart":  inventory_bar_chart,
 
@@ -273,10 +295,14 @@ def dashboard(request, tenant_url=None):
         "total_skus":           total_skus,
         "total_units":          total_units,
         "items_below":          items_below,
-        "percent_below":        (round(items_below / total_skus * 100, 1)
+        "percent_below":         (round(items_below / total_skus * 100, 1)
                                   if total_skus else 0),
         "avg_daily_sell":       avg_daily_sell,
+
+        # ** NEW **: pass the list into the template
+        "notifications":        notifications,
     })
+
 
 
 class ResetPasswordView(SuccessMessageMixin, PasswordResetView):
